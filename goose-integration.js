@@ -15,12 +15,12 @@ class GooseIntegration {
         this.sessionTimeouts = new Map();
         this.sessionLastActivity = new Map();
         
-        // Configurable timeout settings
+        // Configurable timeout settings - Made less aggressive
         this.timeoutSettings = {
-            default: 10 * 60 * 1000, // 10 minutes default
-            extended: 20 * 60 * 1000, // 20 minutes for complex tasks
-            maxInactivity: 3 * 60 * 1000, // 3 minutes of inactivity
-            heartbeatInterval: 30 * 1000 // 30 seconds
+            default: 15 * 60 * 1000, // 15 minutes default (increased from 10)
+            extended: 30 * 60 * 1000, // 30 minutes for complex tasks (increased from 20)
+            maxInactivity: 5 * 60 * 1000, // 5 minutes of inactivity (increased from 3)
+            heartbeatInterval: 60 * 1000 // 60 seconds (increased from 30)
         };
     }
 

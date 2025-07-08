@@ -1,5 +1,5 @@
-// Socket.IO connection
-const socket = io();
+// Socket.IO connection - Initialize once
+let socket;
 
 // DOM elements
 const taskForm = document.getElementById('task-form');
@@ -61,7 +61,12 @@ let agentOutputSections = new Map(); // Track agent output sections
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
-    socket = io();
+    // Initialize socket connection only once
+    if (!socket) {
+        socket = io();
+        setupSocketEventHandlers();
+    }
+    
     initializeEventListeners();
     startUptimeCounter();
     loadHomeDirectory();
@@ -70,26 +75,221 @@ document.addEventListener('DOMContentLoaded', function() {
     addSystemMessage('Welcome to Goose Multi-Agent System! 🚀\n\nNew features:\n• Intelligent timeout management (10-20 minutes based on task complexity)\n• Clean agent output sections with collapsible detailed logs\n• Real-time activity monitoring\n• Improved error handling\n\nSelect a project directory and submit a task to get started!');
 });
 
+function setupSocketEventHandlers() {
+    // Socket event handlers
+    socket.on('connect', () => {
+        if (connectionStatus) {
+            connectionStatus.className = 'status-dot online';
+        }
+        if (connectionText) {
+            connectionText.textContent = 'Connected';
+        }
+        console.log('Connected to server');
+    });
+
+    socket.on('disconnect', () => {
+        if (connectionStatus) {
+            connectionStatus.className = 'status-dot offline';
+        }
+        if (connectionText) {
+            connectionText.textContent = 'Disconnected';
+        }
+        console.log('Disconnected from server');
+    });
+
+    socket.on('agents_update', (agentsData) => {
+        // Prevent processing if we have too many agents (infinite loop protection)
+        if (agentsData.length > 50) {
+            console.warn('Too many agents detected, possible infinite loop. Limiting to 50 agents.');
+            agentsData = agentsData.slice(0, 50);
+        }
+        
+        agents.clear();
+        agentsData.forEach(agent => {
+            agents.set(agent.id, agent);
+        });
+        updateAgentsDisplay();
+    });
+
+    socket.on('agent_created', (agent) => {
+        agents.set(agent.id, agent);
+        updateAgentsDisplay();
+        addSystemMessage(`New agent created: ${agent.name}`, 'system');
+    });
+
+    socket.on('agent_status_update', (update) => {
+        const agent = agents.get(update.agentId);
+        if (agent) {
+            agent.status = update.status;
+            agent.progress = update.progress;
+            if (update.message) {
+                agent.logs.push({
+                    timestamp: update.timestamp,
+                    message: update.message
+                });
+            }
+            updateAgentsDisplay();
+        }
+    });
+
+    socket.on('goose_output', (data) => {
+        // Display important Goose CLI output in agent section
+        displayAgentOutput(data.sessionId, data.output, data.type, data.level);
+    });
+
+    socket.on('goose_detailed_output', (data) => {
+        // Store detailed output in collapsible section
+        addDetailedOutput(data.sessionId, data.output, data.type);
+    });
+
+    socket.on('session_heartbeat', (data) => {
+        // Update session activity indicator
+        updateSessionActivity(data.sessionId, data.lastActivity, data.inactivityTime);
+    });
+
+    socket.on('goose_status', (data) => {
+        addSystemMessage(`Status: ${data.message}`, 'system');
+    });
+
+    socket.on('task_completed', (data) => {
+        // Reset submission flag
+        window.taskSubmissionInProgress = false;
+        
+        addSystemMessage(data.message, 'success');
+        if (data.summary) {
+            let summaryText = `Task: ${data.summary.task}\nSubtasks Completed: ${data.summary.subtasksCompleted}/${data.summary.totalSubtasks}\nAgents Used: ${data.summary.agentsUsed}\nDuration: ${data.summary.duration}\nStatus: ${data.summary.status}`;
+            
+            // Add build validation info
+            if (data.summary.buildValidation) {
+                const validation = data.summary.buildValidation;
+                if (validation.buildable) {
+                    summaryText += `\n\n✅ PROJECT IS BUILDABLE!\nRun commands: ${validation.instructions.join(' OR ')}`;
+                } else {
+                    summaryText += `\n\n⚠️ Build validation: Missing some components`;
+                }
+            }
+            
+            addSystemMessage(summaryText, 'summary');
+        }
+        
+        // Re-enable form
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
+        }
+        currentPlanId = null;
+        currentPlan = null;
+        completedTasks++;
+        if (completedTasksCount) {
+            completedTasksCount.textContent = completedTasks;
+        }
+        
+        // Clean up agent output sections
+        cleanupAgentOutputSections();
+    });
+
+    socket.on('task_error', (data) => {
+        // Reset submission flag
+        window.taskSubmissionInProgress = false;
+        
+        addSystemMessage(`Error: ${data.error}`, 'error');
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
+        }
+        currentPlanId = null;
+        currentPlan = null;
+    });
+
+    socket.on('task_cancelled', (data) => {
+        // Reset submission flag
+        window.taskSubmissionInProgress = false;
+        
+        // Re-enable form
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
+        }
+        
+        addSystemMessage(data.message, 'system');
+        currentSessionId = null;
+        currentPlanId = null;
+        currentPlan = null;
+    });
+
+    // New socket events for multi-agent coordination
+    socket.on('execution_plan_created', (plan) => {
+        currentPlan = plan;
+        currentPlanId = plan.id;
+        displayExecutionPlan(plan);
+        addSystemMessage(`Starting multi-agent execution with ${plan.subtasks.length} specialized agents`, 'system');
+    });
+
+    socket.on('subtask_started', (data) => {
+        addSystemMessage(`🚀 Started: ${data.subtaskName} (Agent: ${data.agentName})`, 'system');
+        createAgentOutputSection(data.sessionId, data.agentName, data.subtaskName);
+    });
+
+    socket.on('subtask_completed', (data) => {
+        addSystemMessage(`✅ Completed: ${data.subtaskName} in ${data.duration}`, 'success');
+        finalizeAgentOutputSection(data.sessionId, 'completed');
+    });
+
+    socket.on('subtask_failed', (data) => {
+        addSystemMessage(`❌ Failed: ${data.subtaskName} - ${data.error}`, 'error');
+        finalizeAgentOutputSection(data.sessionId, 'failed');
+    });
+
+    socket.on('build_validation', (data) => {
+        const validation = data.validation;
+        if (validation.buildable) {
+            addSystemMessage(`🔨 Build Validation: Project is ready to build and run!`, 'success');
+            if (validation.instructions.length > 0) {
+                addSystemMessage(`📋 Quick Start: ${validation.instructions[0]}`, 'system');
+            }
+        } else {
+            let issues = [];
+            if (!validation.hasPackageJson) issues.push('missing package.json');
+            if (!validation.hasReadme) issues.push('missing README');
+            if (!validation.hasSourceFiles) issues.push('missing source files');
+            
+            addSystemMessage(`⚠️ Build Validation: ${issues.join(', ')}`, 'error');
+        }
+    });
+}
+
 function initializeEventListeners() {
     // Form submission
-    taskForm.addEventListener('submit', handleTaskSubmit);
+    if (taskForm) {
+        taskForm.addEventListener('submit', handleTaskSubmit);
+    }
     
     // Example task buttons
     document.querySelectorAll('.example-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             const task = this.getAttribute('data-task');
-            taskInput.value = task;
-            taskInput.focus();
+            if (taskInput) {
+                taskInput.value = task;
+                taskInput.focus();
+            }
         });
     });
     
     // Directory navigation
-    parentDirBtn.addEventListener('click', goToParentDirectory);
-    refreshDirBtn.addEventListener('click', refreshCurrentDirectory);
-    createDirBtn.addEventListener('click', showCreateDirModal);
+    if (parentDirBtn) {
+        parentDirBtn.addEventListener('click', goToParentDirectory);
+    }
+    if (refreshDirBtn) {
+        refreshDirBtn.addEventListener('click', refreshCurrentDirectory);
+    }
+    if (createDirBtn) {
+        createDirBtn.addEventListener('click', showCreateDirModal);
+    }
     
     // Toggle switch
-    useGooseToggle.addEventListener('change', handleToggleChange);
+    if (useGooseToggle) {
+        useGooseToggle.addEventListener('change', handleToggleChange);
+    }
     
     // Modal close events
     window.addEventListener('click', function(event) {
@@ -112,50 +312,80 @@ function initializeEventListeners() {
 
 async function checkGooseStatus() {
     try {
-        gooseStatusDot.className = 'status-dot checking';
-        gooseStatusText.textContent = 'Checking Goose CLI...';
+        if (gooseStatusDot) {
+            gooseStatusDot.className = 'status-dot checking';
+        }
+        if (gooseStatusText) {
+            gooseStatusText.textContent = 'Checking Goose CLI...';
+        }
         
         const response = await fetch('/api/goose-status');
         const data = await response.json();
         
         if (data.available) {
             gooseAvailable = true;
-            gooseStatusDot.className = 'status-dot available';
-            gooseStatusText.textContent = 'Goose CLI Available';
-            useGooseToggle.disabled = false;
+            if (gooseStatusDot) {
+                gooseStatusDot.className = 'status-dot available';
+            }
+            if (gooseStatusText) {
+                gooseStatusText.textContent = 'Goose CLI Available';
+            }
+            if (useGooseToggle) {
+                useGooseToggle.disabled = false;
+            }
             console.log('Goose CLI config:', data.config);
         } else {
             gooseAvailable = false;
-            gooseStatusDot.className = 'status-dot unavailable';
-            gooseStatusText.textContent = data.message || 'Goose CLI Not Available';
-            useGooseToggle.checked = false;
-            useGooseToggle.disabled = true;
+            if (gooseStatusDot) {
+                gooseStatusDot.className = 'status-dot unavailable';
+            }
+            if (gooseStatusText) {
+                gooseStatusText.textContent = data.message || 'Goose CLI Not Available';
+            }
+            if (useGooseToggle) {
+                useGooseToggle.checked = false;
+                useGooseToggle.disabled = true;
+            }
             handleToggleChange();
             console.warn('Goose CLI not available:', data.error);
         }
     } catch (error) {
         console.error('Error checking Goose status:', error);
         gooseAvailable = false;
-        gooseStatusDot.className = 'status-dot unavailable';
-        gooseStatusText.textContent = 'Error checking Goose CLI';
-        useGooseToggle.checked = false;
-        useGooseToggle.disabled = true;
+        if (gooseStatusDot) {
+            gooseStatusDot.className = 'status-dot unavailable';
+        }
+        if (gooseStatusText) {
+            gooseStatusText.textContent = 'Error checking Goose CLI';
+        }
+        if (useGooseToggle) {
+            useGooseToggle.checked = false;
+            useGooseToggle.disabled = true;
+        }
         handleToggleChange();
     }
 }
 
 function handleToggleChange() {
-    if (useGooseToggle.checked && gooseAvailable) {
-        modeDescription.textContent = 'Real AI agents via Goose CLI';
+    if (useGooseToggle && useGooseToggle.checked && gooseAvailable) {
+        if (modeDescription) {
+            modeDescription.textContent = 'Real AI agents via Goose CLI';
+        }
     } else {
-        modeDescription.textContent = 'Simulated agents for demo';
+        if (modeDescription) {
+            modeDescription.textContent = 'Simulated agents for demo';
+        }
     }
 }
 
 async function loadHomeDirectory() {
     try {
-        currentPathText.textContent = 'Loading...';
-        directoryList.innerHTML = '<div class="loading">Loading directories...</div>';
+        if (currentPathText) {
+            currentPathText.textContent = 'Loading...';
+        }
+        if (directoryList) {
+            directoryList.innerHTML = '<div class="loading">Loading directories...</div>';
+        }
         
         const response = await fetch('/api/directories');
         const data = await response.json();
@@ -174,8 +404,12 @@ async function loadHomeDirectory() {
         }
     } catch (error) {
         console.error('Error loading home directory:', error);
-        currentPathText.textContent = 'Error loading directory';
-        directoryList.innerHTML = `<div class="error">Error loading directories: ${error.message}</div>`;
+        if (currentPathText) {
+            currentPathText.textContent = 'Error loading directory';
+        }
+        if (directoryList) {
+            directoryList.innerHTML = `<div class="error">Error loading directories: ${error.message}</div>`;
+        }
         
         // Try to load current working directory as fallback
         try {
@@ -196,8 +430,12 @@ async function loadHomeDirectory() {
 
 async function loadDirectory(path) {
     try {
-        directoryList.innerHTML = '<div class="loading">Loading...</div>';
-        currentPathText.textContent = 'Loading...';
+        if (directoryList) {
+            directoryList.innerHTML = '<div class="loading">Loading...</div>';
+        }
+        if (currentPathText) {
+            currentPathText.textContent = 'Loading...';
+        }
         
         const response = await fetch(`/api/directories?path=${encodeURIComponent(path)}`);
         const data = await response.json();
@@ -216,39 +454,53 @@ async function loadDirectory(path) {
         }
     } catch (error) {
         console.error('Error loading directory:', error);
-        currentPathText.textContent = currentDirectory || 'Error';
-        directoryList.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+        if (currentPathText) {
+            currentPathText.textContent = currentDirectory || 'Error';
+        }
+        if (directoryList) {
+            directoryList.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+        }
         addSystemMessage(`Error loading directory: ${error.message}`, 'error');
     }
 }
 
 function updateDirectoryDisplay(data) {
-    currentPathText.textContent = data.currentPath;
+    if (currentPathText) {
+        currentPathText.textContent = data.currentPath;
+    }
     
     // Update parent button state
-    parentDirBtn.disabled = data.currentPath === data.parent;
+    if (parentDirBtn) {
+        parentDirBtn.disabled = data.currentPath === data.parent;
+    }
     
     // Clear and populate directory list
-    directoryList.innerHTML = '';
+    if (directoryList) {
+        directoryList.innerHTML = '';
+    }
     
     if (data.directories.length === 0) {
-        directoryList.innerHTML = '<div class="empty">No directories found</div>';
+        if (directoryList) {
+            directoryList.innerHTML = '<div class="empty">No directories found</div>';
+        }
         return;
     }
     
-    data.directories.forEach(dir => {
-        const dirItem = document.createElement('div');
-        dirItem.className = 'directory-item';
-        dirItem.innerHTML = `
-            <i class="fas fa-folder"></i>
-            <span>${dir.name}</span>
-        `;
-        
-        dirItem.addEventListener('click', () => selectDirectory(dir.path));
-        dirItem.addEventListener('dblclick', () => loadDirectory(dir.path));
-        
-        directoryList.appendChild(dirItem);
-    });
+    if (directoryList) {
+        data.directories.forEach(dir => {
+            const dirItem = document.createElement('div');
+            dirItem.className = 'directory-item';
+            dirItem.innerHTML = `
+                <i class="fas fa-folder"></i>
+                <span>${dir.name}</span>
+            `;
+            
+            dirItem.addEventListener('click', () => selectDirectory(dir.path));
+            dirItem.addEventListener('dblclick', () => loadDirectory(dir.path));
+            
+            directoryList.appendChild(dirItem);
+        });
+    }
 }
 
 function selectDirectory(path) {
@@ -261,7 +513,9 @@ function selectDirectory(path) {
     
     // Update selected path
     selectedProjectPath = path;
-    selectedPath.textContent = path;
+    if (selectedPath) {
+        selectedPath.textContent = path;
+    }
 }
 
 function goToParentDirectory() {
@@ -278,14 +532,24 @@ function refreshCurrentDirectory() {
 }
 
 function showCreateDirModal() {
-    parentDirDisplay.textContent = currentDirectory;
-    newDirName.value = '';
-    createDirModal.style.display = 'block';
-    newDirName.focus();
+    if (parentDirDisplay) {
+        parentDirDisplay.textContent = currentDirectory;
+    }
+    if (newDirName) {
+        newDirName.value = '';
+    }
+    if (createDirModal) {
+        createDirModal.style.display = 'block';
+    }
+    if (newDirName) {
+        newDirName.focus();
+    }
 }
 
 function closeCreateDirModal() {
-    createDirModal.style.display = 'none';
+    if (createDirModal) {
+        createDirModal.style.display = 'none';
+    }
 }
 
 async function createDirectory() {
@@ -335,14 +599,16 @@ function handleTaskSubmit(event) {
     if (!task) return;
     
     // Check if project directory is selected when using Goose
-    if (useGooseToggle.checked && !selectedProjectPath) {
+    if (useGooseToggle && useGooseToggle.checked && !selectedProjectPath) {
         addSystemMessage('Please select a project directory before submitting a task with Goose CLI', 'error');
         return;
     }
     
     // Disable form during processing
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    }
     
     // Add user message to chat
     addUserMessage(task);
@@ -357,20 +623,24 @@ function handleTaskSubmit(event) {
         task: task,
         description: `User requested: ${task}`,
         projectPath: selectedProjectPath,
-        useGoose: useGooseToggle.checked && gooseAvailable
+        useGoose: useGooseToggle && useGooseToggle.checked && gooseAvailable
     };
     
     socket.emit('submit_task', taskData);
     
     // Clear input
-    taskInput.value = '';
+    if (taskInput) {
+        taskInput.value = '';
+    }
 }
 
 function addUserMessage(message) {
     const messageElement = document.createElement('div');
     messageElement.className = 'message user';
     messageElement.textContent = message;
-    chatMessages.appendChild(messageElement);
+    if (chatMessages) {
+        chatMessages.appendChild(messageElement);
+    }
     scrollToBottom();
 }
 
@@ -378,7 +648,9 @@ function addSystemMessage(message, type = 'system') {
     const messageElement = document.createElement('div');
     messageElement.className = `message ${type}`;
     messageElement.textContent = message;
-    chatMessages.appendChild(messageElement);
+    if (chatMessages) {
+        chatMessages.appendChild(messageElement);
+    }
     scrollToBottom();
 }
 
@@ -404,30 +676,39 @@ function displayExecutionPlan(plan) {
         </div>
     `;
     
-    chatMessages.appendChild(planElement);
+    if (chatMessages) {
+        chatMessages.appendChild(planElement);
+    }
     scrollToBottom();
 }
 
 function scrollToBottom() {
-    chatMessages.scrollTop = chatMessages.scrollHeight;
+    if (chatMessages) {
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
 }
 
 function updateAgentsDisplay() {
-    agentsContainer.innerHTML = '';
+    if (agentsContainer) {
+        agentsContainer.innerHTML = '';
+    }
     
     const agentArray = Array.from(agents.values());
     
-    agentArray.forEach(agent => {
-        const agentCard = createAgentCard(agent);
-        agentsContainer.appendChild(agentCard);
-    });
+    if (agentsContainer) {
+        agentArray.forEach(agent => {
+            const agentCard = createAgentCard(agent);
+            agentsContainer.appendChild(agentCard);
+        });
+    }
     
     // Update stats
-    const activeAgents = agentArray.filter(agent => 
-        agent.status === 'working' || agent.status === 'idle'
-    ).length;
-    
-    activeAgentsCount.textContent = activeAgents;
+    if (activeAgentsCount) {
+        const activeAgents = agentArray.filter(agent => 
+            agent.status === 'working' || agent.status === 'idle'
+        ).length;
+        activeAgentsCount.textContent = activeAgents;
+    }
 }
 
 function createAgentCard(agent) {
@@ -458,7 +739,9 @@ function createAgentCard(agent) {
 }
 
 function showAgentDetails(agent) {
-    modalAgentName.textContent = `${agent.name} Details`;
+    if (modalAgentName) {
+        modalAgentName.textContent = `${agent.name} Details`;
+    }
     
     const details = `
         <div class="agent-detail-section">
@@ -482,12 +765,18 @@ function showAgentDetails(agent) {
         </div>
     `;
     
-    modalAgentDetails.innerHTML = details;
-    agentModal.style.display = 'block';
+    if (modalAgentDetails) {
+        modalAgentDetails.innerHTML = details;
+    }
+    if (agentModal) {
+        agentModal.style.display = 'block';
+    }
 }
 
 function closeModal() {
-    agentModal.style.display = 'none';
+    if (agentModal) {
+        agentModal.style.display = 'none';
+    }
 }
 
 function startUptimeCounter() {
@@ -502,185 +791,10 @@ function updateUptime() {
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
     const seconds = Math.floor((diff % (1000 * 60)) / 1000);
     
-    uptimeDisplay.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    if (uptimeDisplay) {
+        uptimeDisplay.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
 }
-
-// Socket event handlers
-socket.on('connect', () => {
-    connectionStatus.className = 'status-dot online';
-    connectionText.textContent = 'Connected';
-    console.log('Connected to server');
-});
-
-socket.on('disconnect', () => {
-    connectionStatus.className = 'status-dot offline';
-    connectionText.textContent = 'Disconnected';
-    console.log('Disconnected from server');
-});
-
-socket.on('agents_update', (agentsData) => {
-    // Prevent processing if we have too many agents (infinite loop protection)
-    if (agentsData.length > 50) {
-        console.warn('Too many agents detected, possible infinite loop. Limiting to 50 agents.');
-        agentsData = agentsData.slice(0, 50);
-    }
-    
-    agents.clear();
-    agentsData.forEach(agent => {
-        agents.set(agent.id, agent);
-    });
-    updateAgentsDisplay();
-});
-
-socket.on('agent_created', (agent) => {
-    agents.set(agent.id, agent);
-    updateAgentsDisplay();
-    addSystemMessage(`New agent created: ${agent.name}`, 'system');
-});
-
-socket.on('agent_status_update', (update) => {
-    const agent = agents.get(update.agentId);
-    if (agent) {
-        agent.status = update.status;
-        agent.progress = update.progress;
-        if (update.message) {
-            agent.logs.push({
-                timestamp: update.timestamp,
-                message: update.message
-            });
-        }
-        updateAgentsDisplay();
-    }
-});
-
-socket.on('goose_output', (data) => {
-    // Display important Goose CLI output in agent section
-    displayAgentOutput(data.sessionId, data.output, data.type, data.level);
-});
-
-socket.on('goose_detailed_output', (data) => {
-    // Store detailed output in collapsible section
-    addDetailedOutput(data.sessionId, data.output, data.type);
-});
-
-socket.on('session_heartbeat', (data) => {
-    // Update session activity indicator
-    updateSessionActivity(data.sessionId, data.lastActivity, data.inactivityTime);
-});
-
-socket.on('goose_status', (data) => {
-    addSystemMessage(`Status: ${data.message}`, 'system');
-});
-
-socket.on('task_completed', (data) => {
-    // Reset submission flag
-    window.taskSubmissionInProgress = false;
-    
-    addSystemMessage(data.message, 'success');
-    if (data.summary) {
-        let summaryText = `Task: ${data.summary.task}\nSubtasks Completed: ${data.summary.subtasksCompleted}/${data.summary.totalSubtasks}\nAgents Used: ${data.summary.agentsUsed}\nDuration: ${data.summary.duration}\nStatus: ${data.summary.status}`;
-        
-        // Add build validation info
-        if (data.summary.buildValidation) {
-            const validation = data.summary.buildValidation;
-            if (validation.buildable) {
-                summaryText += `\n\n✅ PROJECT IS BUILDABLE!\nRun commands: ${validation.instructions.join(' OR ')}`;
-            } else {
-                summaryText += `\n\n⚠️ Build validation: Missing some components`;
-            }
-        }
-        
-        addSystemMessage(summaryText, 'summary');
-    }
-    
-    // Re-enable form
-    const submitBtn = document.getElementById('submit-btn');
-    if (submitBtn) {
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
-    }
-    currentPlanId = null;
-    currentPlan = null;
-    completedTasks++;
-    const completedTasksCount = document.getElementById('completed-tasks-count');
-    if (completedTasksCount) {
-        completedTasksCount.textContent = completedTasks;
-    }
-    
-    // Clean up agent output sections
-    cleanupAgentOutputSections();
-});
-
-socket.on('task_error', (data) => {
-    // Reset submission flag
-    window.taskSubmissionInProgress = false;
-    
-    addSystemMessage(`Error: ${data.error}`, 'error');
-    const submitBtn = document.getElementById('submit-btn');
-    if (submitBtn) {
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
-    }
-    currentPlanId = null;
-    currentPlan = null;
-});
-
-socket.on('task_cancelled', (data) => {
-    // Reset submission flag
-    window.taskSubmissionInProgress = false;
-    
-    // Re-enable form
-    const submitBtn = document.getElementById('submit-btn');
-    if (submitBtn) {
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
-    }
-    
-    addSystemMessage(data.message, 'system');
-    currentSessionId = null;
-    currentPlanId = null;
-    currentPlan = null;
-});
-
-// New socket events for multi-agent coordination
-socket.on('execution_plan_created', (plan) => {
-    currentPlan = plan;
-    currentPlanId = plan.id;
-    displayExecutionPlan(plan);
-    addSystemMessage(`Starting multi-agent execution with ${plan.subtasks.length} specialized agents`, 'system');
-});
-
-socket.on('subtask_started', (data) => {
-    addSystemMessage(`🚀 Started: ${data.subtaskName} (Agent: ${data.agentName})`, 'system');
-    createAgentOutputSection(data.sessionId, data.agentName, data.subtaskName);
-});
-
-socket.on('subtask_completed', (data) => {
-    addSystemMessage(`✅ Completed: ${data.subtaskName} in ${data.duration}`, 'success');
-    finalizeAgentOutputSection(data.sessionId, 'completed');
-});
-
-socket.on('subtask_failed', (data) => {
-    addSystemMessage(`❌ Failed: ${data.subtaskName} - ${data.error}`, 'error');
-    finalizeAgentOutputSection(data.sessionId, 'failed');
-});
-
-socket.on('build_validation', (data) => {
-    const validation = data.validation;
-    if (validation.buildable) {
-        addSystemMessage(`🔨 Build Validation: Project is ready to build and run!`, 'success');
-        if (validation.instructions.length > 0) {
-            addSystemMessage(`📋 Quick Start: ${validation.instructions[0]}`, 'system');
-        }
-    } else {
-        let issues = [];
-        if (!validation.hasPackageJson) issues.push('missing package.json');
-        if (!validation.hasReadme) issues.push('missing README');
-        if (!validation.hasSourceFiles) issues.push('missing source files');
-        
-        addSystemMessage(`⚠️ Build Validation: ${issues.join(', ')}`, 'error');
-    }
-});
 
 // Add cancel task functionality
 function cancelCurrentTask() {
@@ -868,10 +982,15 @@ function openTemplateModal(templateType) {
         return;
     }
     
-    document.getElementById('template-modal-title').textContent = config.title;
+    const modalTitle = document.getElementById('template-modal-title');
+    if (modalTitle) {
+        modalTitle.textContent = config.title;
+    }
     
     const formContainer = document.getElementById('template-config-form');
-    formContainer.innerHTML = '';
+    if (formContainer) {
+        formContainer.innerHTML = '';
+    }
     
     config.sections.forEach(section => {
         const sectionDiv = document.createElement('div');
@@ -957,17 +1076,27 @@ function openTemplateModal(templateType) {
                 fieldDiv.appendChild(checkboxGroup);
             }
             
-            sectionDiv.appendChild(fieldDiv);
+            if (formContainer) {
+                formContainer.appendChild(fieldDiv);
+            }
         });
         
-        formContainer.appendChild(sectionDiv);
+        if (formContainer) {
+            formContainer.appendChild(sectionDiv);
+        }
     });
     
-    document.getElementById('template-config-modal').style.display = 'block';
+    const templateConfigModal = document.getElementById('template-config-modal');
+    if (templateConfigModal) {
+        templateConfigModal.style.display = 'block';
+    }
 }
 
 function closeTemplateModal() {
-    document.getElementById('template-config-modal').style.display = 'none';
+    const templateConfigModal = document.getElementById('template-config-modal');
+    if (templateConfigModal) {
+        templateConfigModal.style.display = 'none';
+    }
     selectedTemplate = null;
 }
 
@@ -1129,7 +1258,7 @@ function submitTaskFromTemplate(taskDescription, config) {
         task: taskDescription,
         description: `Generated from ${selectedTemplate} template`,
         projectPath: selectedProjectPath,
-        useGoose: document.getElementById('use-goose-toggle').checked,
+        useGoose: useGooseToggle && useGooseToggle.checked && gooseAvailable,
         templateType: selectedTemplate,
         templateConfig: config
     };
@@ -1137,7 +1266,6 @@ function submitTaskFromTemplate(taskDescription, config) {
     socket.emit('submit_task', taskData);
     
     // Update UI
-    const submitBtn = document.getElementById('submit-btn');
     if (submitBtn) {
         submitBtn.disabled = true;
         submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
@@ -1234,7 +1362,9 @@ function createAgentOutputSection(sessionId, agentName, taskName) {
         </div>
     `;
     
-    chatMessages.appendChild(agentSection);
+    if (chatMessages) {
+        chatMessages.appendChild(agentSection);
+    }
     agentOutputSections.set(sessionId, {
         element: agentSection,
         agentName: agentName,
