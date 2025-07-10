@@ -12,6 +12,12 @@ const connectionText = document.getElementById('connection-text');
 const activeAgentsCount = document.getElementById('active-agents-count');
 const completedTasksCount = document.getElementById('completed-tasks-count');
 const uptimeDisplay = document.getElementById('uptime');
+const setupPanel = document.getElementById('setup-panel');
+const agentsPanel = document.getElementById('agents-panel');
+const consoleMessages = document.getElementById('console-messages');
+const visitProjectBtn = document.getElementById('visit-project-btn');
+const openIdeBtn = document.getElementById('open-ide-btn');
+const backToSetupBtn = document.getElementById('back-to-setup-btn');
 const agentModal = document.getElementById('agent-modal');
 const modalAgentName = document.getElementById('modal-agent-name');
 const modalAgentDetails = document.getElementById('modal-agent-details');
@@ -31,6 +37,11 @@ const createDirModal = document.getElementById('create-dir-modal');
 const newDirName = document.getElementById('new-dir-name');
 const parentDirDisplay = document.getElementById('parent-dir-display');
 
+// Project name elements
+const projectNameInput = document.getElementById('project-name-input');
+const projectPathPreview = document.getElementById('project-path-preview');
+const fullProjectPath = document.getElementById('full-project-path');
+
 // State
 let agents = new Map();
 let completedTasks = 0;
@@ -38,6 +49,8 @@ let startTime = Date.now();
 let uptimeInterval;
 let currentDirectory = '';
 let selectedProjectPath = '';
+let projectName = '';
+let finalProjectPath = '';
 let gooseAvailable = false;
 let currentSessionId = null;
 let currentPlanId = null;
@@ -72,7 +85,7 @@ document.addEventListener('DOMContentLoaded', function() {
     loadHomeDirectory();
     checkGooseStatus();
     initializeTemplateSystem();
-    addSystemMessage('Welcome to Goose Multi-Agent System! 🚀\n\nNew features:\n• Intelligent timeout management (10-20 minutes based on task complexity)\n• Clean agent output sections with collapsible detailed logs\n• Real-time activity monitoring\n• Improved error handling\n\nSelect a project directory and submit a task to get started!');
+    addSystemMessage('Welcome to Maverick! 🚀\n\nNew features:\n• Intelligent timeout management (10-20 minutes based on task complexity)\n• Clean agent output sections with collapsible detailed logs\n• Real-time activity monitoring\n• Improved error handling\n\nSelect a project directory and submit a task to get started!');
 });
 
 function setupSocketEventHandlers() {
@@ -114,7 +127,8 @@ function setupSocketEventHandlers() {
     socket.on('agent_created', (agent) => {
         agents.set(agent.id, agent);
         updateAgentsDisplay();
-        addSystemMessage(`New agent created: ${agent.name}`, 'system');
+        // Don't show agent creation messages in chat - they're too verbose
+        console.log('New agent created:', agent.name);
     });
 
     socket.on('agent_status_update', (update) => {
@@ -133,7 +147,7 @@ function setupSocketEventHandlers() {
     });
 
     socket.on('goose_output', (data) => {
-        // Display important Goose CLI output in agent section
+        // Display important Goose CLI output in agent section only
         displayAgentOutput(data.sessionId, data.output, data.type, data.level);
     });
 
@@ -148,7 +162,9 @@ function setupSocketEventHandlers() {
     });
 
     socket.on('goose_status', (data) => {
-        addSystemMessage(`Status: ${data.message}`, 'system');
+        // Don't show Goose status messages in chat console - they're too verbose
+        // Only show in agent sections
+        console.log('Goose Status:', data.message);
     });
 
     socket.on('task_completed', (data) => {
@@ -159,15 +175,18 @@ function setupSocketEventHandlers() {
         if (data.summary) {
             let summaryText = `Task: ${data.summary.task}\nSubtasks Completed: ${data.summary.subtasksCompleted}/${data.summary.totalSubtasks}\nAgents Used: ${data.summary.agentsUsed}\nDuration: ${data.summary.duration}\nStatus: ${data.summary.status}`;
             
-            // Add build validation info
-            if (data.summary.buildValidation) {
-                const validation = data.summary.buildValidation;
-                if (validation.buildable) {
-                    summaryText += `\n\n✅ PROJECT IS BUILDABLE!\nRun commands: ${validation.instructions.join(' OR ')}`;
-                } else {
-                    summaryText += `\n\n⚠️ Build validation: Missing some components`;
-                }
+                    // Add build validation info
+        if (data.summary.buildValidation) {
+            const validation = data.summary.buildValidation;
+            if (validation.buildable) {
+                summaryText += `\n\n✅ PROJECT IS BUILDABLE!\nInstall commands: ${validation.instructions.join(' AND ')}`;
+                
+                // Show run project button
+                showRunProjectButton(validation.instructions);
+            } else {
+                summaryText += `\n\n⚠️ Build validation: Missing some components`;
             }
+        }
             
             addSystemMessage(summaryText, 'summary');
         }
@@ -186,6 +205,9 @@ function setupSocketEventHandlers() {
         
         // Clean up agent output sections
         cleanupAgentOutputSections();
+        
+        // Add completion message to console
+        addConsoleMessage('🎉 Task completed successfully! You can now visit the project or open it in your IDE.', 'success');
     });
 
     socket.on('task_error', (data) => {
@@ -223,10 +245,14 @@ function setupSocketEventHandlers() {
         currentPlanId = plan.id;
         displayExecutionPlan(plan);
         addSystemMessage(`Starting multi-agent execution with ${plan.subtasks.length} specialized agents`, 'system');
+        
+        // Switch to agents view
+        switchToAgentsView();
     });
 
     socket.on('subtask_started', (data) => {
-        addSystemMessage(`🚀 Started: ${data.subtaskName} (Agent: ${data.agentName})`, 'system');
+        // Show minimal info in chat, detailed info in agent sections
+        addSystemMessage(`🚀 Started: ${data.subtaskName}`, 'system');
         createAgentOutputSection(data.sessionId, data.agentName, data.subtaskName);
     });
 
@@ -256,6 +282,15 @@ function setupSocketEventHandlers() {
             addSystemMessage(`⚠️ Build Validation: ${issues.join(', ')}`, 'error');
         }
     });
+
+    // Terminal event handlers
+    socket.on('terminal_opened', (data) => {
+        addSystemMessage(`✅ Terminal opened in: ${data.projectPath}`, 'success');
+    });
+
+    socket.on('terminal_error', (data) => {
+        addSystemMessage(`❌ Failed to open terminal: ${data.error}`, 'error');
+    });
 }
 
 function initializeEventListeners() {
@@ -275,6 +310,17 @@ function initializeEventListeners() {
         });
     });
     
+    // Project action buttons
+    if (visitProjectBtn) {
+        visitProjectBtn.addEventListener('click', visitProject);
+    }
+    if (openIdeBtn) {
+        openIdeBtn.addEventListener('click', openInIde);
+    }
+    if (backToSetupBtn) {
+        backToSetupBtn.addEventListener('click', switchToSetupView);
+    }
+    
     // Directory navigation
     if (parentDirBtn) {
         parentDirBtn.addEventListener('click', goToParentDirectory);
@@ -291,13 +337,42 @@ function initializeEventListeners() {
         useGooseToggle.addEventListener('change', handleToggleChange);
     }
     
-    // Modal close events
+    // Project name input
+    if (projectNameInput) {
+        projectNameInput.addEventListener('input', updateProjectPathPreview);
+        projectNameInput.addEventListener('blur', sanitizeProjectName);
+    }
+    
+    // Modal close events - Fixed to handle all close buttons
     window.addEventListener('click', function(event) {
+        // Close agent modal
         if (event.target === agentModal) {
             closeModal();
         }
+        // Close create directory modal
         if (event.target === createDirModal) {
             closeCreateDirModal();
+        }
+        // Close template modal
+        const templateModal = document.getElementById('template-config-modal');
+        if (event.target === templateModal) {
+            closeTemplateModal();
+        }
+    });
+    
+    // Handle close button clicks
+    document.addEventListener('click', function(event) {
+        if (event.target.classList.contains('close-btn')) {
+            // Find the parent modal and close it
+            const modal = event.target.closest('.modal');
+            if (modal) {
+                modal.style.display = 'none';
+                
+                // Reset specific modal states
+                if (modal.id === 'template-config-modal') {
+                    selectedTemplate = null;
+                }
+            }
         }
     });
     
@@ -306,6 +381,7 @@ function initializeEventListeners() {
         if (event.key === 'Escape') {
             closeModal();
             closeCreateDirModal();
+            closeTemplateModal();
         }
     });
 }
@@ -516,6 +592,9 @@ function selectDirectory(path) {
     if (selectedPath) {
         selectedPath.textContent = path;
     }
+    
+    // Update project path preview
+    updateProjectPathPreview();
 }
 
 function goToParentDirectory() {
@@ -592,6 +671,37 @@ async function createDirectory() {
     }
 }
 
+function updateProjectPathPreview() {
+    if (!projectNameInput || !projectPathPreview || !fullProjectPath) return;
+    
+    const name = projectNameInput.value.trim();
+    projectName = name;
+    
+    if (name && selectedProjectPath) {
+        finalProjectPath = `${selectedProjectPath}/${name}`;
+        fullProjectPath.textContent = finalProjectPath;
+        projectPathPreview.style.display = 'block';
+    } else {
+        projectPathPreview.style.display = 'none';
+        finalProjectPath = '';
+    }
+}
+
+function sanitizeProjectName() {
+    if (!projectNameInput) return;
+    
+    let name = projectNameInput.value.trim();
+    // Remove special characters and replace spaces with hyphens
+    name = name.replace(/[^a-zA-Z0-9\s-_]/g, '');
+    name = name.replace(/\s+/g, '-');
+    name = name.toLowerCase();
+    
+    if (name !== projectNameInput.value) {
+        projectNameInput.value = name;
+        updateProjectPathPreview();
+    }
+}
+
 function handleTaskSubmit(event) {
     event.preventDefault();
     
@@ -601,6 +711,12 @@ function handleTaskSubmit(event) {
     // Check if project directory is selected when using Goose
     if (useGooseToggle && useGooseToggle.checked && !selectedProjectPath) {
         addSystemMessage('Please select a project directory before submitting a task with Goose CLI', 'error');
+        return;
+    }
+    
+    // Check if project name is provided when using Goose
+    if (useGooseToggle && useGooseToggle.checked && !projectName) {
+        addSystemMessage('Please enter a project name before submitting a task with Goose CLI', 'error');
         return;
     }
     
@@ -614,7 +730,9 @@ function handleTaskSubmit(event) {
     addUserMessage(task);
     
     // Show project path in chat if selected
-    if (selectedProjectPath) {
+    if (finalProjectPath) {
+        addSystemMessage(`Project will be created at: ${finalProjectPath}`, 'system');
+    } else if (selectedProjectPath) {
         addSystemMessage(`Project directory: ${selectedProjectPath}`, 'system');
     }
     
@@ -622,7 +740,8 @@ function handleTaskSubmit(event) {
     const taskData = {
         task: task,
         description: `User requested: ${task}`,
-        projectPath: selectedProjectPath,
+        projectPath: finalProjectPath || selectedProjectPath,
+        projectName: projectName,
         useGoose: useGooseToggle && useGooseToggle.checked && gooseAvailable
     };
     
@@ -652,6 +771,128 @@ function addSystemMessage(message, type = 'system') {
         chatMessages.appendChild(messageElement);
     }
     scrollToBottom();
+    
+    // Also add to console if agents panel is visible
+    if (agentsPanel && agentsPanel.style.display !== 'none') {
+        addConsoleMessage(message, type);
+    }
+}
+
+function addConsoleMessage(message, type = 'info') {
+    if (!consoleMessages) return;
+    
+    const timestamp = new Date().toLocaleTimeString();
+    const messageElement = document.createElement('div');
+    messageElement.className = `console-line ${type}`;
+    
+    let prefix = '';
+    switch (type) {
+        case 'success':
+            prefix = '✅ ';
+            break;
+        case 'error':
+            prefix = '❌ ';
+            break;
+        case 'system':
+            prefix = '🔧 ';
+            break;
+        default:
+            prefix = 'ℹ️ ';
+    }
+    
+    messageElement.innerHTML = `<span class="timestamp">[${timestamp}]</span> ${prefix}${message}`;
+    consoleMessages.appendChild(messageElement);
+    consoleMessages.scrollTop = consoleMessages.scrollHeight;
+}
+
+function switchToAgentsView() {
+    if (setupPanel && agentsPanel) {
+        setupPanel.style.display = 'none';
+        agentsPanel.style.display = 'flex';
+        
+        // Show project action buttons
+        if (visitProjectBtn) visitProjectBtn.style.display = 'flex';
+        if (openIdeBtn) openIdeBtn.style.display = 'flex';
+        
+        // Copy existing chat messages to console
+        if (chatMessages && consoleMessages) {
+            const messages = chatMessages.querySelectorAll('.message');
+            messages.forEach(msg => {
+                const type = msg.className.split(' ')[1] || 'info';
+                addConsoleMessage(msg.textContent, type);
+            });
+        }
+    }
+}
+
+function switchToSetupView() {
+    if (setupPanel && agentsPanel) {
+        setupPanel.style.display = 'grid';
+        agentsPanel.style.display = 'none';
+        
+        // Hide project action buttons
+        if (visitProjectBtn) visitProjectBtn.style.display = 'none';
+        if (openIdeBtn) openIdeBtn.style.display = 'none';
+        
+        // Clear console messages
+        if (consoleMessages) {
+            consoleMessages.innerHTML = '';
+        }
+    }
+}
+
+function visitProject() {
+    const pathToOpen = finalProjectPath || selectedProjectPath;
+    if (pathToOpen) {
+        // Send request to open project directory
+        fetch('/api/visit-project', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ projectPath: pathToOpen })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                addConsoleMessage(`Opened project directory: ${pathToOpen}`, 'success');
+            } else {
+                addConsoleMessage(`Failed to open project directory: ${data.error}`, 'error');
+            }
+        })
+        .catch(error => {
+            addConsoleMessage(`Error opening project directory: ${error.message}`, 'error');
+        });
+    } else {
+        addConsoleMessage('No project directory selected', 'error');
+    }
+}
+
+function openInIde() {
+    const pathToOpen = finalProjectPath || selectedProjectPath;
+    if (pathToOpen) {
+        // Send request to open project in IDE
+        fetch('/api/open-ide', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ projectPath: pathToOpen })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                addConsoleMessage(`Opening project in ${data.ide || 'default IDE'}...`, 'success');
+            } else {
+                addConsoleMessage(`Failed to open project in IDE: ${data.error}`, 'error');
+            }
+        })
+        .catch(error => {
+            addConsoleMessage(`Error opening project in IDE: ${error.message}`, 'error');
+        });
+    } else {
+        addConsoleMessage('No project directory selected', 'error');
+    }
 }
 
 function displayExecutionPlan(plan) {
@@ -743,24 +984,71 @@ function showAgentDetails(agent) {
         modalAgentName.textContent = `${agent.name} Details`;
     }
     
+    // Get Goose output for this agent if available
+    const agentSection = agentOutputSections.get(agent.sessionId);
+    let gooseOutput = '';
+    
+    if (agentSection) {
+        const importantOutput = document.getElementById(`important-${agent.sessionId}`);
+        const detailedOutput = document.getElementById(`detailed-${agent.sessionId}`);
+        
+        if (importantOutput) {
+            gooseOutput = `
+                <div class="agent-detail-section">
+                    <h4><i class="fas fa-terminal"></i> Goose CLI Output</h4>
+                    <div class="goose-output-display">
+                        ${importantOutput.innerHTML}
+                    </div>
+                </div>
+            `;
+        }
+        
+        if (detailedOutput && detailedOutput.innerHTML.trim()) {
+            gooseOutput += `
+                <div class="agent-detail-section">
+                    <h4><i class="fas fa-list"></i> Detailed Logs</h4>
+                    <div class="detailed-logs-display">
+                        ${detailedOutput.innerHTML}
+                    </div>
+                </div>
+            `;
+        }
+    }
+    
     const details = `
         <div class="agent-detail-section">
-            <h4>Agent Information</h4>
-            <p><strong>Type:</strong> ${agent.type}</p>
-            <p><strong>Status:</strong> ${agent.status}</p>
-            <p><strong>Progress:</strong> ${agent.progress}%</p>
-            <p><strong>Created:</strong> ${new Date(agent.createdAt).toLocaleString()}</p>
+            <h4><i class="fas fa-info-circle"></i> Agent Information</h4>
+            <div class="agent-info-grid">
+                <div class="info-item">
+                    <strong>Type:</strong> ${getAgentTypeDescription(agent.type)}
+                </div>
+                <div class="info-item">
+                    <strong>Status:</strong> <span class="status-badge ${agent.status}">${agent.status}</span>
+                </div>
+                <div class="info-item">
+                    <strong>Progress:</strong> 
+                    <div class="progress-bar-small">
+                        <div class="progress-fill" style="width: ${agent.progress}%"></div>
+                        <span class="progress-text">${agent.progress}%</span>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <strong>Created:</strong> ${new Date(agent.createdAt).toLocaleString()}
+                </div>
+            </div>
         </div>
         
+        ${gooseOutput}
+        
         <div class="agent-detail-section">
-            <h4>Activity Logs</h4>
+            <h4><i class="fas fa-history"></i> Activity History</h4>
             <div class="agent-logs">
-                ${agent.logs.map(log => `
+                ${agent.logs.length > 0 ? agent.logs.map(log => `
                     <div class="log-entry">
                         <div class="log-timestamp">${new Date(log.timestamp).toLocaleTimeString()}</div>
                         <div class="log-message">${log.message}</div>
                     </div>
-                `).join('')}
+                `).join('') : '<p class="no-logs">No activity logs available</p>'}
             </div>
         </div>
     `;
@@ -1247,17 +1535,32 @@ function submitTaskFromTemplate(taskDescription, config) {
         console.log('Task submission already in progress, ignoring duplicate');
         return;
     }
+    
+    // Check if project name is provided when using Goose
+    if (useGooseToggle && useGooseToggle.checked && !projectName) {
+        addSystemMessage('Please enter a project name before generating from template', 'error');
+        return;
+    }
+    
     window.taskSubmissionInProgress = true;
     
     // Add template info to chat
-    addSystemMessage(`🚀 Generating ${selectedTemplate} project: ${config.projectName}`, 'system');
+    addSystemMessage(`🚀 Generating ${selectedTemplate} project: ${config.projectName || projectName}`, 'system');
     addSystemMessage(taskDescription, 'user');
+    
+    // Show project path in chat if selected
+    if (finalProjectPath) {
+        addSystemMessage(`Project will be created at: ${finalProjectPath}`, 'system');
+    } else if (selectedProjectPath) {
+        addSystemMessage(`Project directory: ${selectedProjectPath}`, 'system');
+    }
     
     // Submit to backend
     const taskData = {
         task: taskDescription,
         description: `Generated from ${selectedTemplate} template`,
-        projectPath: selectedProjectPath,
+        projectPath: finalProjectPath || selectedProjectPath,
+        projectName: projectName || config.projectName,
         useGoose: useGooseToggle && useGooseToggle.checked && gooseAvailable,
         templateType: selectedTemplate,
         templateConfig: config
@@ -1542,4 +1845,79 @@ function cleanupAgentOutputSections() {
             }
         });
     }, 10000);
+} 
+
+/**
+ * Show run project button after successful completion
+ */
+function showRunProjectButton(buildInstructions) {
+    // Remove any existing run button
+    const existingButton = document.getElementById('run-project-button');
+    if (existingButton) {
+        existingButton.remove();
+    }
+    
+    // Create run project button
+    const runButton = document.createElement('div');
+    runButton.id = 'run-project-button';
+    runButton.className = 'run-project-container';
+    runButton.innerHTML = `
+        <div class="run-project-card">
+            <div class="run-project-header">
+                <i class="fas fa-play-circle"></i>
+                <h3>Project Ready to Run!</h3>
+            </div>
+            <div class="run-project-content">
+                <p>Your project has been built successfully. You can now:</p>
+                <div class="run-options">
+                    <button class="run-btn primary" onclick="runProjectInTerminal()">
+                        <i class="fas fa-terminal"></i>
+                        <span>Run in Terminal</span>
+                    </button>
+                    <button class="run-btn secondary" onclick="openProjectInIDE()">
+                        <i class="fas fa-code"></i>
+                        <span>Open in IDE</span>
+                    </button>
+                </div>
+                <div class="build-instructions">
+                    <small><strong>Manual steps:</strong> ${buildInstructions.join(' then ')}</small>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Add to chat messages
+    const chatMessages = document.getElementById('chat-messages');
+    if (chatMessages) {
+        chatMessages.appendChild(runButton);
+        scrollToBottom();
+    }
+}
+
+/**
+ * Run project in terminal (opens project directory and shows instructions)
+ */
+function runProjectInTerminal() {
+    if (finalProjectPath) { // Use finalProjectPath for the run button
+        // Send request to open terminal in project directory
+        socket.emit('open_terminal', { projectPath: finalProjectPath });
+        addSystemMessage('Opening terminal in project directory...', 'system');
+    } else if (selectedProjectPath) { // Fallback to selectedProjectPath
+        addSystemMessage('Project path not available for direct terminal run. Please visit the directory manually.', 'error');
+    } else {
+        addSystemMessage('No project path available. Please visit the project directory manually.', 'error');
+    }
+}
+
+/**
+ * Open project in IDE
+ */
+function openProjectInIDE() {
+    if (finalProjectPath) { // Use finalProjectPath for the run button
+        openInIde();
+    } else if (selectedProjectPath) { // Fallback to selectedProjectPath
+        addSystemMessage('Project path not available for direct IDE open. Please visit the directory manually.', 'error');
+    } else {
+        addSystemMessage('No project directory selected', 'error');
+    }
 } 

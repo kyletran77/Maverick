@@ -212,15 +212,47 @@ DEBUG=* npm run dev
 ### Project Structure
 
 ```
-goose-multi-agent-ui/
-├── server.js              # Main server file
-├── goose-integration.js   # Goose CLI integration
-├── package.json           # Dependencies and scripts
-├── README.md             # This file
-└── public/               # Client-side files
-    ├── index.html        # Main HTML structure
-    ├── script.js         # Client-side JavaScript
-    └── styles.css        # CSS styling
+maverick/
+├── backend/                    # Server-side code
+│   ├── src/                   # Backend source code
+│   │   ├── controllers/       # Route controllers
+│   │   ├── models/           # Data models
+│   │   ├── routes/           # API routes
+│   │   ├── middleware/       # Custom middleware
+│   │   ├── config/           # Backend configuration
+│   │   ├── utils/            # Utility functions
+│   │   └── server.js         # Alternative server entry
+│   ├── server.js             # Main server file
+│   ├── goose-integration.js  # Goose CLI integration
+│   └── package.json          # Backend dependencies
+├── client/                    # Frontend code
+│   ├── public/               # Static assets and built files
+│   │   ├── index.html        # Main HTML structure
+│   │   ├── script.js         # Client-side JavaScript
+│   │   └── styles.css        # CSS styling
+│   └── src/                  # Frontend source code
+│       ├── css/              # Source CSS files
+│       ├── js/               # Source JavaScript files
+│       └── assets/           # Images, fonts, etc.
+├── database/                  # Database files and management
+│   ├── migrations/           # Database migrations
+│   └── seeds/               # Database seed files
+├── config/                   # Configuration files
+│   ├── knexfile.js          # Database configuration
+│   ├── tailwind.config.js   # Tailwind CSS configuration
+│   └── postcss.config.js    # PostCSS configuration
+├── docs/                     # Documentation
+│   ├── TRD.md               # Technical Requirements Document
+│   ├── SPECIFICATIONS.md    # Technical Specifications
+│   └── *.md                 # Other documentation files
+├── scripts/                  # Utility scripts
+│   ├── test-integration.js  # Integration tests
+│   └── test-multi-agent.js  # Multi-agent tests
+├── tests/                    # Test files
+│   └── main.test.js         # Main test suite
+├── package.json             # Main dependencies and scripts
+├── .gitignore              # Git ignore rules
+└── README.md               # This file
 ```
 
 ### Adding New Features

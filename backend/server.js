@@ -15,7 +15,7 @@ const server = http.createServer(app);
 const io = socketIo(server);
 
 // Serve static files
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, '../client/public')));
 app.use(express.json());
 
 // Initialize Goose integration
@@ -75,6 +75,8 @@ const MAX_AGENTS = 100;
 // Initialize orchestrator agent
 const orchestrator = new Agent(uuidv4(), AGENT_TYPES.ORCHESTRATOR, 'Orchestrator');
 agents.set(orchestrator.id, orchestrator);
+
+
 
 // API endpoints for directory operations
 app.get('/api/directories', (req, res) => {
@@ -158,6 +160,104 @@ app.get('/api/goose-status', async (req, res) => {
   }
 });
 
+app.post('/api/visit-project', (req, res) => {
+  const { projectPath } = req.body;
+  
+  if (!projectPath) {
+    return res.status(400).json({ error: 'Project path is required' });
+  }
+  
+  try {
+    // Check if path exists
+    if (!fs.existsSync(projectPath)) {
+      return res.status(404).json({ error: 'Project directory not found' });
+    }
+    
+    // Open the directory in the default file manager
+    const { exec } = require('child_process');
+    let command;
+    
+    switch (process.platform) {
+      case 'darwin': // macOS
+        command = `open "${projectPath}"`;
+        break;
+      case 'win32': // Windows
+        command = `explorer "${projectPath}"`;
+        break;
+      default: // Linux and others
+        command = `xdg-open "${projectPath}"`;
+        break;
+    }
+    
+    exec(command, (error) => {
+      if (error) {
+        console.error('Error opening project directory:', error);
+        return res.status(500).json({ error: 'Failed to open project directory' });
+      }
+      
+      res.json({ 
+        success: true, 
+        message: 'Project directory opened successfully' 
+      });
+    });
+  } catch (error) {
+    console.error('Error visiting project:', error);
+    res.status(500).json({ error: `Failed to visit project: ${error.message}` });
+  }
+});
+
+app.post('/api/open-ide', (req, res) => {
+  const { projectPath } = req.body;
+  
+  if (!projectPath) {
+    return res.status(400).json({ error: 'Project path is required' });
+  }
+  
+  try {
+    // Check if path exists
+    if (!fs.existsSync(projectPath)) {
+      return res.status(404).json({ error: 'Project directory not found' });
+    }
+    
+    const { exec } = require('child_process');
+    let command;
+    let ide = 'default IDE';
+    
+    // Try to detect and open with popular IDEs
+    switch (process.platform) {
+      case 'darwin': // macOS
+        // Try VS Code first, then other IDEs
+        command = `code "${projectPath}" 2>/dev/null || open -a "Visual Studio Code" "${projectPath}" 2>/dev/null || open -a "Cursor" "${projectPath}" 2>/dev/null || open -a "WebStorm" "${projectPath}" 2>/dev/null || open -a "IntelliJ IDEA" "${projectPath}" 2>/dev/null || open "${projectPath}"`;
+        ide = 'VS Code or default IDE';
+        break;
+      case 'win32': // Windows
+        command = `code "${projectPath}" 2>nul || start "" "${projectPath}"`;
+        ide = 'VS Code or default IDE';
+        break;
+      default: // Linux and others
+        command = `code "${projectPath}" 2>/dev/null || xdg-open "${projectPath}"`;
+        ide = 'VS Code or default IDE';
+        break;
+    }
+    
+    exec(command, (error) => {
+      if (error) {
+        console.error('Error opening project in IDE:', error);
+        return res.status(500).json({ error: 'Failed to open project in IDE' });
+      }
+      
+      res.json({ 
+        success: true, 
+        ide: ide,
+        message: 'Project opened in IDE successfully' 
+      });
+    });
+  } catch (error) {
+    console.error('Error opening project in IDE:', error);
+    res.status(500).json({ error: `Failed to open project in IDE: ${error.message}` });
+  }
+});
+
 function getDirectories(dirPath) {
   try {
     // Check if directory exists and is accessible
@@ -206,11 +306,31 @@ io.on('connection', (socket) => {
 
   // Handle new task submission with Multi-Agent Orchestration
   socket.on('submit_task', async (data) => {
-    const { task, description, projectPath, useGoose = true } = data;
+    const { task, description, projectPath, projectName, useGoose = true } = data;
     
     console.log('New task received:', task);
     console.log('Project path:', projectPath);
+    console.log('Project name:', projectName);
     console.log('Use Goose:', useGoose);
+    
+    // Create project directory if projectName is provided
+    let finalProjectPath = projectPath;
+    if (projectName && projectPath) {
+      try {
+        const fullPath = path.join(projectPath, projectName);
+        if (!fs.existsSync(fullPath)) {
+          fs.mkdirSync(fullPath, { recursive: true });
+          console.log('Created project directory:', fullPath);
+        }
+        finalProjectPath = fullPath;
+      } catch (error) {
+        console.error('Error creating project directory:', error);
+        socket.emit('task_error', { 
+          error: `Failed to create project directory: ${error.message}`
+        });
+        return;
+      }
+    }
     
     if (useGoose) {
       try {
@@ -218,7 +338,7 @@ io.on('connection', (socket) => {
         await checkGooseInstallation();
         
         // Use multi-agent orchestration
-        await multiAgentOrchestrator.orchestrateTask(task, description, projectPath, socket);
+        await multiAgentOrchestrator.orchestrateTask(task, description, finalProjectPath, socket);
         
       } catch (error) {
         console.error('Goose CLI error:', error);
@@ -261,6 +381,53 @@ io.on('connection', (socket) => {
       }
     } else {
       socket.emit('task_error', { error: 'No valid session or plan ID provided' });
+    }
+  });
+
+  // Handle open terminal request
+  socket.on('open_terminal', (data) => {
+    const { projectPath } = data;
+    
+    if (!projectPath) {
+      socket.emit('terminal_error', { error: 'No project path provided' });
+      return;
+    }
+    
+    try {
+      const { spawn } = require('child_process');
+      const os = require('os');
+      
+      // Open terminal in the project directory based on OS
+      let command, args;
+      
+      if (os.platform() === 'darwin') { // macOS
+        command = 'open';
+        args = ['-a', 'Terminal', projectPath];
+      } else if (os.platform() === 'win32') { // Windows
+        command = 'cmd';
+        args = ['/c', 'start', 'cmd', '/k', `cd /d "${projectPath}"`];
+      } else { // Linux
+        command = 'gnome-terminal';
+        args = ['--working-directory', projectPath];
+      }
+      
+      const terminalProcess = spawn(command, args, {
+        detached: true,
+        stdio: 'ignore'
+      });
+      
+      terminalProcess.unref();
+      
+      socket.emit('terminal_opened', { 
+        message: 'Terminal opened in project directory',
+        projectPath: projectPath 
+      });
+      
+    } catch (error) {
+      console.error('Error opening terminal:', error);
+      socket.emit('terminal_error', { 
+        error: `Failed to open terminal: ${error.message}` 
+      });
     }
   });
 
@@ -576,7 +743,7 @@ class MultiAgentOrchestrator {
         {
           id: uuidv4(),
           name: 'Complete Frontend Application',
-          description: 'Create a complete, working frontend with HTML, CSS, JavaScript, package.json, build scripts, and README. Include all dependencies and make it immediately runnable with npm install && npm start.',
+          description: 'Create a complete, working frontend with HTML, CSS, JavaScript, package.json, build scripts, and README. Include all dependencies and make it ready to build and run. DO NOT start the development server automatically.',
           type: 'frontend',
           dependencies: [],
           estimatedTime: 15,
@@ -585,7 +752,7 @@ class MultiAgentOrchestrator {
         {
           id: uuidv4(),
           name: 'Complete Backend API Server',
-          description: 'Create a complete, working backend server with all API endpoints, middleware, error handling, package.json, and README. Include database connection, authentication, and make it immediately runnable.',
+          description: 'Create a complete, working backend server with all API endpoints, middleware, error handling, package.json, and README. Include database connection, authentication, and make it ready to build and run. DO NOT start the server automatically.',
           type: 'backend',
           dependencies: [],
           estimatedTime: 20,
@@ -606,7 +773,7 @@ class MultiAgentOrchestrator {
         {
           id: uuidv4(),
           name: 'Complete API Service',
-          description: 'Create a complete, production-ready REST API with all endpoints, middleware, error handling, input validation, authentication, database integration, package.json, tests, and comprehensive README. Make it immediately deployable.',
+          description: 'Create a complete, production-ready REST API with all endpoints, middleware, error handling, input validation, authentication, database integration, package.json, tests, and comprehensive README. Make it ready to build and deploy. DO NOT start the server automatically.',
           type: 'backend',
           dependencies: [],
           estimatedTime: 15,
@@ -627,7 +794,7 @@ class MultiAgentOrchestrator {
         {
           id: uuidv4(),
           name: 'Complete Testing Suite',
-          description: 'Create a comprehensive testing framework with unit tests, integration tests, test data, mocking, coverage reporting, and CI/CD configuration. Include package.json with test scripts and make tests immediately runnable.',
+          description: 'Create a comprehensive testing framework with unit tests, integration tests, test data, mocking, coverage reporting, and CI/CD configuration. Include package.json with test scripts and make tests ready to run. DO NOT run long-running test servers automatically.',
           type: 'testing',
           dependencies: [],
           estimatedTime: 12,
@@ -649,7 +816,7 @@ class MultiAgentOrchestrator {
         {
           id: uuidv4(),
           name: 'Complete Implementation',
-          description: 'Create a complete, working implementation of the requested feature with all necessary files, dependencies, configuration, build scripts, README, and make it immediately runnable. Include proper error handling, input validation, and production-ready code.',
+          description: 'Create a complete, working implementation of the requested feature with all necessary files, dependencies, configuration, build scripts, README, and make it ready to build and run. Include proper error handling, input validation, and production-ready code. DO NOT start servers or run applications automatically.',
           type: 'development',
           dependencies: [],
           estimatedTime: 20,
@@ -861,7 +1028,7 @@ Type: ${subtask.type}
 Priority: ${subtask.priority}
 
 CRITICAL REQUIREMENTS:
-1. Create a COMPLETE working implementation that can be built and run immediately
+1. Create a COMPLETE working implementation that can be built and tested immediately
 2. Include ALL necessary files, dependencies, and configuration
 3. Add proper package.json/requirements.txt with correct dependencies and versions
 4. Include build scripts and clear instructions in README.md
@@ -870,17 +1037,28 @@ CRITICAL REQUIREMENTS:
 7. Include basic tests that verify functionality
 8. Make sure all imports/dependencies are correctly specified
 
+IMPORTANT: DO NOT start servers or run applications automatically. Create all files and configuration, but let the user start the application manually.
+
 DELIVERABLES CHECKLIST:
 - [ ] All source code files created
 - [ ] Dependency management file (package.json, requirements.txt, etc.)
-- [ ] Build/run scripts configured
+- [ ] Build/run scripts configured in package.json
 - [ ] README.md with setup and usage instructions
 - [ ] Basic tests included
 - [ ] Error handling implemented
-- [ ] Code is immediately runnable
+- [ ] Code is ready to build and run (but don't run it)
+
+BUILD vs RUN INSTRUCTIONS:
+- ✅ DO: Create package.json with "start" script
+- ✅ DO: Include installation instructions (npm install)
+- ✅ DO: Test that dependencies install correctly
+- ✅ DO: Run tests if they exist (npm test)
+- ❌ DON'T: Start web servers (node server.js, npm start)
+- ❌ DON'T: Run applications that don't terminate
+- ❌ DON'T: Execute long-running processes
 
 Focus only on this specific subtask but ensure it's COMPLETE and BUILDABLE. Other agents are handling other parts of the project.
-Create everything needed so someone can immediately clone and run your part of the project.`;
+Create everything needed so someone can immediately clone, install, and run your part of the project.`;
 
     return contextPrompt;
   }
@@ -951,13 +1129,30 @@ Create everything needed so someone can immediately clone and run your part of t
       const packageJsonPath = path.join(projectPath, 'package.json');
       if (fs.existsSync(packageJsonPath)) {
         validationResults.hasPackageJson = true;
-        validationResults.instructions.push('npm install && npm start');
+        validationResults.instructions.push('npm install');
+        // Check if tests exist
+        try {
+          const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+          if (packageJson.scripts && packageJson.scripts.test) {
+            validationResults.instructions.push('npm test');
+          }
+        } catch (e) {
+          // Ignore JSON parse errors
+        }
       }
 
       // Check for requirements.txt (Python)
       const requirementsPath = path.join(projectPath, 'requirements.txt');
       if (fs.existsSync(requirementsPath)) {
-        validationResults.instructions.push('pip install -r requirements.txt && python main.py');
+        validationResults.instructions.push('pip install -r requirements.txt');
+        // Check for test files
+        const testFiles = ['test.py', 'tests.py', 'test_*.py'];
+        for (const testFile of testFiles) {
+          if (fs.existsSync(path.join(projectPath, testFile))) {
+            validationResults.instructions.push('python -m pytest');
+            break;
+          }
+        }
       }
 
       // Check for README
