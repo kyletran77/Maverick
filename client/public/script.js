@@ -65,7 +65,15 @@ const AGENT_ICONS = {
     'code_reviewer': 'fas fa-search',
     'tester': 'fas fa-bug',
     'documentation': 'fas fa-file-alt',
-    'deployment': 'fas fa-rocket'
+    'deployment': 'fas fa-rocket',
+    // TaskOrchestrator agent types
+    'frontend_specialist': 'fab fa-react',
+    'backend_specialist': 'fas fa-server',
+    'database_architect': 'fas fa-database',
+    'test_engineer': 'fas fa-vial',
+    'devops_engineer': 'fab fa-docker',
+    'documentation_specialist': 'fas fa-book',
+    'security_specialist': 'fas fa-shield-alt'
 };
 
 // Additional global variables
@@ -112,14 +120,26 @@ function setupSocketEventHandlers() {
     });
 
     socket.on('agents_update', (agentsData) => {
+        // Handle both array and object formats
+        let agentsArray;
+        if (Array.isArray(agentsData)) {
+            agentsArray = agentsData;
+        } else if (typeof agentsData === 'object' && agentsData !== null) {
+            // Convert object to array
+            agentsArray = Object.values(agentsData);
+        } else {
+            console.warn('Invalid agents data format:', agentsData);
+            return;
+        }
+        
         // Prevent processing if we have too many agents (infinite loop protection)
-        if (agentsData.length > 50) {
+        if (agentsArray.length > 50) {
             console.warn('Too many agents detected, possible infinite loop. Limiting to 50 agents.');
-            agentsData = agentsData.slice(0, 50);
+            agentsArray = agentsArray.slice(0, 50);
         }
         
         agents.clear();
-        agentsData.forEach(agent => {
+        agentsArray.forEach(agent => {
             agents.set(agent.id, agent);
         });
         updateAgentsDisplay();
@@ -138,6 +158,10 @@ function setupSocketEventHandlers() {
             agent.status = update.status;
             agent.progress = update.progress;
             if (update.message) {
+                // Ensure logs array exists
+                if (!agent.logs) {
+                    agent.logs = [];
+                }
                 agent.logs.push({
                     timestamp: update.timestamp,
                     message: update.message
@@ -1009,23 +1033,30 @@ function updateAgentsDisplay() {
 
 function createAgentCard(agent) {
     const card = document.createElement('div');
-    card.className = `agent-card ${agent.status}`;
+    card.className = `agent-card ${agent.status || 'idle'}`;
     card.addEventListener('click', () => showAgentDetails(agent));
     
     const icon = AGENT_ICONS[agent.type] || 'fas fa-robot';
-    const currentTask = agent.logs.length > 0 ? agent.logs[agent.logs.length - 1].message : 'Idle';
+    
+    // Handle missing properties gracefully
+    const logs = agent.logs || [];
+    const currentTask = agent.currentTask || 
+                      (logs.length > 0 ? logs[logs.length - 1].message : 'Idle');
+    const progress = agent.progress || 0;
+    const status = agent.status || 'idle';
+    const name = agent.name || 'Unknown Agent';
     
     card.innerHTML = `
         <div class="agent-header">
             <div class="agent-name">
                 <i class="${icon}"></i>
-                ${agent.name}
+                ${name}
             </div>
-            <div class="agent-status ${agent.status}">${agent.status}</div>
+            <div class="agent-status ${status}">${status}</div>
         </div>
-        <div class="agent-progress ${agent.status}">
+        <div class="agent-progress ${status}">
             <div class="progress-bar">
-                <div class="progress-fill" style="width: ${agent.progress}%"></div>
+                <div class="progress-fill" style="width: ${progress}%"></div>
             </div>
         </div>
         <div class="agent-current-task">${currentTask}</div>
@@ -1036,7 +1067,7 @@ function createAgentCard(agent) {
 
 function showAgentDetails(agent) {
     if (modalAgentName) {
-        modalAgentName.textContent = `${agent.name} Details`;
+        modalAgentName.textContent = `${agent.name || 'Unknown Agent'} Details`;
     }
     
     // Get Goose output for this agent if available
@@ -1083,12 +1114,12 @@ function showAgentDetails(agent) {
                 <div class="info-item">
                     <strong>Progress:</strong> 
                     <div class="progress-bar-small">
-                        <div class="progress-fill" style="width: ${agent.progress}%"></div>
-                        <span class="progress-text">${agent.progress}%</span>
+                        <div class="progress-fill" style="width: ${agent.progress || 0}%"></div>
+                        <span class="progress-text">${agent.progress || 0}%</span>
                     </div>
                 </div>
                 <div class="info-item">
-                    <strong>Created:</strong> ${new Date(agent.createdAt).toLocaleString()}
+                    <strong>Created:</strong> ${agent.createdAt ? new Date(agent.createdAt).toLocaleString() : 'Unknown'}
                 </div>
             </div>
         </div>
@@ -1098,7 +1129,7 @@ function showAgentDetails(agent) {
         <div class="agent-detail-section">
             <h4><i class="fas fa-history"></i> Activity History</h4>
             <div class="agent-logs">
-                ${agent.logs.length > 0 ? agent.logs.map(log => `
+                ${(agent.logs && agent.logs.length > 0) ? agent.logs.map(log => `
                     <div class="log-entry">
                         <div class="log-timestamp">${new Date(log.timestamp).toLocaleTimeString()}</div>
                         <div class="log-message">${log.message}</div>
@@ -1174,7 +1205,15 @@ function getAgentTypeDescription(type) {
         'code_reviewer': 'Reviews code for quality and standards',
         'tester': 'Creates and runs tests for the code',
         'documentation': 'Creates documentation and guides',
-        'deployment': 'Handles deployment and publishing'
+        'deployment': 'Handles deployment and publishing',
+        // TaskOrchestrator agent types
+        'frontend_specialist': 'Specializes in frontend development with React, Vue, Angular',
+        'backend_specialist': 'Develops backend APIs and server-side logic',
+        'database_architect': 'Designs and optimizes database schemas',
+        'test_engineer': 'Creates comprehensive test suites and automation',
+        'devops_engineer': 'Handles deployment, CI/CD, and infrastructure',
+        'documentation_specialist': 'Creates technical documentation and guides',
+        'security_specialist': 'Ensures security best practices and compliance'
     };
     
     return descriptions[type] || 'Specialized agent';

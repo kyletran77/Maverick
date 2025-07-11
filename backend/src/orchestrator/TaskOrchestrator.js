@@ -1,4 +1,5 @@
 const { v4: uuidv4 } = require('uuid');
+const { GooseIntegration } = require('../../goose-integration');
 
 /**
  * LangGraph-inspired Task Orchestrator
@@ -18,6 +19,9 @@ class TaskOrchestrator {
     this.activeJobs = new Map();
     this.jobHistory = [];
     this.jobSockets = new Map();
+    
+    // Initialize Goose integration for real agent execution
+    this.gooseIntegration = new GooseIntegration(io);
     
     // Initialize specialized agent types with capabilities
     this.initializeAgentTypes();
@@ -201,8 +205,12 @@ class TaskOrchestrator {
         metrics: project.metrics
       });
       
-      // Step 6: Start task execution (simplified)
-      console.log('Step 6: Starting task execution...');
+      // Step 6: Emit initial agent states
+      console.log('Step 6: Broadcasting initial agent states...');
+      this.broadcastAgentStates(project, socket);
+      
+      // Step 7: Start task execution (simplified)
+      console.log('Step 7: Starting task execution...');
       await this.startSimplifiedTaskExecution(projectId, socket);
       
       return project;
@@ -233,11 +241,11 @@ class TaskOrchestrator {
       for (const task of readyTasks) {
         console.log('Starting task:', task.title);
         
-        // Execute task with timeout
+        // Execute task with timeout - Increased from 10 seconds to 15 minutes
         const taskTimeout = setTimeout(() => {
           console.warn('Task execution timeout:', task.title);
           this.completeTaskWithTimeout(projectId, task.id, socket);
-        }, 10000); // 10 second timeout per task
+        }, 15 * 60 * 1000); // 15 minutes timeout per task
         
         try {
           await this.executeTaskSafely(projectId, task.id, socket);
@@ -249,10 +257,10 @@ class TaskOrchestrator {
         }
       }
       
-      // Complete project after all initial tasks are done
+      // Complete project after all initial tasks are done - Increased from 5 to 30 seconds
       setTimeout(() => {
         this.completeProject(projectId, socket);
-      }, 5000); // Complete after 5 seconds
+      }, 30000); // Complete after 30 seconds
       
     } catch (error) {
       console.error('Task execution failed:', error);
@@ -305,15 +313,262 @@ class TaskOrchestrator {
         task: task
       });
       
-      // Simulate task execution with shorter timeout
-      setTimeout(() => {
-        this.completeTaskSafely(projectId, taskId, socket);
-      }, 2000); // 2 second simulation
+      // Create a comprehensive task description for Goose CLI
+      const taskDescription = this.createGooseTaskDescription(task, agent, project);
+      // Use shorter, more meaningful session ID
+      const sessionId = `${agent.type}-${task.title.replace(/[^a-zA-Z0-9]/g, '').substring(0, 20)}`;
+      
+      console.log(`[${sessionId}] Starting Goose CLI execution for task: ${task.title}`);
+      
+      // Emit agent status update
+      socket.emit('agent_status_update', {
+        agentId: agent.id,
+        agentName: agent.name,
+        agentType: agent.type,
+        status: 'working',
+        currentTask: task.title,
+        progress: 0,
+        sessionId: sessionId
+      });
+      
+      // Broadcast to all clients
+      this.io.emit('agents_update', {
+        [agent.id]: {
+          ...agent,
+          status: 'working',
+          currentTask: task.title,
+          progress: 0,
+          sessionId: sessionId,
+          logs: agent.logs || []
+        }
+      });
+      
+      try {
+        // Check if Goose CLI is available before executing
+        const { checkGooseInstallation } = require('../../goose-integration');
+        
+        console.log(`[${sessionId}] Checking Goose CLI availability...`);
+        try {
+          await checkGooseInstallation();
+          console.log(`[${sessionId}] Goose CLI is available, proceeding with execution`);
+        } catch (gooseError) {
+          console.error(`[${sessionId}] Goose CLI check failed:`, gooseError.message);
+          throw new Error(`Goose CLI not available: ${gooseError.message}. Please install Goose CLI first.`);
+        }
+        
+        console.log(`[${sessionId}] Starting Goose CLI execution...`);
+        console.log(`[${sessionId}] Task description length: ${taskDescription.length} characters`);
+        console.log(`[${sessionId}] Project path: ${project.projectPath}`);
+        console.log(`[${sessionId}] Agent: ${agent.name} (${agent.type})`);
+        console.log(`[${sessionId}] Task: ${task.title}`);
+        
+        // Log the first 200 characters of the task description for debugging
+        console.log(`[${sessionId}] Task description preview:`, taskDescription.substring(0, 200) + '...');
+        
+        // Execute the task using Goose CLI
+        const startTime = new Date();
+        console.log(`[${sessionId}] Calling gooseIntegration.executeGooseTask...`);
+        
+        await this.gooseIntegration.executeGooseTask(
+          taskDescription,
+          sessionId,
+          socket,
+          project.projectPath
+        );
+        
+        const duration = new Date() - startTime;
+        console.log(`[${sessionId}] Goose CLI execution completed in ${Math.round(duration / 1000)}s`);
+        
+        // Task completed successfully
+        await this.completeTaskSafely(projectId, taskId, socket);
+        
+      } catch (error) {
+        console.error(`[${sessionId}] Goose CLI execution failed:`, error);
+        await this.handleTaskError(projectId, taskId, agent, error, socket);
+      }
       
     } catch (error) {
       console.error('Task execution error:', error);
       // Don't throw, just log and continue
     }
+  }
+
+  /**
+   * Handle task execution errors
+   */
+  async handleTaskError(projectId, taskId, agent, error, socket) {
+    const project = this.activeProjects.get(projectId);
+    if (!project) return;
+    
+    const taskNode = project.taskGraph.nodes.find(n => n.id === taskId);
+    if (!taskNode) return;
+    
+    const task = taskNode.data;
+    
+    // Update task status to failed
+    task.status = 'failed';
+    task.error = error.message;
+    task.failedAt = new Date();
+    
+    console.error(`[${agent.type}-${task.title}] Task failed:`, error.message);
+    
+    // Move task to failed column
+    try {
+      this.moveTaskInKanban(project.kanbanBoard, taskId, 'inProgress', 'failed', agent.id);
+    } catch (kanbanError) {
+      console.warn('Failed to move failed task in kanban:', kanbanError);
+    }
+    
+    // Update agent status
+    socket.emit('agent_status_update', {
+      agentId: agent.id,
+      agentName: agent.name,
+      agentType: agent.type,
+      status: 'error',
+      currentTask: task.title,
+      progress: 0,
+      error: error.message,
+      sessionId: `${agent.type}-${task.title.replace(/[^a-zA-Z0-9]/g, '').substring(0, 20)}`
+    });
+    
+    // Broadcast to all clients
+    this.io.emit('agents_update', {
+      [agent.id]: {
+        ...agent,
+        status: 'error',
+        currentTask: task.title,
+        progress: 0,
+        error: error.message,
+        logs: agent.logs || []
+      }
+    });
+    
+    // Emit task failed event
+    socket.emit('task_failed', {
+      projectId,
+      taskId,
+      agentId: agent.id,
+      task: task,
+      error: error.message
+    });
+  }
+
+  /**
+   * Broadcast agent states to the frontend
+   */
+  broadcastAgentStates(project, socket) {
+    const agentStates = {};
+    
+    project.agentAssignments.forEach((assignment, agentId) => {
+      const agent = assignment.agent;
+      agentStates[agentId] = {
+        id: agent.id,
+        name: agent.name,
+        type: agent.type,
+        specialization: agent.specialization,
+        status: 'idle',
+        currentTask: null,
+        progress: 0,
+        capabilities: agent.capabilities,
+        assignedTasks: assignment.tasks.map(task => ({
+          id: task.id,
+          title: task.title,
+          status: task.status || 'todo'
+        })),
+        metrics: agent.metrics,
+        logs: agent.logs || [], // Ensure logs property exists
+        createdAt: agent.createdAt || new Date(),
+        lastActivity: agent.lastActivity || new Date()
+      };
+    });
+    
+    // Emit to current socket
+    socket.emit('agents_update', agentStates);
+    
+    // Broadcast to all clients
+    this.io.emit('agents_update', agentStates);
+    
+    console.log('Broadcasted agent states for', Object.keys(agentStates).length, 'agents');
+  }
+
+  /**
+   * Create a comprehensive task description for Goose CLI execution
+   */
+  createGooseTaskDescription(task, agent, project) {
+    const context = {
+      projectType: project.metrics?.complexity || 'medium',
+      projectPath: project.projectPath,
+      agentType: agent.specialization,
+      agentCapabilities: agent.capabilities.join(', ')
+    };
+    
+    // Create a detailed task description that includes context and requirements
+    let description = `You are a ${agent.specialization} working on: ${task.title}\n\n`;
+    description += `Task Description: ${task.description}\n\n`;
+    description += `Priority: ${task.priority}\n`;
+    description += `Estimated Hours: ${task.estimatedHours}\n\n`;
+    
+    if (task.skills && task.skills.length > 0) {
+      description += `Required Skills: ${task.skills.join(', ')}\n\n`;
+    }
+    
+    if (task.deliverables && task.deliverables.length > 0) {
+      description += `Expected Deliverables:\n`;
+      task.deliverables.forEach(deliverable => {
+        description += `- ${deliverable}\n`;
+      });
+      description += '\n';
+    }
+    
+    // Add project context
+    description += `Project Context:\n`;
+    description += `- Project Type: ${context.projectType}\n`;
+    description += `- Working Directory: ${context.projectPath}\n`;
+    description += `- Your Role: ${context.agentType}\n`;
+    description += `- Your Capabilities: ${context.agentCapabilities}\n\n`;
+    
+    // Add specific instructions based on agent type
+    if (agent.type === 'frontend_specialist') {
+      description += `Frontend Development Instructions:\n`;
+      description += `- Create responsive and modern user interfaces\n`;
+      description += `- Use modern frameworks and best practices\n`;
+      description += `- Ensure cross-browser compatibility\n`;
+      description += `- Implement proper state management\n`;
+      description += `- Follow accessibility guidelines\n\n`;
+    } else if (agent.type === 'backend_specialist') {
+      description += `Backend Development Instructions:\n`;
+      description += `- Build scalable and secure APIs\n`;
+      description += `- Implement proper error handling\n`;
+      description += `- Use appropriate design patterns\n`;
+      description += `- Ensure data validation and security\n`;
+      description += `- Follow RESTful principles\n\n`;
+    } else if (agent.type === 'database_architect') {
+      description += `Database Design Instructions:\n`;
+      description += `- Design efficient and normalized schemas\n`;
+      description += `- Implement proper indexing strategies\n`;
+      description += `- Consider data integrity and constraints\n`;
+      description += `- Plan for scalability and performance\n`;
+      description += `- Document the database design\n\n`;
+    }
+    
+    // CRITICAL: Add explicit instructions to prevent testing infinite loops
+    description += `CRITICAL TESTING RESTRICTIONS:\n`;
+    description += `- DO NOT run any tests (npm test, yarn test, jest, etc.)\n`;
+    description += `- DO NOT use --watchAll or --watch flags in test scripts\n`;
+    description += `- DO NOT execute any commands that start continuous processes\n`;
+    description += `- If you create package.json, ensure test script is "echo 'Tests disabled to prevent infinite loops'"\n`;
+    description += `- Focus on implementation only, not testing\n`;
+    description += `- Testing will be handled separately to avoid infinite loops\n\n`;
+    
+    description += `Important Notes:\n`;
+    description += `- Work incrementally and test your changes manually (not via test runners)\n`;
+    description += `- Create any necessary files and directories\n`;
+    description += `- Follow coding best practices and conventions\n`;
+    description += `- Document your work appropriately\n`;
+    description += `- If you encounter issues, explain them clearly\n`;
+    description += `- Complete your task and exit cleanly without running servers or tests\n`;
+    
+    return description;
   }
 
   /**
@@ -358,6 +613,27 @@ class TaskOrchestrator {
         console.warn('Failed to move task in kanban:', error);
       }
       
+      // Update agent status to completed
+      socket.emit('agent_status_update', {
+        agentId: agent.id,
+        agentName: agent.name,
+        agentType: agent.type,
+        status: 'completed',
+        currentTask: task.title,
+        progress: 100
+      });
+      
+      // Broadcast to all clients
+      this.io.emit('agents_update', {
+        [agent.id]: {
+          ...agent,
+          status: 'completed',
+          currentTask: task.title,
+          progress: 100,
+          logs: agent.logs || []
+        }
+      });
+      
       // Emit task completed event
       socket.emit('task_completed', {
         projectId,
@@ -375,10 +651,36 @@ class TaskOrchestrator {
   }
 
   /**
-   * Complete task with timeout (fallback)
+   * Complete a task due to timeout with better logging
    */
   async completeTaskWithTimeout(projectId, taskId, socket) {
-    console.log('Completing task due to timeout:', taskId);
+    console.log(`[TIMEOUT] Completing task due to timeout: ${taskId}`);
+    
+    const project = this.activeProjects.get(projectId);
+    if (project) {
+      const taskNode = project.taskGraph.nodes.find(n => n.id === taskId);
+      if (taskNode) {
+        const task = taskNode.data;
+        console.log(`[TIMEOUT] Task details: ${task.title} - Started at: ${task.startedAt}`);
+        
+        // Log timeout reason
+        const timeoutReason = task.startedAt ? 
+          `Task timed out after ${Math.round((new Date() - task.startedAt) / 1000)}s` : 
+          'Task timed out before starting';
+        
+        console.warn(`[TIMEOUT] ${timeoutReason}`);
+        
+        // Emit timeout event to frontend
+        socket.emit('task_timeout', {
+          projectId,
+          taskId,
+          taskTitle: task.title,
+          reason: timeoutReason,
+          timestamp: new Date().toISOString()
+        });
+      }
+    }
+    
     await this.completeTaskSafely(projectId, taskId, socket);
   }
 
@@ -995,6 +1297,7 @@ class TaskOrchestrator {
         efficiency: agentType.efficiency || {}
       },
       completedTasks: [], // Initialize the completedTasks array
+      logs: [], // Initialize the logs array
       preferences: {
         maxConcurrentTasks: agentType.maxConcurrentTasks || 2,
         preferredTaskTypes: agentType.capabilities || []
@@ -1013,40 +1316,9 @@ class TaskOrchestrator {
     const projectBoard = {
       id: uuidv4(),
       name: 'Project Overview',
-      columns: {
-        todo: {
-          tasks: []
-        },
-        inProgress: {
-          tasks: []
-        },
-        review: {
-          tasks: []
-        },
-        completed: {
-          tasks: []
-        },
-        blocked: {
-          tasks: []
-        }
-      },
-      agents: {}
-    };
-    
-    // Create individual agent boards
-    agentAssignments.forEach((assignment, agentId) => {
-      const agent = assignment.agent;
-      const agentBoard = {
-        id: agentId,
-        name: agent.name,
-        type: agent.type,
-        specialization: agent.specialization,
-        columns: {
+              columns: {
           todo: {
-            tasks: assignment.tasks.map(task => ({
-              ...task,
-              status: 'todo'
-            }))
+            tasks: []
           },
           inProgress: {
             tasks: []
@@ -1059,8 +1331,45 @@ class TaskOrchestrator {
           },
           blocked: {
             tasks: []
+          },
+          failed: {
+            tasks: []
           }
         },
+      agents: {}
+    };
+    
+    // Create individual agent boards
+    agentAssignments.forEach((assignment, agentId) => {
+      const agent = assignment.agent;
+      const agentBoard = {
+        id: agentId,
+        name: agent.name,
+        type: agent.type,
+        specialization: agent.specialization,
+                  columns: {
+            todo: {
+              tasks: assignment.tasks.map(task => ({
+                ...task,
+                status: 'todo'
+              }))
+            },
+            inProgress: {
+              tasks: []
+            },
+            review: {
+              tasks: []
+            },
+            completed: {
+              tasks: []
+            },
+            blocked: {
+              tasks: []
+            },
+            failed: {
+              tasks: []
+            }
+          },
         metrics: agent.metrics,
         workload: this.calculateAgentWorkload(assignment.tasks)
       };

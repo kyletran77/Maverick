@@ -101,6 +101,14 @@ class GooseIntegration {
                         
                         this.handleGooseCompletion(code, sessionId, socket);
                         
+                        // Emit completion status to frontend
+                        socket.emit('goose_session_completed', {
+                            sessionId: sessionId,
+                            code: code,
+                            duration: duration,
+                            success: code === 0
+                        });
+                        
                         if (code === 0) {
                             sessionData.resolve({ success: true, code, duration });
                         } else {
@@ -248,7 +256,7 @@ class GooseIntegration {
                 // Filter and categorize output
                 const outputType = this.categorizeOutput(line);
                 
-                // Only send important output to UI
+                // Send important output to UI
                 if (outputType.important) {
                     socket.emit('goose_output', {
                         sessionId: sessionId,
@@ -258,8 +266,19 @@ class GooseIntegration {
                         level: outputType.level
                     });
                 }
+                
+                // Send ALL output to agent logs for debugging (new)
+                socket.emit('agent_log', {
+                    sessionId: sessionId,
+                    message: line.trim(),
+                    timestamp: new Date().toISOString(),
+                    type: outputType.type,
+                    level: outputType.level,
+                    important: outputType.important,
+                    raw: true  // Flag to indicate this is raw Goose CLI output
+                });
 
-                // Send all output to detailed logs (collapsed by default)
+                // Also emit to detailed logs (collapsed by default)
                 socket.emit('goose_detailed_output', {
                     sessionId: sessionId,
                     output: line,
@@ -476,11 +495,46 @@ class GooseIntegration {
     }
 
     /**
-     * Handle Goose errors
+     * Handle Goose CLI errors with improved API error detection
      */
     handleGooseError(errorMessage, sessionId, socket) {
-        console.error('Goose error:', errorMessage);
-        socket.emit('task_error', { error: errorMessage });
+        console.error(`[${sessionId}] Goose CLI error:`, errorMessage);
+        
+        // Check for specific API formatting errors
+        if (errorMessage.includes('tool_use') && errorMessage.includes('tool_result')) {
+            console.error(`[${sessionId}] API formatting error detected - tool_use/tool_result mismatch`);
+            socket.emit('task_error', { 
+                error: 'API formatting error: Goose CLI encountered a tool calling issue. Session will be restarted.',
+                sessionId: sessionId,
+                errorType: 'api_formatting_error'
+            });
+            
+            // Terminate the problematic session
+            this.terminateSession(sessionId, 'API formatting error - tool_use/tool_result mismatch');
+            return;
+        }
+        
+        // Check for other common API errors
+        if (errorMessage.includes('Request failed with status 400') || 
+            errorMessage.includes('invalid_request_error')) {
+            console.error(`[${sessionId}] API request error detected`);
+            socket.emit('task_error', { 
+                error: 'API request error: Please check Goose CLI configuration and try again.',
+                sessionId: sessionId,
+                errorType: 'api_request_error'
+            });
+            
+            // Terminate the problematic session
+            this.terminateSession(sessionId, 'API request error');
+            return;
+        }
+        
+        // Generic error handling
+        socket.emit('task_error', { 
+            error: `Goose CLI error: ${errorMessage}`,
+            sessionId: sessionId,
+            errorType: 'generic_error'
+        });
     }
 
     /**
@@ -578,6 +632,46 @@ class GooseIntegration {
     handleTaskCompletedFromText(line, sessionId, socket) {
         // Implement task completion logic for text-based output
         console.log(`Task completed: ${line}`);
+    }
+
+    /**
+     * Detect infinite loop indicators in Goose CLI output
+     * @param {string} output - Raw output from Goose CLI
+     * @param {string} sessionId - Session identifier
+     * @returns {boolean} True if an infinite loop is detected, false otherwise
+     */
+    detectTestInfiniteLoop(output, sessionId) {
+        const lowerOutput = output.toLowerCase();
+        
+        // Only detect very specific infinite loop patterns
+        // Detect Jest watch mode indicators (more specific)
+        if (lowerOutput.includes('watch usage') && lowerOutput.includes('press w to show more') ||
+            lowerOutput.includes('watching for file changes') && lowerOutput.includes('jest') ||
+            lowerOutput.includes('jest --watchall --verbose')) {
+            console.warn(`[${sessionId}] Jest watch mode detected`);
+            return true;
+        }
+        
+        // Detect npm test running with watch flags (more specific)
+        if (lowerOutput.includes('npm test') && lowerOutput.includes('--watchall') &&
+            lowerOutput.includes('watching')) {
+            console.warn(`[${sessionId}] npm test with watchAll detected`);
+            return true;
+        }
+        
+        // Detect test runners waiting for input (very specific)
+        if (lowerOutput.includes('test') && lowerOutput.includes('watching') && 
+            (lowerOutput.includes('press w to show more') || 
+             lowerOutput.includes('press a to run all tests') ||
+             lowerOutput.includes('press f to run only failed tests'))) {
+            console.warn(`[${sessionId}] Interactive test runner detected`);
+            return true;
+        }
+        
+        // Remove the overly broad detection patterns that were causing false positives
+        // The previous patterns were too generic and triggered on normal output
+        
+        return false;
     }
 }
 
