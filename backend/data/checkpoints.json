@@ -1,0 +1,55 @@
+{
+  "0ad3943a-f454-49fd-be98-7d420247d646": {
+    "id": "0ad3943a-f454-49fd-be98-7d420247d646",
+    "jobId": "ce4bc1ef-8712-4fd1-9055-1160f0a8d93f",
+    "planId": "296fe8e0-7b52-42ec-b629-951928235d23",
+    "executionState": {
+      "originalTask": "Create a multi agent development team with orchestrators calling up other agents using the Goose CLI with a simple UI",
+      "description": "User requested: Create a multi agent development team with orchestrators calling up other agents using the Goose CLI with a simple UI",
+      "subtasks": [
+        {
+          "id": "718266b7-64c3-4f78-8c45-5e09c3434034",
+          "name": "Complete Implementation",
+          "description": "Create a complete, working implementation of the requested feature with all necessary files, dependencies, configuration, build scripts, README, and make it ready to build and run. Include proper error handling, input validation, and production-ready code. DO NOT start servers or run applications automatically.",
+          "type": "development",
+          "dependencies": [],
+          "estimatedTime": 20,
+          "priority": "high"
+        },
+        {
+          "id": "db1b7793-9a86-4d85-8bb4-3d085c567511",
+          "name": "Testing & Documentation",
+          "description": "Create comprehensive tests, documentation, usage examples, and deployment instructions. Ensure the implementation is fully validated and ready for production use.",
+          "type": "testing",
+          "dependencies": [],
+          "estimatedTime": 10,
+          "priority": "medium"
+        },
+        {
+          "id": "8a029d6e-8c23-45d5-ab4d-9a7a9ef82f78",
+          "name": "Integration, Testing & Deployment",
+          "description": "Integrate all components, ensure they work together seamlessly, create docker-compose or deployment scripts, add comprehensive integration tests, and create final deployment documentation. Verify the entire system can be built and run with a single command.",
+          "type": "integration",
+          "dependencies": [
+            "718266b7-64c3-4f78-8c45-5e09c3434034",
+            "db1b7793-9a86-4d85-8bb4-3d085c567511"
+          ],
+          "estimatedTime": 8,
+          "priority": "low"
+        }
+      ],
+      "totalEstimatedTime": 38,
+      "projectPath": "/Users/kyletran/Desktop/jiggy/jiggy",
+      "startTime": "2025-07-10T18:56:42.866Z",
+      "completedSubtasks": [],
+      "failedSubtasks": [],
+      "runningSubtasks": [
+        "718266b7-64c3-4f78-8c45-5e09c3434034",
+        "db1b7793-9a86-4d85-8bb4-3d085c567511"
+      ],
+      "recursionDepth": 1
+    },
+    "createdAt": "2025-07-10T18:56:56.016Z",
+    "updatedAt": "2025-07-10T18:56:56.016Z"
+  }
+}

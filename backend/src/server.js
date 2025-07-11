@@ -4,6 +4,8 @@
  */
 
 const express = require('express');
+const http = require('http');
+const socketIo = require('socket.io');
 const dotenv = require('dotenv');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -20,12 +22,14 @@ dotenv.config();
 const connectDB = require('./config/db');
 const { errorHandler, notFound } = require('./middleware/errorMiddleware');
 const logger = require('./utils/logger');
+const orchestratorController = require('./controllers/OrchestratorController');
 
 // Import route files
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
 const apiRoutes = require('./routes/apiRoutes');
 const contentRoutes = require('./routes/contentRoutes');
+const orchestratorRoutes = require('./routes/orchestrator');
 
 // Initialize Express
 const app = express();
@@ -95,6 +99,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/models', apiRoutes);
 app.use('/api/content', contentRoutes);
+app.use('/api/orchestrator', orchestratorRoutes);
 
 // Base route for API health check
 app.get('/api/health', (req, res) => {

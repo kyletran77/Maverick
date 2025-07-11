@@ -9,6 +9,11 @@ const os = require('os');
 
 // Import the Goose integration
 const { GooseIntegration, checkGooseInstallation, getGooseConfig } = require('./goose-integration');
+const JobStorage = require('./jobStorage');
+
+// Import new LangGraph-inspired orchestration system
+const TaskOrchestrator = require('./src/orchestrator/TaskOrchestrator');
+const AgentManager = require('./src/orchestrator/AgentManager');
 
 const app = express();
 const server = http.createServer(app);
@@ -18,10 +23,13 @@ const io = socketIo(server);
 app.use(express.static(path.join(__dirname, '../client/public')));
 app.use(express.json());
 
-// Initialize Goose integration
+// Initialize systems
 const gooseIntegration = new GooseIntegration(io);
+const jobStorage = new JobStorage();
+const agentManager = new AgentManager(io, gooseIntegration);
+const taskOrchestrator = new TaskOrchestrator(io, jobStorage);
 
-// Store active agents and their status
+// Store active agents and their status (legacy support)
 const agents = new Map();
 const taskQueue = [];
 const activeSessions = new Map();
@@ -258,6 +266,22 @@ app.post('/api/open-ide', (req, res) => {
   }
 });
 
+// Test endpoint for kanban board
+app.get('/api/test-kanban', (req, res) => {
+  try {
+    // Create a test project for demonstration
+    const testProject = taskOrchestrator.createTestProject();
+    res.json({
+      success: true,
+      project: testProject,
+      message: 'Test kanban project created successfully'
+    });
+  } catch (error) {
+    console.error('Error creating test kanban project:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 function getDirectories(dirPath) {
   try {
     // Check if directory exists and is accessible
@@ -306,12 +330,13 @@ io.on('connection', (socket) => {
 
   // Handle new task submission with Multi-Agent Orchestration
   socket.on('submit_task', async (data) => {
-    const { task, description, projectPath, projectName, useGoose = true } = data;
+    const { task, description, projectPath, projectName, jobName } = data;
     
     console.log('New task received:', task);
     console.log('Project path:', projectPath);
     console.log('Project name:', projectName);
-    console.log('Use Goose:', useGoose);
+    console.log('Job name:', jobName);
+    console.log('Task orchestration starting...');
     
     // Create project directory if projectName is provided
     let finalProjectPath = projectPath;
@@ -332,26 +357,198 @@ io.on('connection', (socket) => {
       }
     }
     
-    if (useGoose) {
-      try {
-        // Check if Goose is available
-        await checkGooseInstallation();
-        
-        // Use multi-agent orchestration
-        await multiAgentOrchestrator.orchestrateTask(task, description, finalProjectPath, socket);
-        
-      } catch (error) {
-        console.error('Goose CLI error:', error);
-        socket.emit('task_error', { 
-          error: `Goose CLI not available: ${error.message}. Falling back to simulation.`
-        });
-        
-        // Fallback to simulation
-        await simulateTaskExecution(task, description, socket);
+    try {
+      // Use multi-agent orchestration
+      await taskOrchestrator.orchestrateTask(task, description, finalProjectPath, socket, jobName);
+    } catch (error) {
+      console.error('Task orchestration error:', error);
+      socket.emit('task_error', { 
+        error: `Task orchestration failed: ${error.message}`
+      });
+    }
+  });
+
+  // Job Management Events
+  socket.on('pause_job', async (data) => {
+    try {
+      const { jobId } = data;
+      const job = await taskOrchestrator.pauseJob(jobId);
+      socket.emit('job_paused', { job: taskOrchestrator.sanitizeJobForTransmission(job) });
+    } catch (error) {
+      console.error('Error pausing job:', error);
+      socket.emit('job_error', { error: error.message });
+    }
+  });
+
+  socket.on('resume_job', async (data) => {
+    try {
+      const { jobId } = data;
+      const job = await taskOrchestrator.resumeJob(jobId, socket);
+      socket.emit('job_resumed', { job: taskOrchestrator.sanitizeJobForTransmission(job) });
+    } catch (error) {
+      console.error('Error resuming job:', error);
+      socket.emit('job_error', { error: error.message });
+    }
+  });
+
+  socket.on('stop_job', async (data) => {
+    try {
+      const { jobId } = data;
+      const job = await taskOrchestrator.stopJob(jobId);
+      socket.emit('job_stopped', { job: taskOrchestrator.sanitizeJobForTransmission(job) });
+    } catch (error) {
+      console.error('Error stopping job:', error);
+      socket.emit('job_error', { error: error.message });
+    }
+  });
+
+  socket.on('edit_job_goals', async (data) => {
+    try {
+      const { jobId, newGoals, newDescription } = data;
+      const job = await taskOrchestrator.editJobGoals(jobId, newGoals, newDescription);
+      socket.emit('job_goals_updated', { job: taskOrchestrator.sanitizeJobForTransmission(job) });
+    } catch (error) {
+      console.error('Error editing job goals:', error);
+      socket.emit('job_error', { error: error.message });
+    }
+  });
+
+  socket.on('restart_job', async (data) => {
+    try {
+      const { jobId } = data;
+      const job = await taskOrchestrator.restartJobWithNewGoals(jobId, socket);
+      socket.emit('job_restarted', { job: taskOrchestrator.sanitizeJobForTransmission(job) });
+    } catch (error) {
+      console.error('Error restarting job:', error);
+      socket.emit('job_error', { error: error.message });
+    }
+  });
+
+  socket.on('get_jobs', async (data) => {
+    try {
+      const { type = 'all', limit = 10 } = data;
+      let jobs;
+      
+      switch (type) {
+        case 'active':
+          jobs = taskOrchestrator.getActiveJobs();
+          break;
+        case 'history':
+          jobs = taskOrchestrator.getJobHistory(limit);
+          break;
+        default:
+          jobs = taskOrchestrator.getAllJobs();
       }
-    } else {
-      // Use simulation mode
-      await simulateTaskExecution(task, description, socket);
+      
+      // Sanitize jobs before sending
+      const sanitizedJobs = jobs.map(job => taskOrchestrator.sanitizeJobForTransmission(job));
+      
+      socket.emit('jobs_list', { jobs: sanitizedJobs, type });
+    } catch (error) {
+      console.error('Error getting jobs:', error);
+      socket.emit('job_error', { error: error.message });
+    }
+  });
+
+  socket.on('reconnect_job', async (data) => {
+    try {
+      const { jobId } = data;
+      const success = taskOrchestrator.reconnectJobSocket(jobId, socket);
+      if (success) {
+        socket.emit('job_reconnected', { jobId, success: true });
+      } else {
+        socket.emit('job_error', { error: `Job ${jobId} not found or not active` });
+      }
+    } catch (error) {
+      console.error('Error reconnecting to job:', error);
+      socket.emit('job_error', { error: error.message });
+    }
+  });
+
+  // Chat-based job control
+  socket.on('job_chat_command', async (data) => {
+    try {
+      const { message, jobId } = data;
+      const response = await processJobChatCommand(message, jobId, socket);
+      socket.emit('job_chat_response', { response, originalMessage: message });
+    } catch (error) {
+      console.error('Error processing job chat command:', error);
+      socket.emit('job_error', { error: error.message });
+    }
+  });
+
+  // New LangGraph-inspired orchestrator endpoints
+  socket.on('orchestrate_project', async (data) => {
+    try {
+      const { prompt, projectPath, options } = data;
+      console.log('Orchestrating project:', prompt);
+      
+      const project = await taskOrchestrator.orchestrateProject(prompt, projectPath, socket, options);
+      socket.emit('project_orchestrated', project);
+    } catch (error) {
+      console.error('Error orchestrating project:', error);
+      socket.emit('orchestration_error', { error: error.message });
+    }
+  });
+
+  socket.on('get_project_state', async (data) => {
+    try {
+      const { projectId } = data;
+      const project = projectId ? 
+        taskOrchestrator.getProject(projectId) : 
+        taskOrchestrator.getActiveProject();
+      
+      if (project) {
+        socket.emit('project_state', project);
+      } else {
+        socket.emit('project_state', null);
+      }
+    } catch (error) {
+      console.error('Error getting project state:', error);
+      socket.emit('orchestration_error', { error: error.message });
+    }
+  });
+
+  socket.on('get_agent_states', async (data) => {
+    try {
+      const agentStates = agentManager.getAllAgentStates();
+      socket.emit('agent_states', agentStates);
+    } catch (error) {
+      console.error('Error getting agent states:', error);
+      socket.emit('orchestration_error', { error: error.message });
+    }
+  });
+
+  socket.on('start_task', async (data) => {
+    try {
+      const { agentId, taskId } = data;
+      const result = await agentManager.startTask(agentId, taskId, socket);
+      socket.emit('task_started', { agentId, taskId, result });
+    } catch (error) {
+      console.error('Error starting task:', error);
+      socket.emit('task_error', { error: error.message });
+    }
+  });
+
+  socket.on('complete_task', async (data) => {
+    try {
+      const { agentId, taskId, result } = data;
+      await agentManager.completeTask(agentId, taskId, result);
+      socket.emit('task_completed', { agentId, taskId, result });
+    } catch (error) {
+      console.error('Error completing task:', error);
+      socket.emit('task_error', { error: error.message });
+    }
+  });
+
+  socket.on('move_task', async (data) => {
+    try {
+      const { agentId, taskId, fromColumn, toColumn } = data;
+      await agentManager.moveTaskInKanban(agentId, taskId, fromColumn, toColumn);
+      socket.emit('kanban_updated', { agentId, taskId, from: fromColumn, to: toColumn });
+    } catch (error) {
+      console.error('Error moving task:', error);
+      socket.emit('task_error', { error: error.message });
     }
   });
 
@@ -362,7 +559,7 @@ io.on('connection', (socket) => {
     if (planId) {
       // Cancel entire plan
       const cancelledCount = gooseIntegration.cancelPlanTasks(planId);
-      multiAgentOrchestrator.activePlans.delete(planId);
+      taskOrchestrator.activePlans.delete(planId);
       
       // Update orchestrator status
       orchestrator.updateStatus(AGENT_STATUS.IDLE, 0, 'Task cancelled by user');
@@ -492,170 +689,120 @@ gooseIntegration.handleTaskCompletedFromText = function(line, sessionId, socket)
   }
 };
 
-async function simulateTaskExecution(task, description, socket) {
+// Chat-based job control processor
+async function processJobChatCommand(message, jobId, socket) {
+  const lowerMessage = message.toLowerCase().trim();
+  
   try {
-    // Step 1: Orchestrator analyzes the task
-    await delay(1000);
-    orchestrator.updateStatus(AGENT_STATUS.WORKING, 25, 'Breaking down task into subtasks');
-    io.emit('agents_update', Array.from(agents.values()));
-
-    // Step 2: Create specialized agents based on task type
-    const requiredAgents = determineRequiredAgents(task);
-    
-    for (const agentType of requiredAgents) {
-      // Check agent limit to prevent infinite creation
-      if (agents.size >= MAX_AGENTS) {
-        throw new Error(`Maximum agent limit (${MAX_AGENTS}) reached. Possible infinite loop detected.`);
+    // Parse common job control commands
+    if (lowerMessage.includes('stop') || lowerMessage.includes('halt') || lowerMessage.includes('cancel')) {
+      if (jobId) {
+        await taskOrchestrator.stopJob(jobId);
+        return `Job ${jobId} has been stopped.`;
+      } else {
+        return "Please specify a job ID to stop.";
       }
-      
-      const agent = new Agent(uuidv4(), agentType, getAgentName(agentType));
-      agents.set(agent.id, agent);
-      
-      await delay(500);
-      agent.updateStatus(AGENT_STATUS.WORKING, 0, `Starting ${agentType} tasks`);
-      io.emit('agents_update', Array.from(agents.values()));
     }
+    
+    if (lowerMessage.includes('pause')) {
+      if (jobId) {
+        await taskOrchestrator.pauseJob(jobId);
+        return `Job ${jobId} has been paused.`;
+      } else {
+        return "Please specify a job ID to pause.";
+      }
+    }
+    
+    if (lowerMessage.includes('resume') || lowerMessage.includes('continue')) {
+      if (jobId) {
+        await taskOrchestrator.resumeJob(jobId, socket);
+        return `Job ${jobId} has been resumed.`;
+      } else {
+        return "Please specify a job ID to resume.";
+      }
+    }
+    
+    if (lowerMessage.includes('edit') || lowerMessage.includes('modify') || lowerMessage.includes('change')) {
+      if (jobId) {
+        // Extract the new goals from the message
+        const goalPatterns = [
+          /change.*to (.+)/i,
+          /modify.*to (.+)/i,
+          /edit.*to (.+)/i,
+          /update.*to (.+)/i,
+          /make it (.+)/i
+        ];
+        
+        let newGoals = null;
+        for (const pattern of goalPatterns) {
+          const match = message.match(pattern);
+          if (match) {
+            newGoals = { task: match[1].trim(), description: match[1].trim() };
+            break;
+          }
+        }
+        
+        if (newGoals) {
+          await taskOrchestrator.editJobGoals(jobId, newGoals, newGoals.description);
+          return `Job ${jobId} goals have been updated to: "${newGoals.task}". Use "restart job" to apply changes.`;
+        } else {
+          return "Please specify what you want to change. For example: 'Change the React app to use Vue instead'";
+        }
+      } else {
+        return "Please specify a job ID to edit.";
+      }
+    }
+    
+    if (lowerMessage.includes('restart') || lowerMessage.includes('rerun')) {
+      if (jobId) {
+        await taskOrchestrator.restartJobWithNewGoals(jobId, socket);
+        return `Job ${jobId} has been restarted with updated goals.`;
+      } else {
+        return "Please specify a job ID to restart.";
+      }
+    }
+    
+    if (lowerMessage.includes('status') || lowerMessage.includes('info')) {
+      if (jobId) {
+        const job = jobStorage.getJob(jobId);
+        if (job) {
+          return `Job ${jobId} (${job.name}): Status: ${job.status}, Progress: ${job.progress}%, Created: ${new Date(job.createdAt).toLocaleString()}`;
+        } else {
+          return `Job ${jobId} not found.`;
+        }
+      } else {
+        const activeJobs = taskOrchestrator.getActiveJobs();
+        if (activeJobs.length === 0) {
+          return "No active jobs found.";
+        }
+        return `Active jobs: ${activeJobs.map(job => `${job.id} (${job.name}) - ${job.status}`).join(', ')}`;
+      }
+    }
+    
+    if (lowerMessage.includes('list') || lowerMessage.includes('show')) {
+      const jobs = taskOrchestrator.getAllJobs();
+      if (jobs.length === 0) {
+        return "No jobs found.";
+      }
+      return `All jobs:\n${jobs.map(job => `• ${job.id} (${job.name}) - ${job.status} - ${new Date(job.createdAt).toLocaleString()}`).join('\n')}`;
+    }
+    
+    // Default response for unrecognized commands
+    return `Available commands:
+• "stop job" - Stop the current job
+• "pause job" - Pause the current job
+• "resume job" - Resume a paused job
+• "edit job to [new description]" - Change job goals
+• "restart job" - Restart job with new goals
+• "status" - Show job status
+• "list jobs" - Show all jobs
 
-    // Step 3: Simulate agents working
-    await simulateAgentWork(requiredAgents);
-
-    // Step 4: Complete orchestration
-    orchestrator.updateStatus(AGENT_STATUS.COMPLETED, 100, 'Task completed successfully');
-    io.emit('agents_update', Array.from(agents.values()));
-
-    // Send completion message
-    socket.emit('task_completed', {
-      message: 'Task completed successfully!',
-      summary: generateTaskSummary(task, requiredAgents)
-    });
-
+Example: "Change the React app to use Vue instead"`;
+    
   } catch (error) {
-    orchestrator.updateStatus(AGENT_STATUS.ERROR, 0, `Error: ${error.message}`);
-    io.emit('agents_update', Array.from(agents.values()));
-    socket.emit('task_error', { error: error.message });
+    console.error('Error processing chat command:', error);
+    return `Error processing command: ${error.message}`;
   }
-}
-
-function determineRequiredAgents(task) {
-  const taskLower = task.toLowerCase();
-  const requiredAgents = [];
-
-  if (taskLower.includes('code') || taskLower.includes('develop') || taskLower.includes('build')) {
-    requiredAgents.push(AGENT_TYPES.CODE_GENERATOR);
-  }
-  
-  if (taskLower.includes('review') || taskLower.includes('quality')) {
-    requiredAgents.push(AGENT_TYPES.CODE_REVIEWER);
-  }
-  
-  if (taskLower.includes('test') || taskLower.includes('debug')) {
-    requiredAgents.push(AGENT_TYPES.TESTER);
-  }
-  
-  if (taskLower.includes('document') || taskLower.includes('readme')) {
-    requiredAgents.push(AGENT_TYPES.DOCUMENTATION);
-  }
-  
-  if (taskLower.includes('deploy') || taskLower.includes('publish')) {
-    requiredAgents.push(AGENT_TYPES.DEPLOYMENT);
-  }
-
-  // Default agents if none specified
-  if (requiredAgents.length === 0) {
-    requiredAgents.push(AGENT_TYPES.CODE_GENERATOR, AGENT_TYPES.TESTER);
-  }
-
-  return requiredAgents;
-}
-
-function getAgentName(type) {
-  const names = {
-    [AGENT_TYPES.CODE_GENERATOR]: 'Code Generator',
-    [AGENT_TYPES.CODE_REVIEWER]: 'Code Reviewer',
-    [AGENT_TYPES.TESTER]: 'Tester',
-    [AGENT_TYPES.DOCUMENTATION]: 'Documentation Writer',
-    [AGENT_TYPES.DEPLOYMENT]: 'Deployment Manager'
-  };
-  return names[type] || 'Unknown Agent';
-}
-
-async function simulateAgentWork(agentTypes) {
-  const workingAgents = Array.from(agents.values()).filter(agent => 
-    agentTypes.includes(agent.type)
-  );
-
-  // Simulate parallel work
-  const workPromises = workingAgents.map(async (agent) => {
-    const steps = getAgentWorkSteps(agent.type);
-    
-    for (let i = 0; i < steps.length; i++) {
-      await delay(1000 + Math.random() * 2000); // Random delay 1-3 seconds
-      
-      const progress = Math.round(((i + 1) / steps.length) * 100);
-      agent.updateStatus(AGENT_STATUS.WORKING, progress, steps[i]);
-      io.emit('agents_update', Array.from(agents.values()));
-    }
-    
-    agent.updateStatus(AGENT_STATUS.COMPLETED, 100, `${agent.name} completed successfully`);
-    io.emit('agents_update', Array.from(agents.values()));
-  });
-
-  await Promise.all(workPromises);
-}
-
-function getAgentWorkSteps(agentType) {
-  const steps = {
-    [AGENT_TYPES.CODE_GENERATOR]: [
-      'Analyzing requirements',
-      'Designing architecture',
-      'Writing core logic',
-      'Implementing features',
-      'Optimizing code'
-    ],
-    [AGENT_TYPES.CODE_REVIEWER]: [
-      'Reading code structure',
-      'Checking coding standards',
-      'Analyzing logic flow',
-      'Reviewing security aspects',
-      'Providing feedback'
-    ],
-    [AGENT_TYPES.TESTER]: [
-      'Setting up test environment',
-      'Writing unit tests',
-      'Running integration tests',
-      'Performance testing',
-      'Generating test report'
-    ],
-    [AGENT_TYPES.DOCUMENTATION]: [
-      'Analyzing code structure',
-      'Writing API documentation',
-      'Creating user guides',
-      'Updating README',
-      'Finalizing documentation'
-    ],
-    [AGENT_TYPES.DEPLOYMENT]: [
-      'Preparing deployment environment',
-      'Building application',
-      'Running deployment checks',
-      'Deploying to staging',
-      'Deploying to production'
-    ]
-  };
-  
-  return steps[agentType] || ['Working on task'];
-}
-
-function generateTaskSummary(task, agentTypes) {
-  return {
-    task: task,
-    agentsUsed: agentTypes.length,
-    totalTime: '2-5 minutes (simulated)',
-    status: 'Success'
-  };
-}
-
-function delay(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 // Cleanup old agents periodically
@@ -691,520 +838,9 @@ setInterval(() => {
   }
 }, 60000); // Check every minute
 
-class MultiAgentOrchestrator {
-  constructor(io, gooseIntegration) {
-    this.io = io;
-    this.gooseIntegration = gooseIntegration;
-    this.activePlans = new Map();
-    this.sessionDependencies = new Map();
-  }
-
-  async orchestrateTask(task, description, projectPath, socket) {
-    const planId = uuidv4();
-    
-    try {
-      // Step 1: Create execution plan
-      const plan = await this.createExecutionPlan(task, description);
-      this.activePlans.set(planId, {
-        ...plan,
-        projectPath,
-        socket,
-        startTime: new Date(),
-        completedSubtasks: new Set(),
-        failedSubtasks: new Set(),
-        runningSubtasks: new Set()
-      });
-
-      // Update orchestrator status
-      orchestrator.updateStatus(AGENT_STATUS.WORKING, 10, `Created execution plan with ${plan.subtasks.length} subtasks`);
-      this.io.emit('agents_update', Array.from(agents.values()));
-
-      // Emit execution plan to frontend
-      socket.emit('execution_plan_created', plan);
-
-      // Step 2: Execute subtasks based on dependencies
-      await this.executeSubtasks(planId);
-
-    } catch (error) {
-      console.error('Orchestration error:', error);
-      orchestrator.updateStatus(AGENT_STATUS.ERROR, 0, `Orchestration failed: ${error.message}`);
-      this.io.emit('agents_update', Array.from(agents.values()));
-      socket.emit('task_error', { error: error.message });
-    }
-  }
-
-  async createExecutionPlan(task, description) {
-    const taskLower = task.toLowerCase();
-    const subtasks = [];
-
-    // Analyze task and break it down into subtasks
-    if (taskLower.includes('web app') || taskLower.includes('website')) {
-      subtasks.push(
-        {
-          id: uuidv4(),
-          name: 'Complete Frontend Application',
-          description: 'Create a complete, working frontend with HTML, CSS, JavaScript, package.json, build scripts, and README. Include all dependencies and make it ready to build and run. DO NOT start the development server automatically.',
-          type: 'frontend',
-          dependencies: [],
-          estimatedTime: 15,
-          priority: 'high'
-        },
-        {
-          id: uuidv4(),
-          name: 'Complete Backend API Server',
-          description: 'Create a complete, working backend server with all API endpoints, middleware, error handling, package.json, and README. Include database connection, authentication, and make it ready to build and run. DO NOT start the server automatically.',
-          type: 'backend',
-          dependencies: [],
-          estimatedTime: 20,
-          priority: 'high'
-        },
-        {
-          id: uuidv4(),
-          name: 'Database Schema & Setup',
-          description: 'Create complete database schema, migration scripts, seed data, and setup instructions. Include all necessary configuration files and connection logic.',
-          type: 'database',
-          dependencies: [],
-          estimatedTime: 10,
-          priority: 'medium'
-        }
-      );
-    } else if (taskLower.includes('api') || taskLower.includes('service')) {
-      subtasks.push(
-        {
-          id: uuidv4(),
-          name: 'Complete API Service',
-          description: 'Create a complete, production-ready REST API with all endpoints, middleware, error handling, input validation, authentication, database integration, package.json, tests, and comprehensive README. Make it ready to build and deploy. DO NOT start the server automatically.',
-          type: 'backend',
-          dependencies: [],
-          estimatedTime: 15,
-          priority: 'high'
-        },
-        {
-          id: uuidv4(),
-          name: 'API Documentation & Testing',
-          description: 'Generate comprehensive API documentation with OpenAPI/Swagger, include Postman collection, example requests/responses, and integration tests. Create a complete testing suite.',
-          type: 'documentation',
-          dependencies: [],
-          estimatedTime: 8,
-          priority: 'medium'
-        }
-      );
-    } else if (taskLower.includes('test') || taskLower.includes('debug')) {
-      subtasks.push(
-        {
-          id: uuidv4(),
-          name: 'Complete Testing Suite',
-          description: 'Create a comprehensive testing framework with unit tests, integration tests, test data, mocking, coverage reporting, and CI/CD configuration. Include package.json with test scripts and make tests ready to run. DO NOT run long-running test servers automatically.',
-          type: 'testing',
-          dependencies: [],
-          estimatedTime: 12,
-          priority: 'high'
-        },
-        {
-          id: uuidv4(),
-          name: 'Integration & E2E Testing',
-          description: 'Create end-to-end testing suite with real environment testing, API testing, UI testing (if applicable), performance tests, and automated test reporting.',
-          type: 'testing',
-          dependencies: [],
-          estimatedTime: 10,
-          priority: 'medium'
-        }
-      );
-    } else {
-      // Generic task breakdown
-      subtasks.push(
-        {
-          id: uuidv4(),
-          name: 'Complete Implementation',
-          description: 'Create a complete, working implementation of the requested feature with all necessary files, dependencies, configuration, build scripts, README, and make it ready to build and run. Include proper error handling, input validation, and production-ready code. DO NOT start servers or run applications automatically.',
-          type: 'development',
-          dependencies: [],
-          estimatedTime: 20,
-          priority: 'high'
-        },
-        {
-          id: uuidv4(),
-          name: 'Testing & Documentation',
-          description: 'Create comprehensive tests, documentation, usage examples, and deployment instructions. Ensure the implementation is fully validated and ready for production use.',
-          type: 'testing',
-          dependencies: [],
-          estimatedTime: 10,
-          priority: 'medium'
-        }
-      );
-    }
-
-    // Add integration subtask if multiple subtasks exist
-    if (subtasks.length > 1) {
-      const integrationTask = {
-        id: uuidv4(),
-        name: 'Integration, Testing & Deployment',
-        description: 'Integrate all components, ensure they work together seamlessly, create docker-compose or deployment scripts, add comprehensive integration tests, and create final deployment documentation. Verify the entire system can be built and run with a single command.',
-        type: 'integration',
-        dependencies: subtasks.map(st => st.id),
-        estimatedTime: 8,
-        priority: 'low'
-      };
-      subtasks.push(integrationTask);
-    }
-
-    return {
-      id: uuidv4(),
-      originalTask: task,
-      description: description,
-      subtasks: subtasks,
-      totalEstimatedTime: subtasks.reduce((sum, st) => sum + st.estimatedTime, 0)
-    };
-  }
-
-  async executeSubtasks(planId, recursionDepth = 0) {
-    const plan = this.activePlans.get(planId);
-    if (!plan) return;
-
-    // Prevent infinite recursion
-    if (recursionDepth > 10) {
-      console.error(`Maximum recursion depth reached for plan ${planId}`);
-      this.handlePlanFailure(planId, 'Maximum recursion depth exceeded');
-      return;
-    }
-
-    // Initialize recursion tracking if not exists
-    if (!plan.recursionDepth) {
-      plan.recursionDepth = 0;
-    }
-    plan.recursionDepth++;
-
-    const { subtasks, socket, projectPath } = plan;
-    
-    // Find subtasks that can be executed (no pending dependencies)
-    const readySubtasks = subtasks.filter(subtask => 
-      !plan.completedSubtasks.has(subtask.id) && 
-      !plan.failedSubtasks.has(subtask.id) &&
-      !plan.runningSubtasks.has(subtask.id) &&
-      subtask.dependencies.every(depId => plan.completedSubtasks.has(depId))
-    );
-
-    if (readySubtasks.length === 0) {
-      // Check if we're done or stuck
-      if (plan.completedSubtasks.size === subtasks.length) {
-        await this.completePlan(planId);
-      } else if (plan.completedSubtasks.size + plan.failedSubtasks.size === subtasks.length) {
-        // Some tasks failed, but we're done
-        await this.completePlan(planId);
-      } else {
-        // We're stuck - some dependencies failed or circular dependency
-        console.warn(`Plan ${planId} appears stuck. Completed: ${plan.completedSubtasks.size}, Failed: ${plan.failedSubtasks.size}, Total: ${subtasks.length}`);
-        this.handlePlanFailure(planId, 'Dependency deadlock or circular dependency detected');
-      }
-      return;
-    }
-
-    // Mark subtasks as running to prevent duplicate execution
-    readySubtasks.forEach(subtask => {
-      if (!plan.runningSubtasks) plan.runningSubtasks = new Set();
-      plan.runningSubtasks.add(subtask.id);
-    });
-
-    // Execute ready subtasks in parallel
-    const executionPromises = readySubtasks.map(subtask => 
-      this.executeSubtask(planId, subtask)
-    );
-
-    // Wait for current batch to complete, then check for next batch
-    await Promise.allSettled(executionPromises);
-    
-    // Remove from running set
-    readySubtasks.forEach(subtask => {
-      if (plan.runningSubtasks) {
-        plan.runningSubtasks.delete(subtask.id);
-      }
-    });
-    
-    // Continue with next batch if plan is still active and we haven't hit recursion limit
-    if (this.activePlans.has(planId) && recursionDepth < 10) {
-      // Add a small delay to prevent rapid recursion
-      await new Promise(resolve => setTimeout(resolve, 100));
-      await this.executeSubtasks(planId, recursionDepth + 1);
-    }
-  }
-
-  async executeSubtask(planId, subtask) {
-    const plan = this.activePlans.get(planId);
-    if (!plan) return;
-
-    const { socket, projectPath } = plan;
-    const sessionId = `${planId}-${subtask.id}`;
-
-    try {
-      // Check agent limit to prevent infinite creation
-      if (agents.size >= MAX_AGENTS) {
-        throw new Error(`Maximum agent limit (${MAX_AGENTS}) reached. Possible infinite loop detected.`);
-      }
-      
-      // Create specialized agent for this subtask
-      const agent = new Agent(uuidv4(), this.getAgentTypeFromSubtask(subtask.type), subtask.name, sessionId);
-      agents.set(agent.id, agent);
-      
-      agent.updateStatus(AGENT_STATUS.WORKING, 0, `Starting ${subtask.name}`);
-      this.io.emit('agents_update', Array.from(agents.values()));
-
-      // Emit subtask started event
-      socket.emit('subtask_started', {
-        subtaskId: subtask.id,
-        subtaskName: subtask.name,
-        agentId: agent.id,
-        agentName: agent.name,
-        sessionId: sessionId
-      });
-
-      // Create specialized task prompt for Goose
-      const taskPrompt = this.createSubtaskPrompt(subtask, plan.originalTask);
-      
-      const startTime = new Date();
-      
-      // Execute with Goose CLI
-      await this.gooseIntegration.executeGooseTask(
-        taskPrompt,
-        sessionId,
-        socket,
-        projectPath
-      );
-
-      // Calculate duration
-      const duration = `${Math.round((new Date() - startTime) / 1000)}s`;
-
-      // Mark as completed
-      plan.completedSubtasks.add(subtask.id);
-      agent.updateStatus(AGENT_STATUS.COMPLETED, 100, `Completed ${subtask.name}`);
-      this.io.emit('agents_update', Array.from(agents.values()));
-
-      // Emit subtask completed event
-      socket.emit('subtask_completed', {
-        subtaskId: subtask.id,
-        subtaskName: subtask.name,
-        agentId: agent.id,
-        agentName: agent.name,
-        duration: duration,
-        sessionId: sessionId
-      });
-
-      // Update orchestrator progress
-      const progressPercentage = Math.round((plan.completedSubtasks.size / plan.subtasks.length) * 100);
-      orchestrator.updateStatus(AGENT_STATUS.WORKING, progressPercentage, 
-        `Completed ${plan.completedSubtasks.size}/${plan.subtasks.length} subtasks`);
-      this.io.emit('agents_update', Array.from(agents.values()));
-
-    } catch (error) {
-      console.error(`Subtask execution failed: ${subtask.name}`, error);
-      plan.failedSubtasks.add(subtask.id);
-      
-      // Update agent status
-      const agent = Array.from(agents.values()).find(a => a.sessionId === sessionId);
-      if (agent) {
-        agent.updateStatus(AGENT_STATUS.ERROR, 0, `Failed: ${error.message}`);
-        this.io.emit('agents_update', Array.from(agents.values()));
-      }
-
-      // Emit subtask failed event
-      socket.emit('subtask_failed', {
-        subtaskId: subtask.id,
-        subtaskName: subtask.name,
-        agentId: agent ? agent.id : null,
-        agentName: agent ? agent.name : subtask.name,
-        error: error.message,
-        sessionId: sessionId
-      });
-    }
-  }
-
-  createSubtaskPrompt(subtask, originalTask) {
-    const contextPrompt = `You are working on a subtask as part of a larger project. Your goal is to create a COMPLETE, WORKING, BUILDABLE implementation.
-
-Original Task: ${originalTask}
-
-Your Specific Subtask: ${subtask.name}
-Description: ${subtask.description}
-Type: ${subtask.type}
-Priority: ${subtask.priority}
-
-CRITICAL REQUIREMENTS:
-1. Create a COMPLETE working implementation that can be built and tested immediately
-2. Include ALL necessary files, dependencies, and configuration
-3. Add proper package.json/requirements.txt with correct dependencies and versions
-4. Include build scripts and clear instructions in README.md
-5. Ensure the code is production-ready and follows best practices
-6. Add proper error handling and validation
-7. Include basic tests that verify functionality
-8. Make sure all imports/dependencies are correctly specified
-
-IMPORTANT: DO NOT start servers or run applications automatically. Create all files and configuration, but let the user start the application manually.
-
-DELIVERABLES CHECKLIST:
-- [ ] All source code files created
-- [ ] Dependency management file (package.json, requirements.txt, etc.)
-- [ ] Build/run scripts configured in package.json
-- [ ] README.md with setup and usage instructions
-- [ ] Basic tests included
-- [ ] Error handling implemented
-- [ ] Code is ready to build and run (but don't run it)
-
-BUILD vs RUN INSTRUCTIONS:
-- ✅ DO: Create package.json with "start" script
-- ✅ DO: Include installation instructions (npm install)
-- ✅ DO: Test that dependencies install correctly
-- ✅ DO: Run tests if they exist (npm test)
-- ❌ DON'T: Start web servers (node server.js, npm start)
-- ❌ DON'T: Run applications that don't terminate
-- ❌ DON'T: Execute long-running processes
-
-Focus only on this specific subtask but ensure it's COMPLETE and BUILDABLE. Other agents are handling other parts of the project.
-Create everything needed so someone can immediately clone, install, and run your part of the project.`;
-
-    return contextPrompt;
-  }
-
-  getAgentTypeFromSubtask(subtaskType) {
-    const typeMapping = {
-      'frontend': AGENT_TYPES.CODE_GENERATOR,
-      'backend': AGENT_TYPES.CODE_GENERATOR,
-      'database': AGENT_TYPES.CODE_GENERATOR,
-      'testing': AGENT_TYPES.TESTER,
-      'documentation': AGENT_TYPES.DOCUMENTATION,
-      'integration': AGENT_TYPES.DEPLOYMENT,
-      'development': AGENT_TYPES.CODE_GENERATOR
-    };
-    return typeMapping[subtaskType] || AGENT_TYPES.CODE_GENERATOR;
-  }
-
-  async completePlan(planId) {
-    const plan = this.activePlans.get(planId);
-    if (!plan) return;
-
-    const { socket, originalTask, subtasks, startTime, projectPath } = plan;
-    const duration = new Date() - startTime;
-
-    // Perform build validation
-    orchestrator.updateStatus(AGENT_STATUS.WORKING, 95, 'Validating project buildability...');
-    this.io.emit('agents_update', Array.from(agents.values()));
-
-    const validationResult = await this.validateProjectBuildability(projectPath, socket);
-
-    orchestrator.updateStatus(AGENT_STATUS.COMPLETED, 100, 'Multi-agent orchestration completed successfully');
-    this.io.emit('agents_update', Array.from(agents.values()));
-
-    socket.emit('task_completed', {
-      message: 'Multi-agent task completed successfully!',
-      summary: {
-        task: originalTask,
-        subtasksCompleted: plan.completedSubtasks.size,
-        totalSubtasks: subtasks.length,
-        duration: `${Math.round(duration / 1000)} seconds`,
-        status: 'Success',
-        agentsUsed: subtasks.length,
-        buildValidation: validationResult
-      }
-    });
-
-    this.activePlans.delete(planId);
-  }
-
-  async validateProjectBuildability(projectPath, socket) {
-    try {
-      const fs = require('fs');
-      const path = require('path');
-      
-      if (!projectPath || !fs.existsSync(projectPath)) {
-        return { status: 'skipped', reason: 'No project path specified' };
-      }
-
-      const validationResults = {
-        hasPackageJson: false,
-        hasReadme: false,
-        hasSourceFiles: false,
-        buildable: false,
-        instructions: []
-      };
-
-      // Check for package.json
-      const packageJsonPath = path.join(projectPath, 'package.json');
-      if (fs.existsSync(packageJsonPath)) {
-        validationResults.hasPackageJson = true;
-        validationResults.instructions.push('npm install');
-        // Check if tests exist
-        try {
-          const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-          if (packageJson.scripts && packageJson.scripts.test) {
-            validationResults.instructions.push('npm test');
-          }
-        } catch (e) {
-          // Ignore JSON parse errors
-        }
-      }
-
-      // Check for requirements.txt (Python)
-      const requirementsPath = path.join(projectPath, 'requirements.txt');
-      if (fs.existsSync(requirementsPath)) {
-        validationResults.instructions.push('pip install -r requirements.txt');
-        // Check for test files
-        const testFiles = ['test.py', 'tests.py', 'test_*.py'];
-        for (const testFile of testFiles) {
-          if (fs.existsSync(path.join(projectPath, testFile))) {
-            validationResults.instructions.push('python -m pytest');
-            break;
-          }
-        }
-      }
-
-      // Check for README
-      const readmeFiles = ['README.md', 'README.txt', 'readme.md'];
-      for (const readme of readmeFiles) {
-        if (fs.existsSync(path.join(projectPath, readme))) {
-          validationResults.hasReadme = true;
-          break;
-        }
-      }
-
-      // Check for source files
-      const files = fs.readdirSync(projectPath);
-      const sourceExtensions = ['.js', '.ts', '.py', '.java', '.cpp', '.c', '.go', '.rs', '.php'];
-      validationResults.hasSourceFiles = files.some(file => 
-        sourceExtensions.some(ext => file.endsWith(ext))
-      );
-
-      validationResults.buildable = validationResults.hasPackageJson || validationResults.instructions.length > 0;
-
-      socket.emit('build_validation', {
-        projectPath: projectPath,
-        validation: validationResults
-      });
-
-      return validationResults;
-
-    } catch (error) {
-      console.error('Build validation error:', error);
-      return { status: 'error', error: error.message };
-    }
-  }
-
-  handlePlanFailure(planId, reason) {
-    const plan = this.activePlans.get(planId);
-    if (!plan) return;
-
-    orchestrator.updateStatus(AGENT_STATUS.ERROR, 0, `Plan failed: ${reason}`);
-    this.io.emit('agents_update', Array.from(agents.values()));
-
-    plan.socket.emit('task_error', { 
-      error: `Multi-agent orchestration failed: ${reason}`,
-      completedSubtasks: plan.completedSubtasks.size,
-      totalSubtasks: plan.subtasks.length
-    });
-
-    this.activePlans.delete(planId);
-  }
-}
-
-// Initialize the multi-agent orchestrator
-const multiAgentOrchestrator = new MultiAgentOrchestrator(io, gooseIntegration);
+// The MultiAgentOrchestrator class is now part of the TaskOrchestrator
+// The AgentManager handles agent lifecycle and status updates
+// The TaskOrchestrator handles the overall orchestration logic
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {

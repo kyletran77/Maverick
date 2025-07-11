@@ -231,14 +231,22 @@
                         <form id="task-form" class="input-group">
                             <input 
                                 type="text" 
-                                id="task-input" 
-                                placeholder="Describe mission objectives (e.g., 'Deploy a real-time tactical chat system with Socket.io')" 
-                                required
+                                id="job-name-input" 
+                                placeholder="Job Name (optional - e.g., 'Chat App Development')" 
+                                class="job-name-field"
                             >
-                            <button type="submit" id="submit-btn">
-                                <i class="fas fa-paper-plane"></i>
-                                <span class="btn-text">EXECUTE</span>
-                            </button>
+                            <div>
+                                <input 
+                                    type="text" 
+                                    id="task-input" 
+                                    placeholder="Describe mission objectives (e.g., 'Deploy a real-time tactical chat system with Socket.io')" 
+                                    required
+                                >
+                                <button type="submit" id="submit-btn">
+                                    <i class="fas fa-paper-plane"></i>
+                                    <span class="btn-text">EXECUTE</span>
+                                </button>
+                            </div>
                         </form>
                     </div>
                 </div>
@@ -277,17 +285,7 @@
                         </div>
                     </div>
                     
-                    <!-- Execution Mode Toggle -->
-                    <div class="execution-mode">
-                        <label class="switch">
-                            <input type="checkbox" id="use-goose-toggle" checked>
-                            <span class="slider"></span>
-                        </label>
-                        <div class="mode-label">
-                            <strong>DEPLOYMENT MODE</strong>
-                            <div id="mode-description" class="mode-description">Elite AI Squadron via Goose Protocol</div>
-                        </div>
-                    </div>
+
 
                     <!-- Mission Name Input -->
                     <div class="project-name-section">
@@ -352,6 +350,59 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Job Management Section (Setup Panel) -->
+                <div class="job-management-section">
+                    <div class="job-header">
+                        <h3><i class="fas fa-tasks"></i> JOB CONTROL</h3>
+                        <div class="job-actions">
+                            <button id="show-jobs-btn-setup" class="action-btn">
+                                <i class="fas fa-list"></i>
+                                <span>VIEW JOBS</span>
+                            </button>
+                            <button id="job-chat-btn-setup" class="action-btn">
+                                <i class="fas fa-comments"></i>
+                                <span>JOB CHAT</span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Job Chat Interface (Setup Panel) -->
+                    <div id="job-chat-interface-setup" class="job-chat-interface" style="display: none;">
+                        <div class="chat-header">
+                            <h4>Job Control Chat</h4>
+                            <button id="close-job-chat-setup" class="close-btn">&times;</button>
+                        </div>
+                        <div id="job-chat-messages-setup" class="job-chat-messages">
+                            <div class="chat-message system">
+                                <div class="message-content">
+                                    <strong>System:</strong> Job control chat activated. You can control jobs using natural language commands.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="job-chat-input">
+                            <input type="text" id="job-chat-input-setup" placeholder="Type job control commands (e.g., 'stop current job', 'change React to Vue')">
+                            <button id="send-job-chat-setup" class="action-btn">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Active Jobs Display (Setup Panel) -->
+                    <div id="active-jobs-display-setup" class="active-jobs-display">
+                        <div class="jobs-header">
+                            <h4>Jobs</h4>
+                            <select id="job-filter-setup">
+                                <option value="active">Active</option>
+                                <option value="all">All Jobs</option>
+                                <option value="completed">Completed</option>
+                            </select>
+                        </div>
+                        <div id="jobs-container-setup" class="jobs-container">
+                            <!-- Job cards will be populated here -->
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Squadron Panel (shown when mission is active) -->
@@ -370,6 +421,59 @@
                     </div>
                     <div id="agents-container" class="agents-container">
                         <!-- Agent cards will be populated here -->
+                    </div>
+                </div>
+
+                <!-- Job Management Section -->
+                <div class="job-management-section">
+                    <div class="job-header">
+                        <h3><i class="fas fa-tasks"></i> JOB CONTROL</h3>
+                        <div class="job-actions">
+                            <button id="show-jobs-btn" class="action-btn">
+                                <i class="fas fa-list"></i>
+                                <span>JOBS</span>
+                            </button>
+                            <button id="job-chat-btn" class="action-btn">
+                                <i class="fas fa-comments"></i>
+                                <span>CHAT</span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Job Chat Interface -->
+                    <div id="job-chat-interface" class="job-chat-interface" style="display: none;">
+                        <div class="chat-header">
+                            <h4>Job Control Chat</h4>
+                            <button id="close-job-chat" class="close-btn">&times;</button>
+                        </div>
+                        <div id="job-chat-messages" class="job-chat-messages">
+                            <div class="chat-message system">
+                                <div class="message-content">
+                                    <strong>System:</strong> Job control chat activated. You can control jobs using natural language commands.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="job-chat-input">
+                            <input type="text" id="job-chat-input" placeholder="Type job control commands (e.g., 'stop current job', 'change React to Vue')">
+                            <button id="send-job-chat" class="action-btn">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Active Jobs Display -->
+                    <div id="active-jobs-display" class="active-jobs-display">
+                        <div class="jobs-header">
+                            <h4>Active Jobs</h4>
+                            <select id="job-filter">
+                                <option value="active">Active</option>
+                                <option value="all">All Jobs</option>
+                                <option value="completed">Completed</option>
+                            </select>
+                        </div>
+                        <div id="jobs-container" class="jobs-container">
+                            <!-- Job cards will be populated here -->
+                        </div>
                     </div>
                 </div>
 

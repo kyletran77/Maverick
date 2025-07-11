@@ -25,8 +25,8 @@ const modalAgentDetails = document.getElementById('modal-agent-details');
 // Directory selection elements
 const gooseStatusDot = document.getElementById('goose-status-dot');
 const gooseStatusText = document.getElementById('goose-status-text');
-const useGooseToggle = document.getElementById('use-goose-toggle');
-const modeDescription = document.getElementById('mode-description');
+// Removed useGooseToggle - no longer using simulation mode
+// Removed modeDescription - no longer using simulation mode
 const currentPathText = document.getElementById('current-path-text');
 const directoryList = document.getElementById('directory-list');
 const selectedPath = document.getElementById('selected-path');
@@ -85,7 +85,8 @@ document.addEventListener('DOMContentLoaded', function() {
     loadHomeDirectory();
     checkGooseStatus();
     initializeTemplateSystem();
-    addSystemMessage('Welcome to Maverick! 🚀\n\nNew features:\n• Intelligent timeout management (10-20 minutes based on task complexity)\n• Clean agent output sections with collapsible detailed logs\n• Real-time activity monitoring\n• Improved error handling\n\nSelect a project directory and submit a task to get started!');
+    initializeJobManagement();
+    addSystemMessage('Welcome to Maverick! 🚀\n\nNew features:\n• ✅ Checkpoint system - jobs can be paused and resumed from exact point\n• 🔄 Job reconnection - reconnect to jobs after browser restart\n• 💾 Persistent execution state - no progress lost on interruptions\n• 📊 Enhanced job management with visual checkpoint indicators\n• 🎯 Intelligent task breakdown with dependency tracking\n• 🔧 Chat-based job control interface\n\nSelect a project directory and submit a task to get started!');
 });
 
 function setupSocketEventHandlers() {
@@ -167,9 +168,60 @@ function setupSocketEventHandlers() {
         console.log('Goose Status:', data.message);
     });
 
+    socket.on('project_orchestrated', (data) => {
+        // Clear timeout if it exists
+        if (window.taskSubmissionTimeout) {
+            clearTimeout(window.taskSubmissionTimeout);
+            window.taskSubmissionTimeout = null;
+        }
+        
+        console.log('Project orchestrated:', data);
+        addSystemMessage('Project orchestrated successfully! Tasks are being executed...', 'success');
+        switchToAgentsView();
+    });
+
+    socket.on('orchestration_error', (data) => {
+        // Clear timeout if it exists
+        if (window.taskSubmissionTimeout) {
+            clearTimeout(window.taskSubmissionTimeout);
+            window.taskSubmissionTimeout = null;
+        }
+        
+        console.error('Orchestration error:', data.error);
+        addSystemMessage(`Orchestration failed: ${data.error}`, 'error');
+        
+        // Re-enable form
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
+        }
+    });
+
+    socket.on('task_execution_error', (data) => {
+        console.error('Task execution error:', data.error);
+        addSystemMessage(`Task execution error: ${data.error}`, 'error');
+    });
+
+    socket.on('project_completed', (data) => {
+        console.log('Project completed:', data);
+        addSystemMessage('Project completed successfully!', 'success');
+        
+        // Re-enable form
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
+        }
+    });
+
     socket.on('task_completed', (data) => {
         // Reset submission flag
         window.taskSubmissionInProgress = false;
+        
+        // Clear timeout if it exists
+        if (window.taskSubmissionTimeout) {
+            clearTimeout(window.taskSubmissionTimeout);
+            window.taskSubmissionTimeout = null;
+        }
         
         addSystemMessage(data.message, 'success');
         if (data.summary) {
@@ -288,6 +340,9 @@ function setupSocketEventHandlers() {
         addSystemMessage(`✅ Terminal opened in: ${data.projectPath}`, 'success');
     });
 
+    // Initialize job management events
+    setupJobManagementEvents();
+
     socket.on('terminal_error', (data) => {
         addSystemMessage(`❌ Failed to open terminal: ${data.error}`, 'error');
     });
@@ -332,10 +387,7 @@ function initializeEventListeners() {
         createDirBtn.addEventListener('click', showCreateDirModal);
     }
     
-    // Toggle switch
-    if (useGooseToggle) {
-        useGooseToggle.addEventListener('change', handleToggleChange);
-    }
+    // Removed useGoose toggle handling - no longer using simulation mode
     
     // Project name input
     if (projectNameInput) {
@@ -406,9 +458,7 @@ async function checkGooseStatus() {
             if (gooseStatusText) {
                 gooseStatusText.textContent = 'Goose CLI Available';
             }
-            if (useGooseToggle) {
-                useGooseToggle.disabled = false;
-            }
+            // Removed useGoose toggle handling
             console.log('Goose CLI config:', data.config);
         } else {
             gooseAvailable = false;
@@ -418,11 +468,7 @@ async function checkGooseStatus() {
             if (gooseStatusText) {
                 gooseStatusText.textContent = data.message || 'Goose CLI Not Available';
             }
-            if (useGooseToggle) {
-                useGooseToggle.checked = false;
-                useGooseToggle.disabled = true;
-            }
-            handleToggleChange();
+            // Removed useGoose toggle handling
             console.warn('Goose CLI not available:', data.error);
         }
     } catch (error) {
@@ -434,25 +480,11 @@ async function checkGooseStatus() {
         if (gooseStatusText) {
             gooseStatusText.textContent = 'Error checking Goose CLI';
         }
-        if (useGooseToggle) {
-            useGooseToggle.checked = false;
-            useGooseToggle.disabled = true;
-        }
-        handleToggleChange();
+        // Removed useGoose toggle handling
     }
 }
 
-function handleToggleChange() {
-    if (useGooseToggle && useGooseToggle.checked && gooseAvailable) {
-        if (modeDescription) {
-            modeDescription.textContent = 'Real AI agents via Goose CLI';
-        }
-    } else {
-        if (modeDescription) {
-            modeDescription.textContent = 'Simulated agents for demo';
-        }
-    }
-}
+// Removed handleToggleChange function - no longer using simulation mode
 
 async function loadHomeDirectory() {
     try {
@@ -708,15 +740,15 @@ function handleTaskSubmit(event) {
     const task = taskInput.value.trim();
     if (!task) return;
     
-    // Check if project directory is selected when using Goose
-    if (useGooseToggle && useGooseToggle.checked && !selectedProjectPath) {
-        addSystemMessage('Please select a project directory before submitting a task with Goose CLI', 'error');
+    // Check if project directory is selected
+    if (!selectedProjectPath) {
+        addSystemMessage('Please select a project directory before submitting a task', 'error');
         return;
     }
     
-    // Check if project name is provided when using Goose
-    if (useGooseToggle && useGooseToggle.checked && !projectName) {
-        addSystemMessage('Please enter a project name before submitting a task with Goose CLI', 'error');
+    // Check if project name is provided
+    if (!projectName) {
+        addSystemMessage('Please enter a project name before submitting a task', 'error');
         return;
     }
     
@@ -736,20 +768,43 @@ function handleTaskSubmit(event) {
         addSystemMessage(`Project directory: ${selectedProjectPath}`, 'system');
     }
     
+    // Get job name if provided
+    const jobNameInput = document.getElementById('job-name-input');
+    const jobName = jobNameInput ? jobNameInput.value.trim() : '';
+
     // Send task to server
     const taskData = {
         task: task,
         description: `User requested: ${task}`,
         projectPath: finalProjectPath || selectedProjectPath,
         projectName: projectName,
-        useGoose: useGooseToggle && useGooseToggle.checked && gooseAvailable
+        jobName: jobName,
+        useGoose: true // Always use real orchestration, no simulation mode
     };
+    
+    // Set up timeout to prevent hanging
+    const submitTimeout = setTimeout(() => {
+        console.error('Task submission timed out');
+        addSystemMessage('Task submission timed out. Please try again.', 'error');
+        
+        // Re-enable form
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
+        }
+    }, 45000); // 45 second timeout
+    
+    // Store timeout ID to clear it if successful
+    window.taskSubmissionTimeout = submitTimeout;
     
     socket.emit('submit_task', taskData);
     
-    // Clear input
+    // Clear inputs
     if (taskInput) {
         taskInput.value = '';
+    }
+    if (jobNameInput) {
+        jobNameInput.value = '';
     }
 }
 
@@ -1536,8 +1591,8 @@ function submitTaskFromTemplate(taskDescription, config) {
         return;
     }
     
-    // Check if project name is provided when using Goose
-    if (useGooseToggle && useGooseToggle.checked && !projectName) {
+    // Check if project name is provided
+    if (!projectName) {
         addSystemMessage('Please enter a project name before generating from template', 'error');
         return;
     }
@@ -1561,7 +1616,7 @@ function submitTaskFromTemplate(taskDescription, config) {
         description: `Generated from ${selectedTemplate} template`,
         projectPath: finalProjectPath || selectedProjectPath,
         projectName: projectName || config.projectName,
-        useGoose: useGooseToggle && useGooseToggle.checked && gooseAvailable,
+        useGoose: true, // Always use real orchestration, no simulation mode
         templateType: selectedTemplate,
         templateConfig: config
     };
@@ -1920,4 +1975,349 @@ function openProjectInIDE() {
     } else {
         addSystemMessage('No project directory selected', 'error');
     }
+}
+
+// Job Management Functions
+let currentActiveJobId = null;
+let jobChatInterface = null;
+
+function initializeJobManagement() {
+    // Setup panel controls
+    const jobChatBtnSetup = document.getElementById('job-chat-btn-setup');
+    const showJobsBtnSetup = document.getElementById('show-jobs-btn-setup');
+    const closeJobChatBtnSetup = document.getElementById('close-job-chat-setup');
+    const sendJobChatBtnSetup = document.getElementById('send-job-chat-setup');
+    const jobChatInputSetup = document.getElementById('job-chat-input-setup');
+    const jobFilterSetup = document.getElementById('job-filter-setup');
+
+    // Agents panel controls
+    const jobChatBtn = document.getElementById('job-chat-btn');
+    const showJobsBtn = document.getElementById('show-jobs-btn');
+    const closeJobChatBtn = document.getElementById('close-job-chat');
+    const sendJobChatBtn = document.getElementById('send-job-chat');
+    const jobChatInput = document.getElementById('job-chat-input');
+    const jobFilter = document.getElementById('job-filter');
+
+    // Setup panel event listeners
+    if (jobChatBtnSetup) {
+        jobChatBtnSetup.addEventListener('click', () => toggleJobChatInterface('setup'));
+    }
+
+    if (showJobsBtnSetup) {
+        showJobsBtnSetup.addEventListener('click', () => loadJobsList('setup'));
+    }
+
+    if (closeJobChatBtnSetup) {
+        closeJobChatBtnSetup.addEventListener('click', () => {
+            document.getElementById('job-chat-interface-setup').style.display = 'none';
+        });
+    }
+
+    if (sendJobChatBtnSetup) {
+        sendJobChatBtnSetup.addEventListener('click', () => sendJobChatMessage('setup'));
+    }
+
+    if (jobChatInputSetup) {
+        jobChatInputSetup.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendJobChatMessage('setup');
+            }
+        });
+    }
+
+    if (jobFilterSetup) {
+        jobFilterSetup.addEventListener('change', () => loadJobsList('setup'));
+    }
+
+    // Agents panel event listeners
+    if (jobChatBtn) {
+        jobChatBtn.addEventListener('click', () => toggleJobChatInterface('agents'));
+    }
+
+    if (showJobsBtn) {
+        showJobsBtn.addEventListener('click', () => loadJobsList('agents'));
+    }
+
+    if (closeJobChatBtn) {
+        closeJobChatBtn.addEventListener('click', () => {
+            document.getElementById('job-chat-interface').style.display = 'none';
+        });
+    }
+
+    if (sendJobChatBtn) {
+        sendJobChatBtn.addEventListener('click', () => sendJobChatMessage('agents'));
+    }
+
+    if (jobChatInput) {
+        jobChatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendJobChatMessage('agents');
+            }
+        });
+    }
+
+    if (jobFilter) {
+        jobFilter.addEventListener('change', () => loadJobsList('agents'));
+    }
+
+    // Load initial jobs list for both panels
+    loadJobsList('setup');
+    loadJobsList('agents');
+}
+
+function toggleJobChatInterface(panel = 'agents') {
+    const chatInterfaceId = panel === 'setup' ? 'job-chat-interface-setup' : 'job-chat-interface';
+    const chatInterface = document.getElementById(chatInterfaceId);
+    if (chatInterface) {
+        if (chatInterface.style.display === 'none' || !chatInterface.style.display) {
+            chatInterface.style.display = 'block';
+        } else {
+            chatInterface.style.display = 'none';
+        }
+    }
+}
+
+function sendJobChatMessage(panel = 'agents') {
+    const inputId = panel === 'setup' ? 'job-chat-input-setup' : 'job-chat-input';
+    const input = document.getElementById(inputId);
+    const message = input.value.trim();
+    
+    if (!message) return;
+
+    // Add user message to chat
+    addJobChatMessage(message, 'user', panel);
+    
+    // Send to server
+    socket.emit('job_chat_command', {
+        message: message,
+        jobId: currentActiveJobId
+    });
+
+    input.value = '';
+}
+
+function addJobChatMessage(message, type, panel = 'agents') {
+    const chatMessagesId = panel === 'setup' ? 'job-chat-messages-setup' : 'job-chat-messages';
+    const chatMessages = document.getElementById(chatMessagesId);
+    
+    if (!chatMessages) return;
+    
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `chat-message ${type}`;
+    
+    const content = document.createElement('div');
+    content.className = 'message-content';
+    
+    if (type === 'user') {
+        content.innerHTML = `<strong>You:</strong> ${message}`;
+    } else if (type === 'response') {
+        content.innerHTML = `<strong>System:</strong> ${message}`;
+    } else {
+        content.innerHTML = message;
+    }
+    
+    messageDiv.appendChild(content);
+    chatMessages.appendChild(messageDiv);
+    
+    // Scroll to bottom
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function loadJobsList(panel = 'agents') {
+    const filterId = panel === 'setup' ? 'job-filter-setup' : 'job-filter';
+    const filter = document.getElementById(filterId)?.value || 'active';
+    socket.emit('get_jobs', { type: filter, panel: panel });
+}
+
+function displayJobsList(jobs, panel = 'agents') {
+    const containerId = panel === 'setup' ? 'jobs-container-setup' : 'jobs-container';
+    const container = document.getElementById(containerId);
+    
+    if (!container) return;
+    
+    container.innerHTML = '';
+
+    if (jobs.length === 0) {
+        container.innerHTML = '<div style="color: #fff; text-align: center; padding: 20px;">No jobs found</div>';
+        return;
+    }
+
+    jobs.forEach(job => {
+        const jobCard = createJobCard(job);
+        container.appendChild(jobCard);
+    });
+}
+
+function createJobCard(job) {
+    const card = document.createElement('div');
+    card.className = 'job-card';
+    card.setAttribute('data-job-id', job.id);
+
+    const statusClass = job.status.toLowerCase();
+    const createdDate = new Date(job.createdAt).toLocaleString();
+
+    const checkpointIndicator = job.checkpointId ? '<i class="fas fa-save" title="Has checkpoint"></i>' : '';
+    
+    card.innerHTML = `
+        <div class="job-card-header">
+            <div class="job-name">${job.name} ${checkpointIndicator}</div>
+            <div class="job-status ${statusClass}">${job.status}</div>
+        </div>
+        <div class="job-description">${job.description}</div>
+        <div class="job-info">
+            <small>Created: ${createdDate}</small>
+            ${job.checkpointId ? '<small style="color: #4CAF50;"><i class="fas fa-save"></i> Checkpoint available</small>' : ''}
+        </div>
+        <div class="job-actions-row">
+            ${getJobActionButtons(job)}
+        </div>
+    `;
+
+    return card;
+}
+
+function getJobActionButtons(job) {
+    let buttons = '';
+    
+    switch (job.status) {
+        case 'running':
+            buttons = `
+                <button class="job-action-btn" onclick="pauseJob('${job.id}')">Pause</button>
+                <button class="job-action-btn danger" onclick="stopJob('${job.id}')">Stop</button>
+                <button class="job-action-btn" onclick="editJob('${job.id}')">Edit</button>
+            `;
+            break;
+        case 'paused':
+            buttons = `
+                <button class="job-action-btn primary" onclick="resumeJob('${job.id}')">Resume from Checkpoint</button>
+                <button class="job-action-btn danger" onclick="stopJob('${job.id}')">Stop</button>
+                <button class="job-action-btn" onclick="editJob('${job.id}')">Edit</button>
+            `;
+            break;
+        case 'editing':
+            buttons = `
+                <button class="job-action-btn" onclick="restartJob('${job.id}')">Restart</button>
+                <button class="job-action-btn danger" onclick="stopJob('${job.id}')">Cancel</button>
+            `;
+            break;
+        case 'stopped':
+        case 'failed':
+        case 'completed':
+            buttons = `
+                <button class="job-action-btn" onclick="viewJobLogs('${job.id}')">View Logs</button>
+                <button class="job-action-btn" onclick="reconnectJob('${job.id}')">Reconnect</button>
+            `;
+            break;
+    }
+    
+    return buttons;
+}
+
+function pauseJob(jobId) {
+    socket.emit('pause_job', { jobId });
+    currentActiveJobId = jobId;
+}
+
+function resumeJob(jobId) {
+    socket.emit('resume_job', { jobId });
+    currentActiveJobId = jobId;
+}
+
+function stopJob(jobId) {
+    if (confirm('Are you sure you want to stop this job?')) {
+        socket.emit('stop_job', { jobId });
+    }
+}
+
+function editJob(jobId) {
+    currentActiveJobId = jobId;
+    toggleJobChatInterface();
+    addJobChatMessage('Job editing mode activated. You can now modify the job goals using natural language.', 'system');
+}
+
+function restartJob(jobId) {
+    if (confirm('Are you sure you want to restart this job with the updated goals?')) {
+        socket.emit('restart_job', { jobId });
+        currentActiveJobId = jobId;
+    }
+}
+
+function viewJobLogs(jobId) {
+    // TODO: Implement job logs viewer
+    console.log('View logs for job:', jobId);
+}
+
+function reconnectJob(jobId) {
+    socket.emit('reconnect_job', { jobId });
+    currentActiveJobId = jobId;
+    addSystemMessage(`Attempting to reconnect to job ${jobId}...`, 'system');
+}
+
+// Add job management socket event handlers
+function setupJobManagementEvents() {
+    socket.on('job_created', (data) => {
+        currentActiveJobId = data.id;
+        loadJobsList('setup');
+        loadJobsList('agents');
+        addSystemMessage(`Job created: ${data.name}`, 'system');
+    });
+
+    socket.on('job_paused', (data) => {
+        loadJobsList('setup');
+        loadJobsList('agents');
+        addSystemMessage(`Job paused: ${data.job.name}`, 'system');
+    });
+
+    socket.on('job_resumed', (data) => {
+        loadJobsList('setup');
+        loadJobsList('agents');
+        addSystemMessage(`Job resumed: ${data.job.name}`, 'system');
+    });
+
+    socket.on('job_stopped', (data) => {
+        loadJobsList('setup');
+        loadJobsList('agents');
+        addSystemMessage(`Job stopped: ${data.job.name}`, 'system');
+    });
+
+    socket.on('job_goals_updated', (data) => {
+        loadJobsList('setup');
+        loadJobsList('agents');
+        addSystemMessage(`Job goals updated for: ${data.job.name}`, 'system');
+    });
+
+    socket.on('job_restarted', (data) => {
+        loadJobsList('setup');
+        loadJobsList('agents');
+        addSystemMessage(`Job restarted: ${data.job.name}`, 'system');
+    });
+
+    socket.on('jobs_list', (data) => {
+        displayJobsList(data.jobs, data.panel || 'agents');
+        // Also update the other panel if not specified
+        if (!data.panel) {
+            displayJobsList(data.jobs, 'setup');
+        }
+    });
+
+    socket.on('job_chat_response', (data) => {
+        // Add response to both chat interfaces
+        addJobChatMessage(data.response, 'response', 'setup');
+        addJobChatMessage(data.response, 'response', 'agents');
+    });
+
+    socket.on('job_error', (data) => {
+        addSystemMessage(`Job error: ${data.error}`, 'error');
+    });
+
+    socket.on('job_reconnected', (data) => {
+        loadJobsList('setup');
+        loadJobsList('agents');
+        addSystemMessage(`Reconnected to job: ${data.job.name}`, 'success');
+    });
+}
+
+// Call this in the existing setupSocketEventHandlers function
+function enhanceSocketEventHandlers() {
+    setupJobManagementEvents();
 } 

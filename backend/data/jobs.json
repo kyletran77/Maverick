@@ -1,0 +1,308 @@
+{
+  "ba156044-596d-46bb-b193-947979e950aa": {
+    "id": "ba156044-596d-46bb-b193-947979e950aa",
+    "name": "Job-1752173113678",
+    "description": "User requested: Create a multi agent development team with orchestrators calling up other agents using the Goose CLI",
+    "goals": {
+      "task": "Create a multi agent development team with orchestrators calling up other agents using the Goose CLI",
+      "description": "User requested: Create a multi agent development team with orchestrators calling up other agents using the Goose CLI"
+    },
+    "projectPath": "/Users/kyletran/Desktop/pronto/pronto",
+    "status": "stopped",
+    "progress": 0,
+    "agents": [],
+    "subtasks": [],
+    "executionPlan": {
+      "id": "454e8db1-a149-4e07-be6c-efeb20e068bf",
+      "originalTask": "Create a multi agent development team with orchestrators calling up other agents using the Goose CLI",
+      "description": "User requested: Create a multi agent development team with orchestrators calling up other agents using the Goose CLI",
+      "subtasks": [
+        {
+          "id": "e0015c42-d7da-473b-a7dd-9941be24de03",
+          "name": "Complete Implementation",
+          "description": "Create a complete, working implementation of the requested feature with all necessary files, dependencies, configuration, build scripts, README, and make it ready to build and run. Include proper error handling, input validation, and production-ready code. DO NOT start servers or run applications automatically.",
+          "type": "development",
+          "dependencies": [],
+          "estimatedTime": 20,
+          "priority": "high"
+        },
+        {
+          "id": "fdbfa7f4-c0f0-4270-a446-d627ca1e809b",
+          "name": "Testing & Documentation",
+          "description": "Create comprehensive tests, documentation, usage examples, and deployment instructions. Ensure the implementation is fully validated and ready for production use.",
+          "type": "testing",
+          "dependencies": [],
+          "estimatedTime": 10,
+          "priority": "medium"
+        },
+        {
+          "id": "36124dba-1deb-417a-876b-aca59d65fca9",
+          "name": "Integration, Testing & Deployment",
+          "description": "Integrate all components, ensure they work together seamlessly, create docker-compose or deployment scripts, add comprehensive integration tests, and create final deployment documentation. Verify the entire system can be built and run with a single command.",
+          "type": "integration",
+          "dependencies": [
+            "e0015c42-d7da-473b-a7dd-9941be24de03",
+            "fdbfa7f4-c0f0-4270-a446-d627ca1e809b"
+          ],
+          "estimatedTime": 8,
+          "priority": "low"
+        }
+      ],
+      "totalEstimatedTime": 38
+    },
+    "createdAt": "2025-07-10T18:45:13.678Z",
+    "updatedAt": "2025-07-10T18:47:43.023Z",
+    "logs": [
+      {
+        "timestamp": "2025-07-10T18:47:02.459Z",
+        "message": "Job paused by user",
+        "level": "info"
+      },
+      {
+        "timestamp": "2025-07-10T18:47:43.023Z",
+        "message": "Job stopped by user",
+        "level": "info"
+      }
+    ],
+    "planId": "f0d2012c-4eae-4a60-b26c-5c38717783e1"
+  },
+  "ce4bc1ef-8712-4fd1-9055-1160f0a8d93f": {
+    "id": "ce4bc1ef-8712-4fd1-9055-1160f0a8d93f",
+    "name": "Job-1752173802860",
+    "description": "User requested: Create a multi agent development team with orchestrators calling up other agents using the Goose CLI with a simple UI",
+    "goals": {
+      "task": "Create a multi agent development team with orchestrators calling up other agents using the Goose CLI with a simple UI",
+      "description": "User requested: Create a multi agent development team with orchestrators calling up other agents using the Goose CLI with a simple UI"
+    },
+    "projectPath": "/Users/kyletran/Desktop/jiggy/jiggy",
+    "status": "failed",
+    "progress": 0,
+    "agents": [],
+    "subtasks": [],
+    "executionPlan": {
+      "id": "29613a3e-503f-4ec4-8e1a-af16e57ad2e6",
+      "originalTask": "Create a multi agent development team with orchestrators calling up other agents using the Goose CLI with a simple UI",
+      "description": "User requested: Create a multi agent development team with orchestrators calling up other agents using the Goose CLI with a simple UI",
+      "subtasks": [
+        {
+          "id": "718266b7-64c3-4f78-8c45-5e09c3434034",
+          "name": "Complete Implementation",
+          "description": "Create a complete, working implementation of the requested feature with all necessary files, dependencies, configuration, build scripts, README, and make it ready to build and run. Include proper error handling, input validation, and production-ready code. DO NOT start servers or run applications automatically.",
+          "type": "development",
+          "dependencies": [],
+          "estimatedTime": 20,
+          "priority": "high"
+        },
+        {
+          "id": "db1b7793-9a86-4d85-8bb4-3d085c567511",
+          "name": "Testing & Documentation",
+          "description": "Create comprehensive tests, documentation, usage examples, and deployment instructions. Ensure the implementation is fully validated and ready for production use.",
+          "type": "testing",
+          "dependencies": [],
+          "estimatedTime": 10,
+          "priority": "medium"
+        },
+        {
+          "id": "8a029d6e-8c23-45d5-ab4d-9a7a9ef82f78",
+          "name": "Integration, Testing & Deployment",
+          "description": "Integrate all components, ensure they work together seamlessly, create docker-compose or deployment scripts, add comprehensive integration tests, and create final deployment documentation. Verify the entire system can be built and run with a single command.",
+          "type": "integration",
+          "dependencies": [
+            "718266b7-64c3-4f78-8c45-5e09c3434034",
+            "db1b7793-9a86-4d85-8bb4-3d085c567511"
+          ],
+          "estimatedTime": 8,
+          "priority": "low"
+        }
+      ],
+      "totalEstimatedTime": 38
+    },
+    "createdAt": "2025-07-10T18:56:42.860Z",
+    "updatedAt": "2025-07-10T18:57:10.387Z",
+    "logs": [
+      {
+        "timestamp": "2025-07-10T18:56:56.017Z",
+        "message": "Job paused by user with checkpoint",
+        "level": "info"
+      },
+      {
+        "timestamp": "2025-07-10T18:57:10.385Z",
+        "message": "Job resumed from checkpoint",
+        "level": "info"
+      },
+      {
+        "timestamp": "2025-07-10T18:57:10.387Z",
+        "message": "Job failed: Dependency deadlock or circular dependency detected",
+        "level": "error"
+      }
+    ],
+    "checkpointId": "0ad3943a-f454-49fd-be98-7d420247d646",
+    "planId": "296fe8e0-7b52-42ec-b629-951928235d23"
+  },
+  "c7831dad-46be-4331-a471-4cc0a4964d62": {
+    "id": "c7831dad-46be-4331-a471-4cc0a4964d62",
+    "name": "Simulation-1752182706748",
+    "description": "User requested: Create a multi agent development team with orchestrators calling up other agents using the Goose CLI",
+    "goals": {
+      "task": "Create a multi agent development team with orchestrators calling up other agents using the Goose CLI",
+      "description": "User requested: Create a multi agent development team with orchestrators calling up other agents using the Goose CLI"
+    },
+    "projectPath": "/simulation",
+    "status": "completed",
+    "progress": 100,
+    "agents": [
+      "code_generator"
+    ],
+    "subtasks": [],
+    "executionPlan": null,
+    "createdAt": "2025-07-10T21:25:06.748Z",
+    "updatedAt": "2025-07-10T21:25:18.994Z",
+    "logs": [
+      {
+        "timestamp": "2025-07-10T21:25:18.994Z",
+        "message": "Task completed successfully",
+        "level": "info"
+      }
+    ],
+    "checkpointId": null
+  },
+  "ef070282-3d31-4469-924c-7701c5edd99a": {
+    "id": "ef070282-3d31-4469-924c-7701c5edd99a",
+    "name": "Simulation-1752183102681",
+    "description": "User requested: Create a multi agent development team with orchestrators calling up other agents using the Goose CLI",
+    "goals": {
+      "task": "Create a multi agent development team with orchestrators calling up other agents using the Goose CLI",
+      "description": "User requested: Create a multi agent development team with orchestrators calling up other agents using the Goose CLI"
+    },
+    "projectPath": "/simulation",
+    "status": "completed",
+    "progress": 100,
+    "agents": [
+      "code_generator"
+    ],
+    "subtasks": [],
+    "executionPlan": null,
+    "createdAt": "2025-07-10T21:31:42.681Z",
+    "updatedAt": "2025-07-10T21:31:56.026Z",
+    "logs": [
+      {
+        "timestamp": "2025-07-10T21:31:56.026Z",
+        "message": "Task completed successfully",
+        "level": "info"
+      }
+    ],
+    "checkpointId": null
+  },
+  "job-1752183754123": {
+    "id": "job-1752183754123",
+    "name": "Orchestrated Task",
+    "description": "User requested: Create a ui for a multi agent system",
+    "task": "Create a ui for a multi agent system",
+    "projectPath": "/Users/kyletran/Desktop/testtest/testtest",
+    "status": "active",
+    "progress": 0,
+    "agents": [],
+    "subtasks": [],
+    "executionPlan": null,
+    "createdAt": "2025-07-10T21:42:34.123Z",
+    "updatedAt": "2025-07-10T21:42:34.123Z",
+    "logs": [],
+    "checkpointId": null
+  },
+  "Pronto": {
+    "id": "Pronto",
+    "name": "Pronto",
+    "description": "User requested: Create a multi agent development team with orchestrators calling up other agents using the Goose CLI with a simple UI",
+    "task": "Create a multi agent development team with orchestrators calling up other agents using the Goose CLI with a simple UI",
+    "projectPath": "/Users/kyletran/Desktop/pronot/pronot",
+    "status": "active",
+    "progress": 0,
+    "agents": [],
+    "subtasks": [],
+    "executionPlan": null,
+    "createdAt": "2025-07-11T00:08:33.189Z",
+    "updatedAt": "2025-07-11T00:08:33.189Z",
+    "logs": [],
+    "checkpointId": null
+  },
+  "job-1752184191784": {
+    "id": "job-1752184191784",
+    "name": "Orchestrated Task",
+    "description": "User requested: Create a multi agent development team with orchestrators calling up other agents using the Goose CLI with a simple UI",
+    "task": "Create a multi agent development team with orchestrators calling up other agents using the Goose CLI with a simple UI",
+    "projectPath": "/Users/kyletran/Desktop/pronto/pronto",
+    "status": "active",
+    "progress": 0,
+    "agents": [],
+    "subtasks": [],
+    "executionPlan": null,
+    "createdAt": "2025-07-10T21:49:51.784Z",
+    "updatedAt": "2025-07-10T21:49:51.784Z",
+    "logs": [],
+    "checkpointId": null
+  },
+  "job-1752192459053": {
+    "id": "job-1752192459053",
+    "name": "Orchestrated Task",
+    "description": "User requested: Create a multi agent development team with orchestrators calling up other agents using the Goose CLI",
+    "task": "Create a multi agent development team with orchestrators calling up other agents using the Goose CLI",
+    "projectPath": "/Users/kyletran/Desktop/ango/ango",
+    "status": "active",
+    "progress": 0,
+    "agents": [],
+    "subtasks": [],
+    "executionPlan": null,
+    "createdAt": "2025-07-11T00:07:39.053Z",
+    "updatedAt": "2025-07-11T00:07:39.053Z",
+    "logs": [],
+    "checkpointId": null
+  },
+  "job-1752192913936": {
+    "id": "job-1752192913936",
+    "name": "Orchestrated Task",
+    "description": "User requested: Create a multi agent development team with orchestrators calling up other agents using the Goose CLI",
+    "task": "Create a multi agent development team with orchestrators calling up other agents using the Goose CLI",
+    "projectPath": "/Users/kyletran/Desktop/prontot/prontot",
+    "status": "active",
+    "progress": 0,
+    "agents": [],
+    "subtasks": [],
+    "executionPlan": null,
+    "createdAt": "2025-07-11T00:15:13.936Z",
+    "updatedAt": "2025-07-11T00:15:13.936Z",
+    "logs": [],
+    "checkpointId": null
+  },
+  "job-1752193245969": {
+    "id": "job-1752193245969",
+    "name": "Orchestrated Task",
+    "description": "User requested: Create a multi agent development team with orchestrators calling up other agents using the Goose CLI",
+    "task": "Create a multi agent development team with orchestrators calling up other agents using the Goose CLI",
+    "projectPath": "/Users/kyletran/Desktop/teste/teste",
+    "status": "active",
+    "progress": 0,
+    "agents": [],
+    "subtasks": [],
+    "executionPlan": null,
+    "createdAt": "2025-07-11T00:20:45.969Z",
+    "updatedAt": "2025-07-11T00:20:45.969Z",
+    "logs": [],
+    "checkpointId": null
+  },
+  "job-1752193450307": {
+    "id": "job-1752193450307",
+    "name": "Orchestrated Task",
+    "description": "User requested: Create a multi agent development team with orchestrators calling up other agents using the Goose CLI",
+    "task": "Create a multi agent development team with orchestrators calling up other agents using the Goose CLI",
+    "projectPath": "/Users/kyletran/Desktop/tett/tett",
+    "status": "active",
+    "progress": 0,
+    "agents": [],
+    "subtasks": [],
+    "executionPlan": null,
+    "createdAt": "2025-07-11T00:24:10.307Z",
+    "updatedAt": "2025-07-11T00:24:10.307Z",
+    "logs": [],
+    "checkpointId": null
+  }
+}
