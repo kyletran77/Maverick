@@ -282,6 +282,39 @@ app.get('/api/test-kanban', (req, res) => {
   }
 });
 
+// QA Analytics endpoints
+app.get('/api/qa/analytics', (req, res) => {
+  try {
+    const analytics = taskOrchestrator.qaEngineer.getQualityAnalytics();
+    res.json({
+      success: true,
+      analytics: analytics
+    });
+  } catch (error) {
+    console.error('Error getting QA analytics:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to get QA analytics' 
+    });
+  }
+});
+
+app.get('/api/qa/verifications', (req, res) => {
+  try {
+    const verifications = taskOrchestrator.qaEngineer.getActiveVerifications();
+    res.json({
+      success: true,
+      verifications: verifications
+    });
+  } catch (error) {
+    console.error('Error getting QA verifications:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to get QA verifications' 
+    });
+  }
+});
+
 function getDirectories(dirPath) {
   try {
     // Check if directory exists and is accessible

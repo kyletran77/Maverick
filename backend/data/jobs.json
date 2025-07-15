@@ -448,5 +448,21 @@
     "updatedAt": "2025-07-11T22:48:51.164Z",
     "logs": [],
     "checkpointId": null
+  },
+  "job-1752596432632": {
+    "id": "job-1752596432632",
+    "name": "Orchestrated Task",
+    "description": "User requested: Create a multi agent development team with orchestrators calling up other agents using the Goose CLI",
+    "task": "Create a multi agent development team with orchestrators calling up other agents using the Goose CLI",
+    "projectPath": "/Users/kyletran/Desktop/goose-mav/goose-mav",
+    "status": "active",
+    "progress": 0,
+    "agents": [],
+    "subtasks": [],
+    "executionPlan": null,
+    "createdAt": "2025-07-15T16:20:32.632Z",
+    "updatedAt": "2025-07-15T16:20:32.632Z",
+    "logs": [],
+    "checkpointId": null
   }
 }

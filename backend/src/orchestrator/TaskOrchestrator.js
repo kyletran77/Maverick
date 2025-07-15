@@ -1,5 +1,6 @@
 const { v4: uuidv4 } = require('uuid');
 const { GooseIntegration } = require('../../goose-integration');
+const QAEngineer = require('./QAEngineer');
 
 /**
  * LangGraph-inspired Task Orchestrator
@@ -22,6 +23,9 @@ class TaskOrchestrator {
     
     // Initialize Goose integration for real agent execution
     this.gooseIntegration = new GooseIntegration(io);
+    
+    // Initialize QA Engineer for quality verification
+    this.qaEngineer = new QAEngineer(io, this.gooseIntegration);
     
     // Initialize specialized agent types with capabilities
     this.initializeAgentTypes();
@@ -379,8 +383,27 @@ class TaskOrchestrator {
         const duration = new Date() - startTime;
         console.log(`[${sessionId}] Goose CLI execution completed in ${Math.round(duration / 1000)}s`);
         
-        // Task completed successfully
-        await this.completeTaskSafely(projectId, taskId, socket);
+        // QA Verification Gate - Verify task completion before marking as completed
+        console.log(`[${sessionId}] Starting QA verification for task: ${task.title}`);
+        const qaResult = await this.qaEngineer.verifyTaskCompletion(
+          projectId,
+          taskId,
+          task,
+          project.projectPath,
+          socket
+        );
+        
+        if (qaResult.passed) {
+          console.log(`[${sessionId}] QA verification PASSED (Score: ${qaResult.score.toFixed(2)})`);
+          // Task completed successfully and passed QA
+          await this.completeTaskSafely(projectId, taskId, socket);
+        } else {
+          console.log(`[${sessionId}] QA verification FAILED (Score: ${qaResult.score.toFixed(2)})`);
+          console.log(`[${sessionId}] Issues found:`, qaResult.issues);
+          
+          // Mark task as requiring revision
+          await this.handleTaskQAFailure(projectId, taskId, agent, qaResult, socket);
+        }
         
       } catch (error) {
         console.error(`[${sessionId}] Goose CLI execution failed:`, error);
@@ -391,6 +414,199 @@ class TaskOrchestrator {
       console.error('Task execution error:', error);
       // Don't throw, just log and continue
     }
+  }
+
+  /**
+   * Handle QA verification failure
+   */
+  async handleTaskQAFailure(projectId, taskId, agent, qaResult, socket) {
+    const project = this.activeProjects.get(projectId);
+    if (!project) return;
+    
+    const taskNode = project.taskGraph.nodes.find(n => n.id === taskId);
+    if (!taskNode) return;
+    
+    const task = taskNode.data;
+    
+    // Update task status to needs revision
+    task.status = 'needs_revision';
+    task.qaScore = qaResult.score;
+    task.qaIssues = qaResult.issues;
+    task.qaRecommendations = qaResult.recommendations;
+    task.qaFailedAt = new Date();
+    
+    console.log(`[QA] Task failed verification: ${task.title}`);
+    console.log(`[QA] Score: ${qaResult.score.toFixed(2)}`);
+    console.log(`[QA] Issues: ${qaResult.issues.length}`);
+    
+    // Move task to revision column
+    try {
+      this.moveTaskInKanban(project.kanbanBoard, taskId, 'inProgress', 'revision', agent.id);
+    } catch (kanbanError) {
+      console.warn('Failed to move QA failed task in kanban:', kanbanError);
+    }
+    
+    // Update agent status
+    socket.emit('agent_status_update', {
+      agentId: agent.id,
+      agentName: agent.name,
+      agentType: agent.type,
+      status: 'needs_revision',
+      currentTask: task.title,
+      progress: 75, // Partial completion
+      qaScore: qaResult.score,
+      issues: qaResult.issues,
+      recommendations: qaResult.recommendations
+    });
+    
+    // Broadcast to all clients
+    this.io.emit('agents_update', {
+      [agent.id]: {
+        ...agent,
+        status: 'needs_revision',
+        currentTask: task.title,
+        progress: 75,
+        qaScore: qaResult.score,
+        issues: qaResult.issues,
+        recommendations: qaResult.recommendations,
+        logs: agent.logs || []
+      }
+    });
+    
+    // Emit QA failure event
+    socket.emit('task_qa_failed', {
+      projectId,
+      taskId,
+      agentId: agent.id,
+      task: task,
+      qaResult: qaResult
+    });
+    
+    // Auto-retry with improvement instructions if score is close to passing
+    if (qaResult.score >= 0.6) { // Close to minimum threshold of 0.7
+      console.log(`[QA] Attempting auto-retry with improvement instructions for task: ${task.title}`);
+      await this.retryTaskWithQAFeedback(projectId, taskId, agent, qaResult, socket);
+    }
+  }
+
+  /**
+   * Retry task with QA feedback and improvement instructions
+   */
+  async retryTaskWithQAFeedback(projectId, taskId, agent, qaResult, socket) {
+    const project = this.activeProjects.get(projectId);
+    if (!project) return;
+    
+    const taskNode = project.taskGraph.nodes.find(n => n.id === taskId);
+    if (!taskNode) return;
+    
+    const task = taskNode.data;
+    
+    // Create improvement prompt based on QA feedback
+    const improvementPrompt = this.createImprovementPrompt(task, qaResult);
+    const sessionId = `${agent.type}-${task.title.replace(/[^a-zA-Z0-9]/g, '').substring(0, 20)}-retry`;
+    
+    console.log(`[QA-Retry] Starting retry with improvement instructions for: ${task.title}`);
+    
+    try {
+      // Update task status
+      task.status = 'retrying';
+      task.retryAttempt = (task.retryAttempt || 0) + 1;
+      task.retriedAt = new Date();
+      
+      // Emit retry started
+      socket.emit('task_retry_started', {
+        projectId,
+        taskId,
+        agentId: agent.id,
+        attempt: task.retryAttempt,
+        improvements: qaResult.recommendations
+      });
+      
+      // Execute improvement task
+      await this.gooseIntegration.executeGooseTask(
+        improvementPrompt,
+        sessionId,
+        socket,
+        project.projectPath
+      );
+      
+      console.log(`[QA-Retry] Retry execution completed for: ${task.title}`);
+      
+      // Re-run QA verification
+      const retryQAResult = await this.qaEngineer.verifyTaskCompletion(
+        projectId,
+        taskId,
+        task,
+        project.projectPath,
+        socket
+      );
+      
+      if (retryQAResult.passed) {
+        console.log(`[QA-Retry] Retry QA verification PASSED for: ${task.title}`);
+        await this.completeTaskSafely(projectId, taskId, socket);
+      } else {
+        console.log(`[QA-Retry] Retry QA verification still FAILED for: ${task.title}`);
+        // Mark as failed after retry
+        await this.handleTaskError(projectId, taskId, agent, 
+          new Error(`Task failed QA verification after retry. Score: ${retryQAResult.score.toFixed(2)}`), 
+          socket);
+      }
+      
+    } catch (error) {
+      console.error(`[QA-Retry] Retry failed for task: ${task.title}`, error);
+      await this.handleTaskError(projectId, taskId, agent, error, socket);
+    }
+  }
+
+  /**
+   * Create improvement prompt based on QA feedback
+   */
+  createImprovementPrompt(task, qaResult) {
+    const issuesList = qaResult.issues.map(issue => `- ${issue}`).join('\n');
+    const recommendationsList = qaResult.recommendations.map(rec => `- ${rec}`).join('\n');
+    
+    return `
+TASK IMPROVEMENT REQUIRED
+
+Original Task: ${task.title}
+Description: ${task.description}
+Current Quality Score: ${qaResult.score.toFixed(2)}/1.0 (Minimum required: 0.7)
+
+CRITICAL ISSUES TO FIX:
+${issuesList}
+
+RECOMMENDED IMPROVEMENTS:
+${recommendationsList}
+
+QUALITY REQUIREMENTS:
+1. ALL files must be present and properly structured
+2. Code must build and run without errors
+3. All dependencies must be properly configured
+4. README.md must include clear setup and run instructions
+5. Code must follow security best practices
+6. Project must be immediately deployable
+
+INSTRUCTIONS:
+Fix ALL the issues listed above and implement the recommended improvements. 
+Ensure the project meets the "Always Building" principle - it must be complete, 
+working, and buildable immediately after generation.
+
+Focus on:
+- Creating missing files and directories
+- Fixing build and dependency issues
+- Adding proper documentation
+- Ensuring security best practices
+- Making the project production-ready
+
+TEST YOUR WORK:
+After making changes, verify that:
+- All required files exist
+- npm install (or equivalent) works without errors
+- npm start (or equivalent) successfully starts the application
+- README.md has clear, accurate instructions
+
+The project must be immediately usable by someone following the README instructions.
+`;
   }
 
   /**
@@ -1323,6 +1539,9 @@ class TaskOrchestrator {
           inProgress: {
             tasks: []
           },
+          revision: {
+            tasks: []
+          },
           review: {
             tasks: []
           },
@@ -1355,6 +1574,9 @@ class TaskOrchestrator {
               }))
             },
             inProgress: {
+              tasks: []
+            },
+            revision: {
               tasks: []
             },
             review: {

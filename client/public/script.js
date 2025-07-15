@@ -342,6 +342,50 @@ function setupSocketEventHandlers() {
         finalizeAgentOutputSection(data.sessionId, 'failed');
     });
 
+    // QA Verification events
+    socket.on('qa_verification_started', (data) => {
+        addSystemMessage(`🔍 QA Verification started for: ${data.taskTitle}`, 'system');
+        createQAVerificationSection(data.verificationId, data.taskTitle);
+    });
+
+    socket.on('qa_step_started', (data) => {
+        updateQAStep(data.step, data.description, 'in_progress');
+    });
+
+    socket.on('qa_step_completed', (data) => {
+        updateQAStep(data.step, '', data.passed ? 'passed' : 'failed', data.score);
+    });
+
+    socket.on('qa_verification_completed', (data) => {
+        const statusIcon = data.passed ? '✅' : '❌';
+        const statusText = data.passed ? 'PASSED' : 'FAILED';
+        const scoreText = (data.score * 100).toFixed(1);
+        
+        addSystemMessage(`${statusIcon} QA Verification ${statusText} (Score: ${scoreText}%)`, 
+                         data.passed ? 'success' : 'error');
+        
+        if (!data.passed && data.issues.length > 0) {
+            addSystemMessage(`Issues found: ${data.issues.slice(0, 3).join(', ')}${data.issues.length > 3 ? '...' : ''}`, 'warning');
+        }
+        
+        finalizeQAVerificationSection(data.verificationId, data.passed, data.score, data.issues, data.recommendations);
+    });
+
+    socket.on('qa_verification_error', (data) => {
+        addSystemMessage(`🔍 QA Verification Error: ${data.error}`, 'error');
+    });
+
+    socket.on('task_qa_failed', (data) => {
+        addSystemMessage(`🔧 Task requires revision: ${data.task.title}`, 'warning');
+        if (data.qaResult.recommendations.length > 0) {
+            addSystemMessage(`Recommendations: ${data.qaResult.recommendations[0]}`, 'info');
+        }
+    });
+
+    socket.on('task_retry_started', (data) => {
+        addSystemMessage(`🔄 Auto-retry with improvements (Attempt ${data.attempt})`, 'system');
+    });
+
     socket.on('build_validation', (data) => {
         const validation = data.validation;
         if (validation.buildable) {
@@ -2359,4 +2403,148 @@ function setupJobManagementEvents() {
 // Call this in the existing setupSocketEventHandlers function
 function enhanceSocketEventHandlers() {
     setupJobManagementEvents();
+}
+
+// QA Verification UI functions
+function createQAVerificationSection(verificationId, taskTitle) {
+    const outputContainer = document.getElementById('output-container');
+    if (!outputContainer) return;
+
+    const section = document.createElement('div');
+    section.id = `qa-${verificationId}`;
+    section.className = 'qa-verification-section mb-4 p-4 border-2 border-blue-300 rounded-lg bg-blue-50';
+    
+    section.innerHTML = `
+        <div class="flex items-center justify-between mb-2">
+            <h3 class="text-lg font-semibold text-blue-700">🔍 QA Verification: ${taskTitle}</h3>
+            <div class="qa-status text-blue-600">In Progress...</div>
+        </div>
+        <div class="qa-steps space-y-2">
+            <!-- QA steps will be added here -->
+        </div>
+        <div class="qa-summary mt-4 hidden">
+            <!-- Summary will be added here when completed -->
+        </div>
+    `;
+    
+    outputContainer.appendChild(section);
+    section.scrollIntoView({ behavior: 'smooth' });
+}
+
+function updateQAStep(stepName, description, status, score = null) {
+    const sections = document.querySelectorAll('.qa-verification-section');
+    const currentSection = sections[sections.length - 1]; // Get the most recent QA section
+    if (!currentSection) return;
+    
+    const stepsContainer = currentSection.querySelector('.qa-steps');
+    if (!stepsContainer) return;
+    
+    let stepElement = stepsContainer.querySelector(`[data-step="${stepName}"]`);
+    
+    if (!stepElement) {
+        stepElement = document.createElement('div');
+        stepElement.setAttribute('data-step', stepName);
+        stepElement.className = 'qa-step p-2 border rounded';
+        stepsContainer.appendChild(stepElement);
+    }
+    
+    let statusIcon = '⏳';
+    let statusClass = 'text-blue-600';
+    
+    if (status === 'passed') {
+        statusIcon = '✅';
+        statusClass = 'text-green-600';
+    } else if (status === 'failed') {
+        statusIcon = '❌';
+        statusClass = 'text-red-600';
+    }
+    
+    const scoreText = score !== null ? ` (${(score * 100).toFixed(1)}%)` : '';
+    // Map step names to friendly titles
+    const stepTitleMap = {
+        'file_structure': 'File Structure Validation',
+        'build_validation': 'Build Process Validation', 
+        'test_generation': 'Test Script Generation & Execution',
+        'comprehensive_build': 'Comprehensive Build Verification',
+        'packageJsonValidation': 'Package.json Validation',
+        'dependencyCheck': 'Dependency Check',
+        'apiEndpointValidation': 'API Endpoint Validation',
+        'securityCheck': 'Security Check',
+        'errorHandlingCheck': 'Error Handling Check',
+        'databaseConnectionCheck': 'Database Connection Check',
+        'performanceCheck': 'Performance Check',
+        'codeQualityCheck': 'Code Quality Check'
+    };
+    
+    const stepTitle = stepTitleMap[stepName] || stepName.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+    
+    stepElement.innerHTML = `
+        <div class="flex items-center justify-between">
+            <span class="font-medium">${statusIcon} ${stepTitle}</span>
+            <span class="${statusClass}">${status}${scoreText}</span>
+        </div>
+        ${description ? `<div class="text-sm text-gray-600 mt-1">${description}</div>` : ''}
+    `;
+    
+    stepElement.className = `qa-step p-2 border rounded ${statusClass.includes('green') ? 'bg-green-50' : statusClass.includes('red') ? 'bg-red-50' : 'bg-blue-50'}`;
+}
+
+function finalizeQAVerificationSection(verificationId, passed, score, issues, recommendations) {
+    const section = document.getElementById(`qa-${verificationId}`);
+    if (!section) return;
+    
+    const statusElement = section.querySelector('.qa-status');
+    const summaryElement = section.querySelector('.qa-summary');
+    
+    if (statusElement) {
+        const statusText = passed ? 'PASSED ✅' : 'FAILED ❌';
+        const statusClass = passed ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold';
+        statusElement.textContent = statusText;
+        statusElement.className = `qa-status ${statusClass}`;
+    }
+    
+    if (summaryElement) {
+        const scorePercent = (score * 100).toFixed(1);
+        const qualityLevel = score >= 0.9 ? 'Excellent' : score >= 0.8 ? 'Good' : score >= 0.7 ? 'Acceptable' : 'Needs Improvement';
+        
+        let summaryHTML = `
+            <div class="qa-summary-content p-3 bg-white rounded border">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="font-semibold">Quality Score: ${scorePercent}%</span>
+                    <span class="text-sm px-2 py-1 rounded ${passed ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">${qualityLevel}</span>
+                </div>
+        `;
+        
+        if (issues.length > 0) {
+            summaryHTML += `
+                <div class="mb-2">
+                    <strong class="text-red-600">Issues (${issues.length}):</strong>
+                    <ul class="list-disc list-inside text-sm mt-1 space-y-1">
+                        ${issues.slice(0, 5).map(issue => `<li class="text-red-700">${issue}</li>`).join('')}
+                        ${issues.length > 5 ? `<li class="text-gray-500">...and ${issues.length - 5} more</li>` : ''}
+                    </ul>
+                </div>
+            `;
+        }
+        
+        if (recommendations.length > 0) {
+            summaryHTML += `
+                <div>
+                    <strong class="text-blue-600">Recommendations (${recommendations.length}):</strong>
+                    <ul class="list-disc list-inside text-sm mt-1 space-y-1">
+                        ${recommendations.slice(0, 3).map(rec => `<li class="text-blue-700">${rec}</li>`).join('')}
+                        ${recommendations.length > 3 ? `<li class="text-gray-500">...and ${recommendations.length - 3} more</li>` : ''}
+                    </ul>
+                </div>
+            `;
+        }
+        
+        summaryHTML += '</div>';
+        summaryElement.innerHTML = summaryHTML;
+        summaryElement.classList.remove('hidden');
+    }
+    
+    // Update section border color based on result
+    section.className = section.className.replace('border-blue-300 bg-blue-50', 
+        passed ? 'border-green-300 bg-green-50' : 'border-red-300 bg-red-50');
 } 
