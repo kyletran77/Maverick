@@ -464,5 +464,53 @@
     "updatedAt": "2025-07-15T16:20:32.632Z",
     "logs": [],
     "checkpointId": null
+  },
+  "job-1752604884321": {
+    "id": "job-1752604884321",
+    "name": "Orchestrated Task",
+    "description": "Complete web application with frontend, backend, database, and deployment ready",
+    "task": "Create a complete todo app with React frontend and Node.js backend",
+    "projectPath": "./test-webapp",
+    "status": "active",
+    "progress": 0,
+    "agents": [],
+    "subtasks": [],
+    "executionPlan": null,
+    "createdAt": "2025-07-15T18:41:24.321Z",
+    "updatedAt": "2025-07-15T18:41:24.321Z",
+    "logs": [],
+    "checkpointId": null
+  },
+  "job-1752604902597": {
+    "id": "job-1752604902597",
+    "name": "Orchestrated Task",
+    "description": "Complete web application with frontend, backend, database, and deployment ready",
+    "task": "Create a complete todo app with React frontend and Node.js backend",
+    "projectPath": "./test-webapp",
+    "status": "active",
+    "progress": 0,
+    "agents": [],
+    "subtasks": [],
+    "executionPlan": null,
+    "createdAt": "2025-07-15T18:41:42.597Z",
+    "updatedAt": "2025-07-15T18:41:42.597Z",
+    "logs": [],
+    "checkpointId": null
+  },
+  "job-1752605248693": {
+    "id": "job-1752605248693",
+    "name": "Orchestrated Task",
+    "description": "User requested: Create a broadcom website landing page copy cat. Search the web if needed",
+    "task": "Create a broadcom website landing page copy cat. Search the web if needed",
+    "projectPath": "/Users/kyletran/Documents/broadcom_website/broadcom_website",
+    "status": "active",
+    "progress": 0,
+    "agents": [],
+    "subtasks": [],
+    "executionPlan": null,
+    "createdAt": "2025-07-15T18:47:28.693Z",
+    "updatedAt": "2025-07-15T18:47:28.693Z",
+    "logs": [],
+    "checkpointId": null
   }
 }

@@ -261,10 +261,10 @@ class TaskOrchestrator {
         }
       }
       
-      // Complete project after all initial tasks are done - Increased from 5 to 30 seconds
-      setTimeout(() => {
-        this.completeProject(projectId, socket);
-      }, 30000); // Complete after 30 seconds
+      // REMOVED: No longer force project completion after 30 seconds
+      // The dependency chain execution will naturally complete the project
+      // when all tasks are done via completeTaskSafely method
+      console.log('Initial tasks started. Dependency chain will handle subsequent tasks.');
       
     } catch (error) {
       console.error('Task execution failed:', error);
@@ -859,6 +859,35 @@ The project must be immediately usable by someone following the README instructi
       });
       
       console.log('Task completed:', task.title);
+      
+      // CRITICAL FIX: Check for newly available tasks and trigger them
+      // This was missing from the original completeTaskSafely method
+      console.log('Checking for newly available tasks after completion of:', task.title);
+      const newReadyTasks = this.findReadyTasks(project.taskGraph);
+      console.log('Found', newReadyTasks.length, 'newly ready tasks');
+      
+      for (const readyTask of newReadyTasks) {
+        if (readyTask.status === 'todo') {
+          console.log('Triggering execution of dependent task:', readyTask.title);
+          try {
+            // Execute the newly available task
+            await this.executeTaskSafely(projectId, readyTask.id, socket);
+          } catch (error) {
+            console.error('Failed to execute dependent task:', readyTask.title, error);
+            // Continue with other tasks instead of failing completely
+          }
+        }
+      }
+      
+      // Check if project is complete
+      const allTasksComplete = project.taskGraph.nodes.every(node => 
+        node.data.status === 'completed'
+      );
+      
+      if (allTasksComplete) {
+        console.log('All tasks completed - finishing project');
+        await this.completeProject(projectId, socket);
+      }
       
     } catch (error) {
       console.error('Task completion error:', error);
