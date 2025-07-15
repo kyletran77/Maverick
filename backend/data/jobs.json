@@ -416,5 +416,37 @@
     "updatedAt": "2025-07-11T01:18:40.586Z",
     "logs": [],
     "checkpointId": null
+  },
+  "job-1752273459473": {
+    "id": "job-1752273459473",
+    "name": "Orchestrated Task",
+    "description": "User requested: Create a contract management system for working with vendors",
+    "task": "Create a contract management system for working with vendors",
+    "projectPath": "/Users/kyletran/Desktop/koldkilla/koldkilla",
+    "status": "active",
+    "progress": 0,
+    "agents": [],
+    "subtasks": [],
+    "executionPlan": null,
+    "createdAt": "2025-07-11T22:37:39.473Z",
+    "updatedAt": "2025-07-11T22:37:39.473Z",
+    "logs": [],
+    "checkpointId": null
+  },
+  "job-1752274131164": {
+    "id": "job-1752274131164",
+    "name": "Orchestrated Task",
+    "description": "User requested: Create a contract management system for working with vendors",
+    "task": "Create a contract management system for working with vendors",
+    "projectPath": "/Users/kyletran/Desktop/contract_me/contract_me",
+    "status": "active",
+    "progress": 0,
+    "agents": [],
+    "subtasks": [],
+    "executionPlan": null,
+    "createdAt": "2025-07-11T22:48:51.164Z",
+    "updatedAt": "2025-07-11T22:48:51.164Z",
+    "logs": [],
+    "checkpointId": null
   }
 }

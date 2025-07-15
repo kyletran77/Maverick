@@ -94,7 +94,7 @@ document.addEventListener('DOMContentLoaded', function() {
     checkGooseStatus();
     initializeTemplateSystem();
     initializeJobManagement();
-    addSystemMessage('Welcome to Maverick! 🚀\n\nNew features:\n• ✅ Checkpoint system - jobs can be paused and resumed from exact point\n• 🔄 Job reconnection - reconnect to jobs after browser restart\n• 💾 Persistent execution state - no progress lost on interruptions\n• 📊 Enhanced job management with visual checkpoint indicators\n• 🎯 Intelligent task breakdown with dependency tracking\n• 🔧 Chat-based job control interface\n\nSelect a project directory and submit a task to get started!');
+    addSystemMessage('Welcome to Broadcom Software Architecture Platform! 🚀\n\nKey Features:\n• ✅ Checkpoint system - projects can be paused and resumed from exact point\n• 🔄 Project reconnection - reconnect to projects after browser restart\n• 💾 Persistent execution state - no progress lost on interruptions\n• 📊 Enhanced project management with visual checkpoint indicators\n• 🎯 Intelligent task breakdown with dependency tracking\n• 🔧 Chat-based project control interface\n\nSelect a project directory and submit a development request to get started!');
 });
 
 function setupSocketEventHandlers() {
@@ -104,7 +104,7 @@ function setupSocketEventHandlers() {
             connectionStatus.className = 'status-dot online';
         }
         if (connectionText) {
-            connectionText.textContent = 'Connected';
+            connectionText.textContent = 'CONNECTED';
         }
         console.log('Connected to server');
     });
@@ -114,7 +114,7 @@ function setupSocketEventHandlers() {
             connectionStatus.className = 'status-dot offline';
         }
         if (connectionText) {
-            connectionText.textContent = 'Disconnected';
+            connectionText.textContent = 'DISCONNECTED';
         }
         console.log('Disconnected from server');
     });

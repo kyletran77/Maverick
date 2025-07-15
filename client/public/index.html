@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Maverick - Elite AI Squadron</title>
+    <title>Broadcom Maverick - Software Architecture Platform</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Orbitron:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Roboto:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="container">
@@ -16,38 +16,30 @@
         <header class="header">
             <div class="logo">
                 <div class="logo-icon">
-                    <i class="fas fa-fighter-jet"></i>
-                    <div class="radar-sweep"></div>
+                    <img src="broadcom_logo.png" alt="Broadcom Logo" class="logo-image">
                 </div>
                 <div class="logo-text">
                     <h1>MAVERICK</h1>
-                    <span class="callsign">ELITE AI SQUADRON</span>
-                    <div class="mission-status">
-                        <span class="status-text">MISSION READY</span>
-                        <div class="status-indicators">
-                            <div class="indicator active"></div>
-                            <div class="indicator active"></div>
-                            <div class="indicator active"></div>
-                        </div>
-                    </div>
+                    <span class="subtitle">SOFTWARE ARCHITECTURE PLATFORM</span>
+                    
                 </div>
             </div>
             <div class="header-actions">
-                <div class="flight-controls">
-                    <button id="visit-project-btn" class="action-btn visit-project-btn" title="Visit Project Directory" style="display: none;">
+                <div class="platform-controls">
+                    <button id="visit-project-btn" class="action-btn visit-project-btn" title="Open Project Directory" style="display: none;">
                         <i class="fas fa-folder-open"></i>
-                        <span>TARGET</span>
+                        <span>PROJECT</span>
                     </button>
                     <button id="open-ide-btn" class="action-btn open-ide-btn" title="Open in IDE" style="display: none;">
                         <i class="fas fa-code"></i>
-                        <span>COCKPIT</span>
+                        <span>IDE</span>
                     </button>
                 </div>
-                <div class="comms-panel">
+                <div class="connection-panel">
                     <div class="connection-display">
                         <div id="connection-status" class="status-dot offline"></div>
                         <div class="connection-info">
-                            <span id="connection-text">ESTABLISHING COMMS...</span>
+                            <span id="connection-text">CONNECTING...</span>
                             <div class="frequency">FREQ: 121.5</div>
                         </div>
                     </div>
@@ -59,13 +51,13 @@
         <div class="main-content">
             <!-- Setup Panel (shown initially) -->
             <div id="setup-panel" class="setup-panel">
-                <!-- Mission Templates Section -->
+                <!-- Architecture Templates Section -->
                 <div class="templates-section">
                     <div class="section-header">
-                        <h2><i class="fas fa-clipboard-list"></i> MISSION TEMPLATES</h2>
-                        <div class="classification">CLASSIFIED</div>
+                        <h2><i class="fas fa-clipboard-list"></i> ARCHITECTURE TEMPLATES</h2>
+                        <div class="platform-badge">BROADCOM</div>
                     </div>
-                    <p class="templates-description">Select your mission parameters - Maverick will deploy the elite squadron for complete project execution!</p>
+                    <p class="templates-description">Select your architecture template - Our AI agents will generate complete, production-ready software solutions!</p>
                     
                     <div class="template-grid">
                         <div class="template-card" data-template="react">
@@ -73,18 +65,18 @@
                                 <div class="template-icon">
                                     <i class="fab fa-react"></i>
                                 </div>
-                                <div class="callsign-badge">ICEMAN</div>
+                                <div class="tech-badge">REACT</div>
                             </div>
-                            <h3>React Squadron</h3>
-                            <p>Modern React deployment with advanced tactical systems</p>
+                            <h3>React Application</h3>
+                            <p>Modern React application with enterprise-grade architecture</p>
                             <div class="template-features">
                                 <span class="feature-tag">TypeScript</span>
                                 <span class="feature-tag">Vite</span>
                                 <span class="feature-tag">Tailwind</span>
                             </div>
-                            <div class="mission-difficulty">
-                                <span class="difficulty-label">DIFFICULTY:</span>
-                                <div class="difficulty-bars">
+                            <div class="complexity-level">
+                                <span class="complexity-label">COMPLEXITY:</span>
+                                <div class="complexity-bars">
                                     <div class="bar active"></div>
                                     <div class="bar active"></div>
                                     <div class="bar"></div>
@@ -97,18 +89,18 @@
                                 <div class="template-icon">
                                     <i class="fab fa-angular"></i>
                                 </div>
-                                <div class="callsign-badge">ROOSTER</div>
+                                <div class="tech-badge">ANGULAR</div>
                             </div>
-                            <h3>Angular Wing</h3>
-                            <p>Full Angular tactical deployment with enterprise systems</p>
+                            <h3>Angular Application</h3>
+                            <p>Full Angular application with enterprise-grade architecture</p>
                             <div class="template-features">
                                 <span class="feature-tag">TypeScript</span>
                                 <span class="feature-tag">Angular CLI</span>
                                 <span class="feature-tag">Material</span>
                             </div>
-                            <div class="mission-difficulty">
-                                <span class="difficulty-label">DIFFICULTY:</span>
-                                <div class="difficulty-bars">
+                            <div class="complexity-level">
+                                <span class="complexity-label">COMPLEXITY:</span>
+                                <div class="complexity-bars">
                                     <div class="bar active"></div>
                                     <div class="bar active"></div>
                                     <div class="bar active"></div>
@@ -121,18 +113,18 @@
                                 <div class="template-icon">
                                     <i class="fab fa-vuejs"></i>
                                 </div>
-                                <div class="callsign-badge">PHOENIX</div>
+                                <div class="tech-badge">VUE</div>
                             </div>
-                            <h3>Vue Formation</h3>
-                            <p>Vue 3 tactical suite with advanced composition systems</p>
+                            <h3>Vue Application</h3>
+                            <p>Vue 3 application with modern composition architecture</p>
                             <div class="template-features">
                                 <span class="feature-tag">Vue 3</span>
                                 <span class="feature-tag">Vite</span>
                                 <span class="feature-tag">Pinia</span>
                             </div>
-                            <div class="mission-difficulty">
-                                <span class="difficulty-label">DIFFICULTY:</span>
-                                <div class="difficulty-bars">
+                            <div class="complexity-level">
+                                <span class="complexity-label">COMPLEXITY:</span>
+                                <div class="complexity-bars">
                                     <div class="bar active"></div>
                                     <div class="bar active"></div>
                                     <div class="bar"></div>
@@ -145,18 +137,18 @@
                                 <div class="template-icon">
                                     <i class="fas fa-layer-group"></i>
                                 </div>
-                                <div class="callsign-badge">HANGMAN</div>
+                                <div class="tech-badge">FULL-STACK</div>
                             </div>
-                            <h3>Full-Stack Operation</h3>
-                            <p>Complete tactical deployment with all systems integrated</p>
+                            <h3>Full-Stack Application</h3>
+                            <p>Complete end-to-end solution with integrated architecture</p>
                             <div class="template-features">
                                 <span class="feature-tag">React/Vue</span>
                                 <span class="feature-tag">Node.js</span>
                                 <span class="feature-tag">Database</span>
                             </div>
-                            <div class="mission-difficulty">
-                                <span class="difficulty-label">DIFFICULTY:</span>
-                                <div class="difficulty-bars">
+                            <div class="complexity-level">
+                                <span class="complexity-label">COMPLEXITY:</span>
+                                <div class="complexity-bars">
                                     <div class="bar active"></div>
                                     <div class="bar active"></div>
                                     <div class="bar active"></div>
@@ -170,18 +162,18 @@
                                 <div class="template-icon">
                                     <i class="fas fa-server"></i>
                                 </div>
-                                <div class="callsign-badge">PAYBACK</div>
+                                <div class="tech-badge">API</div>
                             </div>
-                            <h3>API Strike Force</h3>
-                            <p>Production-ready API with advanced security protocols</p>
+                            <h3>REST API Service</h3>
+                            <p>Production-ready API with enterprise security standards</p>
                             <div class="template-features">
                                 <span class="feature-tag">Express</span>
                                 <span class="feature-tag">Auth</span>
                                 <span class="feature-tag">OpenAPI</span>
                             </div>
-                            <div class="mission-difficulty">
-                                <span class="difficulty-label">DIFFICULTY:</span>
-                                <div class="difficulty-bars">
+                            <div class="complexity-level">
+                                <span class="complexity-label">COMPLEXITY:</span>
+                                <div class="complexity-bars">
                                     <div class="bar active"></div>
                                     <div class="bar active"></div>
                                     <div class="bar active"></div>
@@ -194,18 +186,18 @@
                                 <div class="template-icon">
                                     <i class="fab fa-html5"></i>
                                 </div>
-                                <div class="callsign-badge">BOB</div>
+                                <div class="tech-badge">STATIC</div>
                             </div>
-                            <h3>Static Recon</h3>
-                            <p>Modern HTML/CSS/JS deployment with tactical precision</p>
+                            <h3>Static Website</h3>
+                            <p>Modern HTML/CSS/JS solution with optimized performance</p>
                             <div class="template-features">
                                 <span class="feature-tag">HTML5</span>
                                 <span class="feature-tag">CSS3</span>
                                 <span class="feature-tag">Responsive</span>
                             </div>
-                            <div class="mission-difficulty">
-                                <span class="difficulty-label">DIFFICULTY:</span>
-                                <div class="difficulty-bars">
+                            <div class="complexity-level">
+                                <span class="complexity-label">COMPLEXITY:</span>
+                                <div class="complexity-bars">
                                     <div class="bar active"></div>
                                     <div class="bar"></div>
                                     <div class="bar"></div>
@@ -215,89 +207,89 @@
                     </div>
                 </div>
 
-                <!-- Custom Mission Section -->
+                <!-- Custom Development Section -->
                 <div class="chat-section">
                     <div class="section-header">
-                        <h2><i class="fas fa-satellite-dish"></i> CUSTOM MISSION BRIEFING</h2>
-                        <div class="clearance-level">TOP SECRET</div>
+                        <h2><i class="fas fa-satellite-dish"></i> CUSTOM DEVELOPMENT REQUEST</h2>
+                        <div class="platform-badge">BROADCOM</div>
                     </div>
-                    <p class="section-description">Describe your mission objectives in natural language</p>
+                    <p class="section-description">Describe your development requirements in natural language</p>
                     <div id="chat-messages" class="chat-messages">
                         <!-- Messages will be displayed here -->
                     </div>
                     
-                    <!-- Mission Input -->
+                    <!-- Development Input -->
                     <div class="chat-input-container">
                         <form id="task-form" class="input-group">
                             <input 
                                 type="text" 
                                 id="job-name-input" 
-                                placeholder="Job Name (optional - e.g., 'Chat App Development')" 
+                                placeholder="Project Name (optional - e.g., 'Chat App Development')" 
                                 class="job-name-field"
                             >
                             <div>
                                 <input 
                                     type="text" 
                                     id="task-input" 
-                                    placeholder="Describe mission objectives (e.g., 'Deploy a real-time tactical chat system with Socket.io')" 
+                                    placeholder="Describe development requirements (e.g., 'Build a real-time chat application with Socket.io')" 
                                     required
                                 >
                                 <button type="submit" id="submit-btn">
                                     <i class="fas fa-paper-plane"></i>
-                                    <span class="btn-text">EXECUTE</span>
+                                    <span class="btn-text">GENERATE</span>
                                 </button>
                             </div>
                         </form>
                     </div>
                 </div>
 
-                <!-- Mission Examples -->
+                <!-- Development Examples -->
                 <div class="task-examples">
-                    <h3><i class="fas fa-crosshairs"></i> TACTICAL EXAMPLES</h3>
+                    <h3><i class="fas fa-lightbulb"></i> EXAMPLE PROJECTS</h3>
                     <div class="example-buttons">
                         <button class="example-btn" data-task="Create a real-time chat application with Socket.io">
                             <i class="fas fa-comments"></i>
-                            <span>Tactical Comms</span>
-                            <div class="example-callsign">ICEMAN</div>
+                            <span>Chat Application</span>
+                            <div class="example-callsign">REACT</div>
                         </button>
                         <button class="example-btn" data-task="Build a weather dashboard with API integration">
                             <i class="fas fa-cloud-sun"></i>
-                            <span>Weather Intel</span>
-                            <div class="example-callsign">GOOSE</div>
+                            <span>Weather Dashboard</span>
+                            <div class="example-callsign">VUE</div>
                         </button>
                         <button class="example-btn" data-task="Create a blog platform with admin panel">
                             <i class="fas fa-blog"></i>
-                            <span>Intel Platform</span>
-                            <div class="example-callsign">CHARLIE</div>
+                            <span>Blog Platform</span>
+                            <div class="example-callsign">ANGULAR</div>
                         </button>
                     </div>
                 </div>
 
-                <!-- Mission Setup -->
+                <!-- Project Setup -->
                 <div class="project-section">
-                    <h3><i class="fas fa-map-marked-alt"></i> MISSION PARAMETERS</h3>
+                    <h3><i class="fas fa-cog"></i> PROJECT CONFIGURATION</h3>
                     
-                    <!-- Squadron Status -->
+                    <!-- System Status -->
                     <div class="goose-status">
                         <div class="status-indicator">
                             <div id="goose-status-dot" class="status-dot checking"></div>
-                            <span id="goose-status-text">Checking Squadron Status...</span>
+                            <span id="goose-status-text">Checking System Status...</span>
                         </div>
                     </div>
                     
 
 
-                    <!-- Mission Name Input -->
+                    <!-- Project Name Input -->
                     <div class="project-name-section">
                         <div class="form-group">
                             <label for="project-name-input">
-                                <i class="fas fa-bullseye"></i>
-                                <strong>MISSION CODENAME:</strong>
+                                <i class="fas fa-folder"></i>
+                                <strong>PROJECT NAME:</strong>
                             </label>
                             <input 
                                 type="text" 
                                 id="project-name-input" 
-                                placeholder="Enter mission codename (e.g., 'Operation Arctic Dawn')" 
+                                placeholder="Enter project name (e.g., 'customer-portal')" 
                                 class="project-name-input"
                             >
                             <div class="project-name-hint">
@@ -309,7 +301,7 @@
                     <!-- Directory Browser -->
                     <div class="directory-browser">
                         <div class="directory-header">
-                            <span><strong>Select Mission Directory:</strong></span>
+                            <span><strong>Select Project Directory:</strong></span>
                             <div class="directory-actions">
                                 <button id="parent-dir-btn" class="action-btn" title="Go to parent directory">
                                     <i class="fas fa-arrow-up"></i>
@@ -343,7 +335,7 @@
                             <div id="project-path-preview" class="project-path-preview" style="display: none;">
                                 <div class="preview-header">
                                     <i class="fas fa-folder-open"></i>
-                                    <strong>Mission will be deployed at:</strong>
+                                    <strong>Project will be created at:</strong>
                                 </div>
                                 <div id="full-project-path" class="full-project-path"></div>
                             </div>
