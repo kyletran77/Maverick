@@ -399,6 +399,57 @@
 
             <!-- Squadron Panel (shown when mission is active) -->
             <div id="agents-panel" class="agents-panel" style="display: none;">
+                <!-- Task Graph Visualization Section -->
+                <div class="task-graph-section">
+                    <div class="graph-header">
+                        <div class="graph-title">
+                            <h3><i class="fas fa-project-diagram"></i> TASK EXECUTION GRAPH</h3>
+                            <div class="graph-controls">
+                                <button id="center-graph-btn" class="control-btn" title="Center Graph">
+                                    <i class="fas fa-crosshairs"></i>
+                                </button>
+                                <button id="zoom-in-btn" class="control-btn" title="Zoom In">
+                                    <i class="fas fa-search-plus"></i>
+                                </button>
+                                <button id="zoom-out-btn" class="control-btn" title="Zoom Out">
+                                    <i class="fas fa-search-minus"></i>
+                                </button>
+                                <button id="auto-layout-btn" class="control-btn" title="Auto Layout">
+                                    <i class="fas fa-magic"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="task-graph-container" class="task-graph-container">
+                        <svg id="task-graph-svg" class="task-graph-svg">
+                            <defs>
+                                <marker id="arrowhead" markerWidth="10" markerHeight="7" 
+                                        refX="9" refY="3.5" orient="auto">
+                                    <polygon points="0 0, 10 3.5, 0 7" fill="#6c757d" />
+                                </marker>
+                                <filter id="drop-shadow" x="-50%" y="-50%" width="200%" height="200%">
+                                    <feDropShadow dx="2" dy="2" stdDeviation="3" flood-color="rgba(0,0,0,0.2)"/>
+                                </filter>
+                            </defs>
+                            <g id="graph-container">
+                                <g id="edges-group"></g>
+                                <g id="nodes-group"></g>
+                            </g>
+                        </svg>
+                        <div class="graph-overlay">
+                            <div id="graph-loading" class="graph-loading" style="display: none;">
+                                <div class="spinner"></div>
+                                <p>Loading task graph...</p>
+                            </div>
+                            <div id="graph-empty" class="graph-empty">
+                                <i class="fas fa-project-diagram"></i>
+                                <p>No active task graph</p>
+                                <span>Submit a task to see the execution graph</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Squadron Section -->
                 <div class="agents-section">
                     <div class="agents-header">
@@ -564,6 +615,95 @@
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeCreateDirModal()">Cancel</button>
                 <button class="btn btn-primary" onclick="createDirectory()">Create Directory</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Task Logs Modal -->
+    <div id="task-logs-modal" class="modal">
+        <div class="modal-content task-logs-modal">
+            <div class="modal-header">
+                <h3 id="task-logs-title">Task Execution Logs</h3>
+                <span class="close-btn" onclick="closeTaskLogsModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="task-info-section">
+                    <div class="task-details">
+                        <div class="task-status-badge" id="task-status-badge">
+                            <i class="fas fa-circle"></i>
+                            <span id="task-status-text">Loading...</span>
+                        </div>
+                        <div class="task-metadata">
+                            <div class="meta-item">
+                                <span class="meta-label">Agent:</span>
+                                <span id="task-agent-name">-</span>
+                            </div>
+                            <div class="meta-item">
+                                <span class="meta-label">Progress:</span>
+                                <div class="task-progress-display">
+                                    <div class="progress-bar-mini">
+                                        <div id="task-progress-fill" class="progress-fill-mini"></div>
+                                    </div>
+                                    <span id="task-progress-text">0%</span>
+                                </div>
+                            </div>
+                            <div class="meta-item">
+                                <span class="meta-label">Started:</span>
+                                <span id="task-started-time">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="logs-tabs">
+                    <button class="log-tab active" data-tab="goose">
+                        <i class="fas fa-terminal"></i>
+                        Goose CLI Output
+                    </button>
+                    <button class="log-tab" data-tab="agent">
+                        <i class="fas fa-robot"></i>
+                        Agent Activity
+                    </button>
+                    <button class="log-tab" data-tab="system">
+                        <i class="fas fa-cog"></i>
+                        System Events
+                    </button>
+                </div>
+
+                <div class="logs-content">
+                    <div id="goose-logs" class="log-panel active">
+                        <div class="logs-container">
+                            <div class="log-entry-placeholder">
+                                <i class="fas fa-terminal"></i>
+                                <p>No Goose CLI output available</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="agent-logs" class="log-panel">
+                        <div class="logs-container">
+                            <div class="log-entry-placeholder">
+                                <i class="fas fa-robot"></i>
+                                <p>No agent activity logs available</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="system-logs" class="log-panel">
+                        <div class="logs-container">
+                            <div class="log-entry-placeholder">
+                                <i class="fas fa-cog"></i>
+                                <p>No system events available</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="refreshTaskLogs()">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+                <button class="btn btn-secondary" onclick="closeTaskLogsModal()">Close</button>
             </div>
         </div>
     </div>

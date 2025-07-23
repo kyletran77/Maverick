@@ -17,7 +17,7 @@ class GooseIntegration {
         
         // Configurable timeout settings - Made less aggressive
         this.timeoutSettings = {
-            default: 15 * 60 * 1000, // 15 minutes default (increased from 10)
+            default: 16 * 60 * 1000, // 16 minutes default (increased from 10)
             extended: 30 * 60 * 1000, // 30 minutes for complex tasks (increased from 20)
             maxInactivity: 5 * 60 * 1000, // 5 minutes of inactivity (increased from 3)
             heartbeatInterval: 60 * 1000 // 60 seconds (increased from 30)
@@ -234,12 +234,281 @@ class GooseIntegration {
     terminateSession(sessionId, reason) {
         const sessionData = this.activeProcesses.get(sessionId);
         if (sessionData) {
+            console.log(`[${sessionId}] Terminating session: ${reason}`);
             sessionData.process.kill('SIGTERM');
             sessionData.reject(new Error(reason));
             this.activeProcesses.delete(sessionId);
         }
         this.clearSessionTimeout(sessionId);
         this.sessionLastActivity.delete(sessionId);
+    }
+
+    /**
+     * Close all active goose sessions
+     * @param {string} reason - Reason for closing all sessions
+     * @returns {number} Number of sessions closed
+     */
+    closeAllSessions(reason = 'System shutdown') {
+        console.log(`Closing all active goose sessions. Reason: ${reason}`);
+        const sessionIds = Array.from(this.activeProcesses.keys());
+        let closedCount = 0;
+
+        for (const sessionId of sessionIds) {
+            try {
+                this.terminateSession(sessionId, reason);
+                closedCount++;
+            } catch (error) {
+                console.error(`Error closing session ${sessionId}:`, error.message);
+            }
+        }
+
+        // Clear all tracking maps
+        this.activeProcesses.clear();
+        this.sessionTimeouts.clear();
+        this.sessionLastActivity.clear();
+
+        console.log(`Closed ${closedCount} active goose sessions`);
+        return closedCount;
+    }
+
+    /**
+     * Emergency cleanup for orphaned sessions
+     * Attempts to kill processes even if they're not in our tracking
+     */
+    emergencyCleanup() {
+        console.log('Starting emergency cleanup of goose processes...');
+        
+        // Close all tracked sessions first
+        const trackedSessionsClosed = this.closeAllSessions('Emergency cleanup');
+        
+        // Attempt to find and kill any orphaned goose processes
+        const { spawn } = require('child_process');
+        let orphanedProcessesKilled = 0;
+
+        try {
+            // Use platform-specific commands to find goose processes
+            let findCommand, findArgs;
+            
+            if (process.platform === 'win32') {
+                findCommand = 'tasklist';
+                findArgs = ['/FI', 'IMAGENAME eq goose.exe', '/FO', 'CSV'];
+            } else {
+                findCommand = 'pgrep';
+                findArgs = ['-f', 'goose'];
+            }
+
+            const findProcess = spawn(findCommand, findArgs, { stdio: 'pipe' });
+            
+            findProcess.stdout.on('data', (data) => {
+                const output = data.toString();
+                
+                if (process.platform === 'win32') {
+                    // Parse Windows tasklist output
+                    const lines = output.split('\n');
+                    for (let i = 1; i < lines.length; i++) {
+                        const line = lines[i].trim();
+                        if (line && line.includes('goose.exe')) {
+                            const columns = line.split(',');
+                            if (columns.length >= 2) {
+                                const pid = columns[1].replace(/"/g, '');
+                                try {
+                                    process.kill(parseInt(pid), 'SIGTERM');
+                                    orphanedProcessesKilled++;
+                                    console.log(`Killed orphaned goose process PID: ${pid}`);
+                                } catch (error) {
+                                    console.warn(`Failed to kill process ${pid}:`, error.message);
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    // Parse Unix pgrep output
+                    const pids = output.trim().split('\n').filter(pid => pid.trim() !== '');
+                    for (const pid of pids) {
+                        try {
+                            process.kill(parseInt(pid), 'SIGTERM');
+                            orphanedProcessesKilled++;
+                            console.log(`Killed orphaned goose process PID: ${pid}`);
+                        } catch (error) {
+                            console.warn(`Failed to kill process ${pid}:`, error.message);
+                        }
+                    }
+                }
+            });
+
+            findProcess.on('close', (code) => {
+                console.log(`Emergency cleanup completed. Tracked sessions: ${trackedSessionsClosed}, Orphaned processes: ${orphanedProcessesKilled}`);
+            });
+
+        } catch (error) {
+            console.error('Error during emergency cleanup:', error.message);
+        }
+
+        return {
+            trackedSessionsClosed,
+            orphanedProcessesKilled
+        };
+    }
+
+    /**
+     * Cleanup routine for when projects are completed or failed
+     * @param {string} projectId - Project identifier
+     * @param {string} status - Project status ('completed', 'failed', 'cancelled')
+     * @param {Object} socket - Socket.IO socket for notifications
+     */
+    async cleanupProjectSessions(projectId, status = 'completed', socket = null) {
+        console.log(`Starting cleanup for project ${projectId} with status: ${status}`);
+        
+        let cleanedSessionsCount = 0;
+        let failedCleanupCount = 0;
+        const sessionsToCleanup = [];
+
+        // Find all sessions related to this project
+        for (const [sessionId, sessionData] of this.activeProcesses.entries()) {
+            if (sessionId.includes(projectId) || sessionId.startsWith(projectId)) {
+                sessionsToCleanup.push(sessionId);
+            }
+        }
+
+        console.log(`Found ${sessionsToCleanup.length} sessions to cleanup for project ${projectId}`);
+
+        // Cleanup each session with appropriate reason
+        const cleanupReason = `Project ${status}: ${projectId}`;
+        for (const sessionId of sessionsToCleanup) {
+            try {
+                this.terminateSession(sessionId, cleanupReason);
+                cleanedSessionsCount++;
+                
+                if (socket) {
+                    socket.emit('session_cleanup', {
+                        sessionId,
+                        projectId,
+                        status: 'cleaned_up',
+                        reason: cleanupReason
+                    });
+                }
+            } catch (error) {
+                console.error(`Failed to cleanup session ${sessionId}:`, error.message);
+                failedCleanupCount++;
+                
+                if (socket) {
+                    socket.emit('session_cleanup', {
+                        sessionId,
+                        projectId,
+                        status: 'cleanup_failed',
+                        error: error.message
+                    });
+                }
+            }
+        }
+
+        // Additional cleanup for any stale activity tracking
+        const staleActivitySessions = [];
+        for (const [sessionId] of this.sessionLastActivity.entries()) {
+            if (sessionId.includes(projectId) || sessionId.startsWith(projectId)) {
+                staleActivitySessions.push(sessionId);
+            }
+        }
+
+        for (const sessionId of staleActivitySessions) {
+            this.sessionLastActivity.delete(sessionId);
+        }
+
+        const cleanupResult = {
+            projectId,
+            status,
+            cleanedSessionsCount,
+            failedCleanupCount,
+            totalAttempted: sessionsToCleanup.length,
+            staleActivityCleaned: staleActivitySessions.length
+        };
+
+        console.log(`Project cleanup completed:`, cleanupResult);
+
+        if (socket) {
+            socket.emit('project_cleanup_completed', cleanupResult);
+        }
+
+        // If this was an emergency/failed status, also run orphaned process cleanup
+        if (status === 'failed' || status === 'emergency') {
+            console.log(`Running additional orphaned process cleanup for failed/emergency project`);
+            setTimeout(() => {
+                this.emergencyCleanup();
+            }, 2000); // Wait 2 seconds before checking for orphaned processes
+        }
+
+        return cleanupResult;
+    }
+
+    /**
+     * Get information about all active sessions
+     * @returns {Array} Array of session information objects
+     */
+    getActiveSessionsInfo() {
+        const activeSessions = [];
+        
+        for (const [sessionId, sessionData] of this.activeProcesses.entries()) {
+            const lastActivity = this.sessionLastActivity.get(sessionId);
+            const timeouts = this.sessionTimeouts.get(sessionId);
+            
+            activeSessions.push({
+                sessionId,
+                startTime: sessionData.startTime,
+                lastActivity,
+                hasTimeouts: !!timeouts,
+                pid: sessionData.process?.pid || null,
+                status: 'active'
+            });
+        }
+
+        return activeSessions;
+    }
+
+    /**
+     * Health check for active sessions
+     * Identifies sessions that may be stuck or unresponsive
+     */
+    performSessionHealthCheck() {
+        const healthReport = {
+            totalSessions: this.activeProcesses.size,
+            healthySessions: 0,
+            stuckSessions: 0,
+            orphanedSessions: 0,
+            recommendations: []
+        };
+
+        const now = new Date();
+        const stuckThreshold = 30 * 60 * 1000; // 30 minutes
+        const orphanedThreshold = 60 * 60 * 1000; // 1 hour
+
+        for (const [sessionId, sessionData] of this.activeProcesses.entries()) {
+            const lastActivity = this.sessionLastActivity.get(sessionId);
+            const sessionAge = now - sessionData.startTime;
+            const timeSinceActivity = lastActivity ? now - lastActivity : sessionAge;
+
+            if (timeSinceActivity > orphanedThreshold) {
+                healthReport.orphanedSessions++;
+                healthReport.recommendations.push({
+                    sessionId,
+                    issue: 'orphaned',
+                    suggestion: 'Consider terminating this long-running session',
+                    timeSinceActivity: Math.round(timeSinceActivity / (60 * 1000)) + ' minutes'
+                });
+            } else if (timeSinceActivity > stuckThreshold) {
+                healthReport.stuckSessions++;
+                healthReport.recommendations.push({
+                    sessionId,
+                    issue: 'stuck',
+                    suggestion: 'Session may be stuck, monitor closely',
+                    timeSinceActivity: Math.round(timeSinceActivity / (60 * 1000)) + ' minutes'
+                });
+            } else {
+                healthReport.healthySessions++;
+            }
+        }
+
+        console.log('Session health check completed:', healthReport);
+        return healthReport;
     }
 
     /**

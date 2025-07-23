@@ -2548,3 +2548,736 @@ function finalizeQAVerificationSection(verificationId, passed, score, issues, re
     section.className = section.className.replace('border-blue-300 bg-blue-50', 
         passed ? 'border-green-300 bg-green-50' : 'border-red-300 bg-red-50');
 } 
+
+// =================================
+// TASK GRAPH VISUALIZATION SYSTEM
+// =================================
+
+class TaskGraphVisualization {
+    constructor() {
+        this.svg = document.getElementById('task-graph-svg');
+        this.container = document.getElementById('graph-container');
+        this.nodesGroup = document.getElementById('nodes-group');
+        this.edgesGroup = document.getElementById('edges-group');
+        this.graphEmpty = document.getElementById('graph-empty');
+        this.graphLoading = document.getElementById('graph-loading');
+        
+        this.currentGraph = null;
+        this.nodePositions = new Map();
+        this.dragState = {
+            isDragging: false,
+            currentNode: null,
+            startX: 0,
+            startY: 0,
+            isPanning: false
+        };
+        
+        this.viewBox = { x: 0, y: 0, width: 1000, height: 500 };
+        this.zoom = 1;
+        
+        this.init();
+    }
+    
+    init() {
+        this.setupEventListeners();
+        this.setupControlButtons();
+        this.updateViewBox();
+        this.showEmptyState();
+    }
+    
+    setupEventListeners() {
+        // Mouse events for dragging
+        this.svg.addEventListener('mousedown', this.handleMouseDown.bind(this));
+        this.svg.addEventListener('mousemove', this.handleMouseMove.bind(this));
+        this.svg.addEventListener('mouseup', this.handleMouseUp.bind(this));
+        this.svg.addEventListener('mouseleave', this.handleMouseUp.bind(this));
+        
+        // Prevent context menu
+        this.svg.addEventListener('contextmenu', (e) => e.preventDefault());
+        
+        // Zoom with mouse wheel
+        this.svg.addEventListener('wheel', this.handleWheel.bind(this));
+    }
+    
+    setupControlButtons() {
+        const centerBtn = document.getElementById('center-graph-btn');
+        const zoomInBtn = document.getElementById('zoom-in-btn');
+        const zoomOutBtn = document.getElementById('zoom-out-btn');
+        const autoLayoutBtn = document.getElementById('auto-layout-btn');
+        
+        if (centerBtn) centerBtn.addEventListener('click', () => this.centerGraph());
+        if (zoomInBtn) zoomInBtn.addEventListener('click', () => this.zoomIn());
+        if (zoomOutBtn) zoomOutBtn.addEventListener('click', () => this.zoomOut());
+        if (autoLayoutBtn) autoLayoutBtn.addEventListener('click', () => this.autoLayout());
+    }
+    
+    handleMouseDown(e) {
+        const target = e.target.closest('.task-node');
+        
+        if (target) {
+            // Node dragging
+            this.dragState.isDragging = true;
+            this.dragState.currentNode = target;
+            this.dragState.startX = e.clientX;
+            this.dragState.startY = e.clientY;
+            
+            target.classList.add('dragging');
+            e.preventDefault();
+        } else {
+            // Canvas panning
+            this.dragState.isPanning = true;
+            this.dragState.startX = e.clientX;
+            this.dragState.startY = e.clientY;
+            this.svg.style.cursor = 'grabbing';
+        }
+    }
+    
+    handleMouseMove(e) {
+        if (this.dragState.isDragging && this.dragState.currentNode) {
+            const dx = (e.clientX - this.dragState.startX) / this.zoom;
+            const dy = (e.clientY - this.dragState.startY) / this.zoom;
+            
+            const nodeId = this.dragState.currentNode.dataset.taskId;
+            const position = this.nodePositions.get(nodeId);
+            
+            if (position) {
+                position.x += dx;
+                position.y += dy;
+                
+                this.updateNodePosition(nodeId, position.x, position.y);
+                this.updateEdges();
+            }
+            
+            this.dragState.startX = e.clientX;
+            this.dragState.startY = e.clientY;
+        } else if (this.dragState.isPanning) {
+            const dx = (e.clientX - this.dragState.startX) / this.zoom;
+            const dy = (e.clientY - this.dragState.startY) / this.zoom;
+            
+            this.viewBox.x -= dx;
+            this.viewBox.y -= dy;
+            this.updateViewBox();
+            
+            this.dragState.startX = e.clientX;
+            this.dragState.startY = e.clientY;
+        }
+    }
+    
+    handleMouseUp(e) {
+        if (this.dragState.currentNode) {
+            this.dragState.currentNode.classList.remove('dragging');
+        }
+        
+        this.dragState.isDragging = false;
+        this.dragState.currentNode = null;
+        this.dragState.isPanning = false;
+        this.svg.style.cursor = 'grab';
+    }
+    
+    handleWheel(e) {
+        e.preventDefault();
+        
+        const rect = this.svg.getBoundingClientRect();
+        const centerX = rect.width / 2;
+        const centerY = rect.height / 2;
+        
+        const scaleFactor = e.deltaY > 0 ? 0.9 : 1.1;
+        this.zoom *= scaleFactor;
+        this.zoom = Math.max(0.1, Math.min(3, this.zoom));
+        
+        // Adjust viewBox to zoom towards center
+        const scaleChange = 1 / scaleFactor;
+        const dx = (centerX / this.zoom - centerX / (this.zoom / scaleFactor)) / 2;
+        const dy = (centerY / this.zoom - centerY / (this.zoom / scaleFactor)) / 2;
+        
+        this.viewBox.x += dx;
+        this.viewBox.y += dy;
+        this.viewBox.width = 1000 / this.zoom;
+        this.viewBox.height = 500 / this.zoom;
+        
+        this.updateViewBox();
+    }
+    
+    updateViewBox() {
+        this.svg.setAttribute('viewBox', 
+            `${this.viewBox.x} ${this.viewBox.y} ${this.viewBox.width} ${this.viewBox.height}`
+        );
+    }
+    
+    showEmptyState() {
+        if (this.graphEmpty) this.graphEmpty.style.display = 'flex';
+        if (this.graphLoading) this.graphLoading.style.display = 'none';
+    }
+    
+    showLoading() {
+        if (this.graphEmpty) this.graphEmpty.style.display = 'none';
+        if (this.graphLoading) this.graphLoading.style.display = 'flex';
+    }
+    
+    hideOverlays() {
+        if (this.graphEmpty) this.graphEmpty.style.display = 'none';
+        if (this.graphLoading) this.graphLoading.style.display = 'none';
+    }
+    
+    renderGraph(taskGraph) {
+        if (!taskGraph || !taskGraph.nodes) {
+            this.showEmptyState();
+            return;
+        }
+        
+        this.currentGraph = taskGraph;
+        this.hideOverlays();
+        
+        // Clear existing content
+        this.nodesGroup.innerHTML = '';
+        this.edgesGroup.innerHTML = '';
+        this.nodePositions.clear();
+        
+        // Calculate initial positions if not set
+        this.calculateInitialPositions(taskGraph.nodes);
+        
+        // Render edges first (so they appear behind nodes)
+        this.renderEdges(taskGraph.edges || []);
+        
+        // Render nodes
+        this.renderNodes(taskGraph.nodes);
+        
+        // Auto-fit the graph
+        this.autoLayout();
+    }
+    
+    calculateInitialPositions(nodes) {
+        const nodeWidth = 200;
+        const nodeHeight = 100;
+        const padding = 50;
+        
+        // Simple grid layout
+        const cols = Math.ceil(Math.sqrt(nodes.length));
+        
+        nodes.forEach((node, index) => {
+            if (!this.nodePositions.has(node.id)) {
+                const row = Math.floor(index / cols);
+                const col = index % cols;
+                
+                const x = col * (nodeWidth + padding) + padding;
+                const y = row * (nodeHeight + padding) + padding;
+                
+                this.nodePositions.set(node.id, { x, y });
+            }
+        });
+    }
+    
+    renderNodes(nodes) {
+        nodes.forEach(node => {
+            const position = this.nodePositions.get(node.id);
+            if (!position) return;
+            
+            const nodeGroup = this.createNodeElement(node, position.x, position.y);
+            this.nodesGroup.appendChild(nodeGroup);
+        });
+    }
+    
+    createNodeElement(node, x, y) {
+        const data = node.data || node;
+        const status = data.status || 'todo';
+        const progress = data.progress || 0;
+        const title = data.title || 'Untitled Task';
+        const agentName = data.assignedAgent || 'Unassigned';
+        
+        const nodeGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        nodeGroup.classList.add('task-node', status);
+        nodeGroup.dataset.taskId = node.id;
+        nodeGroup.style.cursor = 'pointer';
+        
+        // Main rectangle
+        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rect.classList.add('task-node-rect');
+        rect.setAttribute('x', x);
+        rect.setAttribute('y', y);
+        rect.setAttribute('width', '180');
+        rect.setAttribute('height', '80');
+        
+        // Status icon
+        const statusIcon = this.getStatusIcon(status);
+        const icon = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        icon.classList.add('task-node-status-icon');
+        icon.setAttribute('x', x + 15);
+        icon.setAttribute('y', y + 25);
+        icon.textContent = statusIcon;
+        
+        // Title text
+        const titleText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        titleText.classList.add('task-node-text', 'task-node-title');
+        titleText.setAttribute('x', x + 90);
+        titleText.setAttribute('y', y + 25);
+        titleText.textContent = this.truncateText(title, 20);
+        
+        // Agent text
+        const agentText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        agentText.classList.add('task-node-text', 'task-node-agent');
+        agentText.setAttribute('x', x + 90);
+        agentText.setAttribute('y', y + 40);
+        agentText.textContent = this.truncateText(agentName, 18);
+        
+        // Progress bar background
+        const progressBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        progressBg.classList.add('task-node-progress-bar');
+        progressBg.setAttribute('x', x + 10);
+        progressBg.setAttribute('y', y + 60);
+        progressBg.setAttribute('width', '160');
+        progressBg.setAttribute('height', '6');
+        
+        // Progress bar fill
+        const progressFill = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        progressFill.classList.add('task-node-progress-fill');
+        progressFill.setAttribute('x', x + 10);
+        progressFill.setAttribute('y', y + 60);
+        progressFill.setAttribute('width', (160 * progress / 100).toString());
+        progressFill.setAttribute('height', '6');
+        
+        // Progress text
+        const progressText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        progressText.classList.add('task-node-text', 'task-node-progress');
+        progressText.setAttribute('x', x + 90);
+        progressText.setAttribute('y', y + 55);
+        progressText.textContent = `${progress}%`;
+        
+        // Add click handler
+        nodeGroup.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.openTaskLogs(node);
+        });
+        
+        // Assemble node
+        nodeGroup.appendChild(rect);
+        nodeGroup.appendChild(icon);
+        nodeGroup.appendChild(titleText);
+        nodeGroup.appendChild(agentText);
+        nodeGroup.appendChild(progressBg);
+        nodeGroup.appendChild(progressFill);
+        nodeGroup.appendChild(progressText);
+        
+        return nodeGroup;
+    }
+    
+    renderEdges(edges) {
+        edges.forEach(edge => {
+            const sourcePos = this.nodePositions.get(edge.source);
+            const targetPos = this.nodePositions.get(edge.target);
+            
+            if (sourcePos && targetPos) {
+                const edgeElement = this.createEdgeElement(sourcePos, targetPos, edge);
+                this.edgesGroup.appendChild(edgeElement);
+            }
+        });
+    }
+    
+    createEdgeElement(sourcePos, targetPos, edge) {
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.classList.add('task-edge');
+        
+        if (edge.animated) {
+            path.classList.add('animated');
+        }
+        
+        path.dataset.edgeId = edge.id;
+        
+        const d = this.calculateEdgePath(sourcePos, targetPos);
+        path.setAttribute('d', d);
+        
+        return path;
+    }
+    
+    calculateEdgePath(sourcePos, targetPos) {
+        const startX = sourcePos.x + 180; // Right edge of source node
+        const startY = sourcePos.y + 40;  // Middle of source node
+        const endX = targetPos.x;         // Left edge of target node
+        const endY = targetPos.y + 40;    // Middle of target node
+        
+        // Create a curved path
+        const controlX1 = startX + (endX - startX) * 0.5;
+        const controlY1 = startY;
+        const controlX2 = startX + (endX - startX) * 0.5;
+        const controlY2 = endY;
+        
+        return `M ${startX} ${startY} C ${controlX1} ${controlY1}, ${controlX2} ${controlY2}, ${endX} ${endY}`;
+    }
+    
+    updateEdges() {
+        if (!this.currentGraph || !this.currentGraph.edges) return;
+        
+        this.currentGraph.edges.forEach(edge => {
+            const sourcePos = this.nodePositions.get(edge.source);
+            const targetPos = this.nodePositions.get(edge.target);
+            const pathElement = this.edgesGroup.querySelector(`[data-edge-id="${edge.id}"]`);
+            
+            if (sourcePos && targetPos && pathElement) {
+                const d = this.calculateEdgePath(sourcePos, targetPos);
+                pathElement.setAttribute('d', d);
+            }
+        });
+    }
+    
+    updateNodePosition(nodeId, x, y) {
+        const nodeElement = this.nodesGroup.querySelector(`[data-task-id="${nodeId}"]`);
+        if (!nodeElement) return;
+        
+        // Update all child elements' positions
+        const rect = nodeElement.querySelector('.task-node-rect');
+        const icon = nodeElement.querySelector('.task-node-status-icon');
+        const titleText = nodeElement.querySelector('.task-node-title');
+        const agentText = nodeElement.querySelector('.task-node-agent');
+        const progressBg = nodeElement.querySelector('.task-node-progress-bar');
+        const progressFill = nodeElement.querySelector('.task-node-progress-fill');
+        const progressText = nodeElement.querySelector('.task-node-progress');
+        
+        if (rect) {
+            rect.setAttribute('x', x);
+            rect.setAttribute('y', y);
+        }
+        if (icon) {
+            icon.setAttribute('x', x + 15);
+            icon.setAttribute('y', y + 25);
+        }
+        if (titleText) {
+            titleText.setAttribute('x', x + 90);
+            titleText.setAttribute('y', y + 25);
+        }
+        if (agentText) {
+            agentText.setAttribute('x', x + 90);
+            agentText.setAttribute('y', y + 40);
+        }
+        if (progressBg) {
+            progressBg.setAttribute('x', x + 10);
+            progressBg.setAttribute('y', y + 60);
+        }
+        if (progressFill) {
+            progressFill.setAttribute('x', x + 10);
+            progressFill.setAttribute('y', y + 60);
+        }
+        if (progressText) {
+            progressText.setAttribute('x', x + 90);
+            progressText.setAttribute('y', y + 55);
+        }
+    }
+    
+    getStatusIcon(status) {
+        const icons = {
+            'todo': '⏳',
+            'in_progress': '⚡',
+            'completed': '✅',
+            'failed': '❌',
+            'needs_revision': '🔄'
+        };
+        return icons[status] || '❓';
+    }
+    
+    truncateText(text, maxLength) {
+        if (text.length <= maxLength) return text;
+        return text.substring(0, maxLength - 3) + '...';
+    }
+    
+    centerGraph() {
+        if (this.nodePositions.size === 0) return;
+        
+        const positions = Array.from(this.nodePositions.values());
+        const minX = Math.min(...positions.map(p => p.x));
+        const maxX = Math.max(...positions.map(p => p.x));
+        const minY = Math.min(...positions.map(p => p.y));
+        const maxY = Math.max(...positions.map(p => p.y));
+        
+        const graphWidth = maxX - minX + 200; // Add node width
+        const graphHeight = maxY - minY + 100; // Add node height
+        
+        this.viewBox.x = minX - 50;
+        this.viewBox.y = minY - 50;
+        this.viewBox.width = Math.max(graphWidth + 100, 1000);
+        this.viewBox.height = Math.max(graphHeight + 100, 500);
+        
+        this.zoom = 1;
+        this.updateViewBox();
+    }
+    
+    zoomIn() {
+        this.zoom = Math.min(3, this.zoom * 1.2);
+        this.viewBox.width = 1000 / this.zoom;
+        this.viewBox.height = 500 / this.zoom;
+        this.updateViewBox();
+    }
+    
+    zoomOut() {
+        this.zoom = Math.max(0.1, this.zoom * 0.8);
+        this.viewBox.width = 1000 / this.zoom;
+        this.viewBox.height = 500 / this.zoom;
+        this.updateViewBox();
+    }
+    
+    autoLayout() {
+        if (!this.currentGraph || !this.currentGraph.nodes) return;
+        
+        // Simple force-directed layout
+        const nodes = this.currentGraph.nodes;
+        const edges = this.currentGraph.edges || [];
+        
+        // Reset positions in a grid
+        this.calculateInitialPositions(nodes);
+        
+        // Apply layout algorithm (simplified)
+        for (let i = 0; i < 50; i++) {
+            this.applyForces(nodes, edges);
+        }
+        
+        // Re-render with new positions
+        this.renderGraph(this.currentGraph);
+        this.centerGraph();
+    }
+    
+    applyForces(nodes, edges) {
+        const positions = this.nodePositions;
+        const forces = new Map();
+        
+        // Initialize forces
+        nodes.forEach(node => {
+            forces.set(node.id, { x: 0, y: 0 });
+        });
+        
+        // Repulsion between nodes
+        nodes.forEach(nodeA => {
+            nodes.forEach(nodeB => {
+                if (nodeA.id === nodeB.id) return;
+                
+                const posA = positions.get(nodeA.id);
+                const posB = positions.get(nodeB.id);
+                const forceA = forces.get(nodeA.id);
+                
+                const dx = posA.x - posB.x;
+                const dy = posA.y - posB.y;
+                const distance = Math.sqrt(dx * dx + dy * dy) || 1;
+                
+                const repulsion = 5000 / (distance * distance);
+                forceA.x += (dx / distance) * repulsion;
+                forceA.y += (dy / distance) * repulsion;
+            });
+        });
+        
+        // Attraction along edges
+        edges.forEach(edge => {
+            const posSource = positions.get(edge.source);
+            const posTarget = positions.get(edge.target);
+            const forceSource = forces.get(edge.source);
+            const forceTarget = forces.get(edge.target);
+            
+            if (!posSource || !posTarget || !forceSource || !forceTarget) return;
+            
+            const dx = posTarget.x - posSource.x;
+            const dy = posTarget.y - posSource.y;
+            const distance = Math.sqrt(dx * dx + dy * dy) || 1;
+            
+            const attraction = distance * 0.01;
+            forceSource.x += (dx / distance) * attraction;
+            forceSource.y += (dy / distance) * attraction;
+            forceTarget.x -= (dx / distance) * attraction;
+            forceTarget.y -= (dy / distance) * attraction;
+        });
+        
+        // Apply forces with damping
+        nodes.forEach(node => {
+            const pos = positions.get(node.id);
+            const force = forces.get(node.id);
+            
+            pos.x += force.x * 0.1;
+            pos.y += force.y * 0.1;
+        });
+    }
+    
+    openTaskLogs(node) {
+        const data = node.data || node;
+        showTaskLogsModal(data);
+    }
+    
+    updateNodeStatus(nodeId, status, progress) {
+        const nodeElement = this.nodesGroup.querySelector(`[data-task-id="${nodeId}"]`);
+        if (!nodeElement) return;
+        
+        // Update node class
+        nodeElement.className = `task-node ${status}`;
+        
+        // Update status icon
+        const icon = nodeElement.querySelector('.task-node-status-icon');
+        if (icon) {
+            icon.textContent = this.getStatusIcon(status);
+        }
+        
+        // Update progress
+        const progressFill = nodeElement.querySelector('.task-node-progress-fill');
+        const progressText = nodeElement.querySelector('.task-node-progress');
+        
+        if (progressFill) {
+            progressFill.setAttribute('width', (160 * progress / 100).toString());
+        }
+        if (progressText) {
+            progressText.textContent = `${progress}%`;
+        }
+    }
+}
+
+// Initialize task graph visualization
+let taskGraphViz = null;
+
+// Task Logs Modal Functions
+function showTaskLogsModal(taskData) {
+    const modal = document.getElementById('task-logs-modal');
+    const title = document.getElementById('task-logs-title');
+    const statusBadge = document.getElementById('task-status-badge');
+    const statusText = document.getElementById('task-status-text');
+    const agentName = document.getElementById('task-agent-name');
+    const progressFill = document.getElementById('task-progress-fill');
+    const progressText = document.getElementById('task-progress-text');
+    const startedTime = document.getElementById('task-started-time');
+    
+    if (title) title.textContent = `${taskData.title || 'Task'} - Execution Logs`;
+    
+    if (statusBadge && statusText) {
+        const status = taskData.status || 'todo';
+        statusBadge.className = `task-status-badge ${status}`;
+        statusText.textContent = status.replace('_', ' ').toUpperCase();
+    }
+    
+    if (agentName) {
+        agentName.textContent = taskData.assignedAgent || 'Unassigned';
+    }
+    
+    if (progressFill && progressText) {
+        const progress = taskData.progress || 0;
+        progressFill.style.width = `${progress}%`;
+        progressText.textContent = `${progress}%`;
+    }
+    
+    if (startedTime) {
+        startedTime.textContent = taskData.startedAt ? 
+            new Date(taskData.startedAt).toLocaleString() : '-';
+    }
+    
+    // Load logs for this task
+    loadTaskLogs(taskData.id);
+    
+    if (modal) modal.style.display = 'block';
+}
+
+function closeTaskLogsModal() {
+    const modal = document.getElementById('task-logs-modal');
+    if (modal) modal.style.display = 'none';
+}
+
+function refreshTaskLogs() {
+    // Re-load current task logs
+    console.log('Refreshing task logs...');
+}
+
+function loadTaskLogs(taskId) {
+    // Clear existing logs
+    const gooseLogs = document.querySelector('#goose-logs .logs-container');
+    const agentLogs = document.querySelector('#agent-logs .logs-container');
+    const systemLogs = document.querySelector('#system-logs .logs-container');
+    
+    // Load logs from stored data
+    const gooseOutput = agentOutputSections.get(taskId);
+    
+    if (gooseOutput && gooseLogs) {
+        const importantOutput = document.getElementById(`important-${taskId}`);
+        if (importantOutput) {
+            gooseLogs.innerHTML = importantOutput.innerHTML;
+        } else {
+            gooseLogs.innerHTML = '<div class="log-entry-placeholder"><i class="fas fa-terminal"></i><p>No Goose CLI output available</p></div>';
+        }
+    }
+    
+    // Load agent activity logs
+    if (agentLogs) {
+        const agent = Array.from(agents.values()).find(a => a.currentTask === taskId);
+        if (agent && agent.logs) {
+            agentLogs.innerHTML = agent.logs.map(log => 
+                `<div class="log-entry"><span class="log-timestamp">${formatTime(log.timestamp)}</span>${log.message}</div>`
+            ).join('');
+        } else {
+            agentLogs.innerHTML = '<div class="log-entry-placeholder"><i class="fas fa-robot"></i><p>No agent activity logs available</p></div>';
+        }
+    }
+    
+    // Load system events
+    if (systemLogs) {
+        systemLogs.innerHTML = '<div class="log-entry-placeholder"><i class="fas fa-cog"></i><p>No system events available</p></div>';
+    }
+}
+
+// Log tab switching
+document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('log-tab')) {
+        const tabName = e.target.dataset.tab;
+        
+        // Update active tab
+        document.querySelectorAll('.log-tab').forEach(tab => tab.classList.remove('active'));
+        e.target.classList.add('active');
+        
+        // Update active panel
+        document.querySelectorAll('.log-panel').forEach(panel => panel.classList.remove('active'));
+        const panel = document.getElementById(`${tabName}-logs`);
+        if (panel) panel.classList.add('active');
+    }
+});
+
+// Initialize task graph when agents panel is shown
+function initializeTaskGraph() {
+    if (!taskGraphViz) {
+        taskGraphViz = new TaskGraphVisualization();
+    }
+}
+
+// Update the existing switchToAgentsView function to initialize the graph
+const originalSwitchToAgentsView = switchToAgentsView;
+function switchToAgentsView() {
+    originalSwitchToAgentsView();
+    initializeTaskGraph();
+}
+
+// Add task graph updates to socket events
+const originalSetupSocketEventHandlers = setupSocketEventHandlers;
+function setupSocketEventHandlers() {
+    originalSetupSocketEventHandlers();
+    
+    // Listen for project orchestration to show graph
+    socket.on('project_orchestrated', (data) => {
+        if (taskGraphViz && data.taskGraph) {
+            taskGraphViz.renderGraph(data.taskGraph);
+        }
+    });
+    
+    // Update node status when tasks change
+    socket.on('task_started', (data) => {
+        if (taskGraphViz) {
+            taskGraphViz.updateNodeStatus(data.taskId, 'in_progress', 25);
+        }
+    });
+    
+    socket.on('task_completed', (data) => {
+        if (taskGraphViz) {
+            taskGraphViz.updateNodeStatus(data.taskId, 'completed', 100);
+        }
+    });
+    
+    socket.on('task_failed', (data) => {
+        if (taskGraphViz) {
+            taskGraphViz.updateNodeStatus(data.taskId, 'failed', 0);
+        }
+    });
+    
+    socket.on('task_qa_failed', (data) => {
+        if (taskGraphViz) {
+            taskGraphViz.updateNodeStatus(data.taskId, 'needs_revision', 75);
+        }
+    });
+}
+
+// Make functions available globally
+window.closeTaskLogsModal = closeTaskLogsModal;
+window.refreshTaskLogs = refreshTaskLogs;

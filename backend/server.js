@@ -118,6 +118,65 @@ app.get('/api/directories', (req, res) => {
   }
 });
 
+// New API endpoint to close all goose sessions
+app.post('/api/close-all-sessions', (req, res) => {
+  try {
+    const { reason } = req.body;
+    const closedCount = gooseIntegration.closeAllSessions(reason || 'Manual shutdown requested');
+    
+    res.json({
+      success: true,
+      message: `Closed ${closedCount} active goose sessions`,
+      closedCount: closedCount
+    });
+  } catch (error) {
+    console.error('Error closing all sessions:', error);
+    res.status(500).json({
+      success: false,
+      error: `Failed to close sessions: ${error.message}`
+    });
+  }
+});
+
+// API endpoint to get active sessions info
+app.get('/api/active-sessions', (req, res) => {
+  try {
+    const sessionsInfo = gooseIntegration.getActiveSessionsInfo();
+    const healthCheck = gooseIntegration.performSessionHealthCheck();
+    
+    res.json({
+      success: true,
+      activeSessions: sessionsInfo,
+      healthCheck: healthCheck
+    });
+  } catch (error) {
+    console.error('Error getting active sessions:', error);
+    res.status(500).json({
+      success: false,
+      error: `Failed to get active sessions: ${error.message}`
+    });
+  }
+});
+
+// API endpoint for emergency cleanup
+app.post('/api/emergency-cleanup', (req, res) => {
+  try {
+    const result = gooseIntegration.emergencyCleanup();
+    
+    res.json({
+      success: true,
+      message: 'Emergency cleanup initiated',
+      result: result
+    });
+  } catch (error) {
+    console.error('Error during emergency cleanup:', error);
+    res.status(500).json({
+      success: false,
+      error: `Emergency cleanup failed: ${error.message}`
+    });
+  }
+});
+
 app.post('/api/create-directory', (req, res) => {
   const { parentPath, dirName } = req.body;
   
@@ -614,6 +673,102 @@ io.on('connection', (socket) => {
     }
   });
 
+  // New socket handlers for session management
+  socket.on('close_all_sessions', (data) => {
+    try {
+      const { reason } = data || {};
+      const closedCount = gooseIntegration.closeAllSessions(reason || 'User requested session cleanup');
+      
+      socket.emit('all_sessions_closed', {
+        success: true,
+        message: `Closed ${closedCount} active goose sessions`,
+        closedCount: closedCount
+      });
+
+      // Broadcast to all clients
+      io.emit('sessions_cleared', {
+        closedCount: closedCount,
+        reason: reason || 'User requested session cleanup'
+      });
+
+    } catch (error) {
+      console.error('Error closing all sessions:', error);
+      socket.emit('session_error', {
+        error: `Failed to close sessions: ${error.message}`
+      });
+    }
+  });
+
+  socket.on('get_active_sessions', () => {
+    try {
+      const sessionsInfo = gooseIntegration.getActiveSessionsInfo();
+      const healthCheck = gooseIntegration.performSessionHealthCheck();
+      
+      socket.emit('active_sessions_info', {
+        success: true,
+        activeSessions: sessionsInfo,
+        healthCheck: healthCheck
+      });
+    } catch (error) {
+      console.error('Error getting active sessions:', error);
+      socket.emit('session_error', {
+        error: `Failed to get active sessions: ${error.message}`
+      });
+    }
+  });
+
+  socket.on('emergency_cleanup', () => {
+    try {
+      const result = gooseIntegration.emergencyCleanup();
+      
+      socket.emit('emergency_cleanup_result', {
+        success: true,
+        message: 'Emergency cleanup initiated',
+        result: result
+      });
+
+      // Broadcast emergency cleanup to all clients
+      io.emit('emergency_cleanup_completed', {
+        result: result,
+        timestamp: new Date()
+      });
+
+    } catch (error) {
+      console.error('Error during emergency cleanup:', error);
+      socket.emit('session_error', {
+        error: `Emergency cleanup failed: ${error.message}`
+      });
+    }
+  });
+
+  socket.on('cleanup_project_sessions', async (data) => {
+    try {
+      const { projectId, status } = data;
+      
+      if (!projectId) {
+        socket.emit('session_error', { error: 'Project ID is required' });
+        return;
+      }
+
+      const result = await gooseIntegration.cleanupProjectSessions(
+        projectId, 
+        status || 'completed', 
+        socket
+      );
+      
+      socket.emit('project_cleanup_result', {
+        success: true,
+        result: result
+      });
+
+    } catch (error) {
+      console.error('Error cleaning up project sessions:', error);
+      socket.emit('session_error', {
+        error: `Project cleanup failed: ${error.message}`
+      });
+    }
+  });
+
   // Handle open terminal request
   socket.on('open_terminal', (data) => {
     const { projectPath } = data;
@@ -879,4 +1034,73 @@ const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Open http://localhost:${PORT} to view the Goose Multi-Agent UI`);
-}); 
+});
+
+// Graceful shutdown handlers
+const gracefulShutdown = async (signal) => {
+  console.log(`\n${signal} received. Starting graceful shutdown...`);
+  
+  try {
+    // Close all active goose sessions
+    const closedCount = gooseIntegration.closeAllSessions(`Server shutdown (${signal})`);
+    console.log(`Closed ${closedCount} active goose sessions`);
+    
+    // Close server
+    server.close(() => {
+      console.log('HTTP server closed');
+      process.exit(0);
+    });
+    
+    // Force exit after 10 seconds if graceful shutdown takes too long
+    setTimeout(() => {
+      console.log('Force shutdown after timeout');
+      process.exit(1);
+    }, 10000);
+    
+  } catch (error) {
+    console.error('Error during graceful shutdown:', error);
+    process.exit(1);
+  }
+};
+
+// Handle various shutdown signals
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGUSR1', () => gracefulShutdown('SIGUSR1'));
+process.on('SIGUSR2', () => gracefulShutdown('SIGUSR2'));
+
+// Handle uncaught exceptions and unhandled rejections
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  gracefulShutdown('UNCAUGHT_EXCEPTION');
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  gracefulShutdown('UNHANDLED_REJECTION');
+});
+
+// Periodic health check and cleanup of stuck sessions
+setInterval(() => {
+  try {
+    const healthReport = gooseIntegration.performSessionHealthCheck();
+    
+    // Auto-cleanup orphaned sessions (older than 2 hours)
+    if (healthReport.orphanedSessions > 0) {
+      console.log(`Found ${healthReport.orphanedSessions} orphaned sessions. Running cleanup...`);
+      
+      for (const recommendation of healthReport.recommendations) {
+        if (recommendation.issue === 'orphaned') {
+          try {
+            gooseIntegration.terminateSession(recommendation.sessionId, 'Auto-cleanup: orphaned session');
+            console.log(`Auto-cleaned orphaned session: ${recommendation.sessionId}`);
+          } catch (error) {
+            console.error(`Failed to auto-cleanup session ${recommendation.sessionId}:`, error.message);
+          }
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error during periodic session health check:', error);
+  }
+}, 10 * 60 * 1000); // Run every 10 minutes 

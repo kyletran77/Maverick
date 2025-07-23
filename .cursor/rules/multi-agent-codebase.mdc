@@ -1,0 +1,33 @@
+---
+alwaysApply: false
+---
+## Maverick Multi-Agent System Rules
+
+This is a LangGraph-inspired multi-agent orchestration system built around the "Always Building" principle - every task results in a complete, immediately runnable project.
+
+### Key Architectural Patterns:
+- **Specialized Agents**: Frontend/Backend/Database/QA specialists with specific capabilities
+- **Event-Driven**: WebSocket-based real-time communication via Socket.IO
+- **Task Orchestration**: Complex prompts → task graphs → parallel agent execution
+- **Quality Gates**: Built-in QA Engineer validates all outputs
+- **Kanban Workflow**: Tasks flow through todo → inProgress → review → completed
+
+### Agent Types & Responsibilities:
+- **TaskOrchestrator**: Breaks down prompts into task graphs, assigns agents
+- **AgentManager**: Manages individual agent kanban boards and workloads
+- **QAEngineer**: Validates buildability and quality of all outputs
+- **Specialized Agents**: Frontend (React/Vue/Angular), Backend (Node/Express), Database (SQL schema), etc.
+
+### Core Principles:
+1. **Always Building**: Every output must include package.json, build scripts, README, and be immediately runnable
+2. **Real-time Updates**: Emit agent status changes via WebSocket events
+3. **Error Resilience**: Graceful fallbacks, timeout handling, infinite loop prevention
+4. **Template-Driven**: Pre-configured templates for rapid project generation
+
+### Key Directories:
+- `backend/src/orchestrator/` - Core orchestration logic
+- `backend/goose-integration.js` - Goose CLI process management  
+- `client/public/` - Frontend UI and real-time visualization
+- `docs/` - Comprehensive specifications and implementation guides
+
+When adding features, maintain the event-driven architecture, ensure outputs are complete/buildable, and emit proper WebSocket events for real-time updates.

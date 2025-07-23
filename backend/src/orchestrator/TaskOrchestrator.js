@@ -1,6 +1,7 @@
 const { v4: uuidv4 } = require('uuid');
 const { GooseIntegration } = require('../../goose-integration');
 const QAEngineer = require('./QAEngineer');
+const AgentRegistry = require('./agents/AgentRegistry');
 
 /**
  * LangGraph-inspired Task Orchestrator
@@ -27,7 +28,10 @@ class TaskOrchestrator {
     // Initialize QA Engineer for quality verification
     this.qaEngineer = new QAEngineer(io, this.gooseIntegration);
     
-    // Initialize specialized agent types with capabilities
+    // Initialize new modular agent registry
+    this.specializedAgents = new AgentRegistry();
+    
+    // Initialize specialized agent types with capabilities (legacy support)
     this.initializeAgentTypes();
   }
 
@@ -65,6 +69,30 @@ class TaskOrchestrator {
           'database': 0.85,
           'authentication': 0.87,
           'microservices': 0.83
+        }
+      },
+      PYTHON_SPECIALIST: {
+        id: 'python_specialist',
+        name: 'Python Backend Specialist',
+        capabilities: ['python', 'fastapi', 'django', 'flask', 'sqlalchemy', 'pytest', 'asyncio', 'celery', 'redis', 'postgresql', 'mongodb', 'api_design', 'authentication', 'microservices'],
+        specialization: 'Python Backend Development',
+        maxConcurrentTasks: 3,
+        estimatedTaskTime: 18,
+        efficiency: {
+          'python': 0.96,
+          'fastapi': 0.94,
+          'django': 0.92,
+          'flask': 0.90,
+          'sqlalchemy': 0.88,
+          'pytest': 0.93,
+          'asyncio': 0.87,
+          'celery': 0.85,
+          'redis': 0.84,
+          'postgresql': 0.89,
+          'mongodb': 0.86,
+          'api_design': 0.91,
+          'authentication': 0.89,
+          'microservices': 0.87
         }
       },
       DATABASE_ARCHITECT: {
@@ -1436,6 +1464,23 @@ The project must be immediately usable by someone following the README instructi
    * Find the best agent for a task based on capabilities and efficiency
    */
   findBestAgentForTask(task) {
+    try {
+      // First try to use the new specialized agent registry
+      if (this.specializedAgents) {
+        const selection = this.specializedAgents.findBestAgent(task);
+        
+        if (selection && selection.bestAgent && selection.bestAgent.suitabilityScore > 0.5) {
+          console.log(`Selected ${selection.bestAgent.agent.name} for task "${task.title}" (score: ${(selection.bestAgent.suitabilityScore * 100).toFixed(1)}%)`);
+          
+          // Convert specialized agent to legacy format for compatibility
+          return this.convertSpecializedAgentToLegacy(selection.bestAgent.agent);
+        }
+      }
+    } catch (error) {
+      console.warn('Error using specialized agents, falling back to legacy system:', error.message);
+    }
+    
+    // Fallback to legacy agent selection
     const taskSkills = task.skills || [];
     let bestAgent = null;
     let bestScore = 0;
@@ -1472,6 +1517,84 @@ The project must be immediately usable by someone following the README instructi
     }
     
     return bestAgent;
+  }
+
+  /**
+   * Convert specialized agent to legacy format for backward compatibility
+   */
+  convertSpecializedAgentToLegacy(specializedAgent) {
+    const capabilities = Object.keys(specializedAgent.capabilities);
+    const efficiency = {};
+    
+    // Convert capability objects to efficiency scores
+    capabilities.forEach(cap => {
+      if (specializedAgent.capabilities[cap] && specializedAgent.capabilities[cap].efficiency) {
+        efficiency[cap] = specializedAgent.capabilities[cap].efficiency;
+      }
+    });
+    
+    return {
+      id: specializedAgent.id,
+      name: specializedAgent.name,
+      capabilities: capabilities,
+      specialization: specializedAgent.specialization,
+      maxConcurrentTasks: specializedAgent.configuration?.maxConcurrentTasks || 3,
+      estimatedTaskTime: specializedAgent.configuration?.estimatedTaskTime || 15,
+      efficiency: efficiency
+    };
+  }
+
+  /**
+   * Get task assignment recommendations using specialized agents
+   */
+  getTaskRecommendations(task, count = 3) {
+    try {
+      if (this.specializedAgents) {
+        return this.specializedAgents.generateTaskRecommendations(task, count);
+      }
+    } catch (error) {
+      console.warn('Error getting specialized agent recommendations:', error.message);
+    }
+    
+    // Fallback to basic recommendation
+    const bestAgent = this.findBestAgentForTask(task);
+    return {
+      task: task,
+      recommendations: [{
+        rank: 1,
+        agent: {
+          id: bestAgent.id,
+          name: bestAgent.name,
+          specialization: bestAgent.specialization
+        },
+        scores: {
+          skillMatch: this.calculateSkillMatch(task, bestAgent).toString(),
+          suitability: '85.0',
+          confidence: '80.0'
+        },
+        reason: 'Legacy agent selection',
+        recommended: true
+      }]
+    };
+  }
+
+  /**
+   * Get specialized agent registry stats
+   */
+  getAgentRegistryStats() {
+    try {
+      if (this.specializedAgents) {
+        return this.specializedAgents.getRegistryStats();
+      }
+    } catch (error) {
+      console.warn('Error getting agent registry stats:', error.message);
+    }
+    
+    return {
+      totalAgents: Object.keys(this.agentTypes).length,
+      specializations: Object.values(this.agentTypes).map(agent => agent.specialization),
+      usingLegacySystem: true
+    };
   }
 
   /**
@@ -2169,6 +2292,13 @@ The project must be immediately usable by someone following the README instructi
         this.jobSockets.delete(jobId);
       }
       
+      // Cleanup goose sessions for completed project
+      try {
+        await this.gooseIntegration.cleanupProjectSessions(project.id, 'completed', socket);
+      } catch (cleanupError) {
+        console.error('Error cleaning up goose sessions for completed project:', cleanupError);
+      }
+      
       socket.emit('job_completed', { jobId, job: this.sanitizeJobForTransmission(job), project: this.sanitizeProjectForTransmission(project) });
       
       return project;
@@ -2193,6 +2323,13 @@ The project must be immediately usable by someone following the README instructi
         // Clean up socket reference
         if (this.jobSockets) {
           this.jobSockets.delete(job.id);
+        }
+        
+        // Cleanup goose sessions for failed project
+        try {
+          await this.gooseIntegration.cleanupProjectSessions(job.projectId || 'unknown', 'failed', socket);
+        } catch (cleanupError) {
+          console.error('Error cleaning up goose sessions for failed project:', cleanupError);
         }
         
         socket.emit('job_failed', { jobId: job.id, job: this.sanitizeJobForTransmission(job), error: error.message });
@@ -2304,6 +2441,13 @@ The project must be immediately usable by someone following the README instructi
     // Clean up socket reference
     if (this.jobSockets) {
       this.jobSockets.delete(jobId);
+    }
+    
+    // Cleanup goose sessions for stopped project
+    try {
+      await this.gooseIntegration.cleanupProjectSessions(job.projectId || jobId, 'stopped', socket);
+    } catch (cleanupError) {
+      console.error('Error cleaning up goose sessions for stopped project:', cleanupError);
     }
     
     return job;
