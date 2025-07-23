@@ -1,9 +1,12 @@
 ---
-alwaysApply: false
+alwaysApply: true
 ---
 ## Maverick Multi-Agent System Rules
 
+Make the system modular and agile.
+
 This is a LangGraph-inspired multi-agent orchestration system built around the "Always Building" principle - every task results in a complete, immediately runnable project.
+
 
 ### Key Architectural Patterns:
 - **Specialized Agents**: Frontend/Backend/Database/QA specialists with specific capabilities

@@ -456,71 +456,480 @@ class TaskOrchestrator {
     
     const task = taskNode.data;
     
-    // Update task status to needs revision
-    task.status = 'needs_revision';
+    // Determine failure severity based on QA results
+    const failureSeverity = this.assessQAFailureSeverity(qaResult);
+    
+    // Update task status based on severity
+    task.status = failureSeverity === 'critical' ? 'failed' : 'needs_revision';
     task.qaScore = qaResult.score;
     task.qaIssues = qaResult.issues;
     task.qaRecommendations = qaResult.recommendations;
+    task.qaCriticalFailures = qaResult.criticalFailures || [];
     task.qaFailedAt = new Date();
+    task.qaFailureSeverity = failureSeverity;
+    task.deploymentReadiness = qaResult.deploymentReadiness || 'NOT_READY';
     
     console.log(`[QA] Task failed verification: ${task.title}`);
     console.log(`[QA] Score: ${qaResult.score.toFixed(2)}`);
+    console.log(`[QA] Severity: ${failureSeverity}`);
     console.log(`[QA] Issues: ${qaResult.issues.length}`);
+    console.log(`[QA] Critical Failures: ${qaResult.criticalFailures?.length || 0}`);
     
-    // Move task to revision column
+    // Move task to appropriate column based on severity
+    const targetColumn = failureSeverity === 'critical' ? 'failed' : 'revision';
     try {
-      this.moveTaskInKanban(project.kanbanBoard, taskId, 'inProgress', 'revision', agent.id);
+      this.moveTaskInKanban(project.kanbanBoard, taskId, 'inProgress', targetColumn, agent.id);
     } catch (kanbanError) {
       console.warn('Failed to move QA failed task in kanban:', kanbanError);
     }
     
-    // Update agent status
+    // Update agent status with detailed QA information
     socket.emit('agent_status_update', {
       agentId: agent.id,
       agentName: agent.name,
       agentType: agent.type,
-      status: 'needs_revision',
+      status: failureSeverity === 'critical' ? 'critical_failure' : 'needs_revision',
       currentTask: task.title,
-      progress: 75, // Partial completion
+      progress: failureSeverity === 'critical' ? 0 : 75, // Partial completion for non-critical
       qaScore: qaResult.score,
       issues: qaResult.issues,
-      recommendations: qaResult.recommendations
+      recommendations: qaResult.recommendations,
+      criticalFailures: qaResult.criticalFailures || [],
+      deploymentReadiness: qaResult.deploymentReadiness,
+      remediationPlan: qaResult.remediationPlan
     });
     
-    // Broadcast to all clients
+    // Broadcast to all clients with comprehensive failure information
     this.io.emit('agents_update', {
       [agent.id]: {
         ...agent,
-        status: 'needs_revision',
+        status: failureSeverity === 'critical' ? 'critical_failure' : 'needs_revision',
         currentTask: task.title,
-        progress: 75,
+        progress: failureSeverity === 'critical' ? 0 : 75,
         qaScore: qaResult.score,
         issues: qaResult.issues,
         recommendations: qaResult.recommendations,
+        criticalFailures: qaResult.criticalFailures || [],
+        deploymentReadiness: qaResult.deploymentReadiness,
         logs: agent.logs || []
       }
     });
     
-    // Emit QA failure event
+    // Emit detailed QA failure event
     socket.emit('task_qa_failed', {
       projectId,
       taskId,
       agentId: agent.id,
       task: task,
-      qaResult: qaResult
+      qaResult: qaResult,
+      severity: failureSeverity,
+      actionRequired: this.getRequiredAction(failureSeverity, qaResult)
     });
     
-    // Auto-retry with improvement instructions if score is close to passing
-    if (qaResult.score >= 0.6) { // Close to minimum threshold of 0.7
+    // Generate comprehensive remediation plan
+    const remediationPlan = await this.generateComprehensiveRemediationPlan(task, qaResult, project);
+    
+    // Emit remediation plan
+    socket.emit('remediation_plan_generated', {
+      projectId,
+      taskId,
+      agentId: agent.id,
+      remediationPlan,
+      estimatedFixTime: this.estimateFixTime(qaResult),
+      priorityOrder: this.prioritizeIssues(qaResult)
+    });
+    
+    // Decide on retry strategy based on severity and score
+    if (failureSeverity !== 'critical' && qaResult.score >= 0.4) {
       console.log(`[QA] Attempting auto-retry with improvement instructions for task: ${task.title}`);
-      await this.retryTaskWithQAFeedback(projectId, taskId, agent, qaResult, socket);
+      await this.retryTaskWithEnhancedQAFeedback(projectId, taskId, agent, qaResult, remediationPlan, socket);
+    } else if (failureSeverity === 'critical') {
+      console.log(`[QA] Critical failure detected for task: ${task.title} - manual intervention required`);
+      // Create a new task for manual review
+      await this.createManualReviewTask(projectId, taskId, agent, qaResult, socket);
+    } else {
+      console.log(`[QA] Low score failure for task: ${task.title} - requires significant rework`);
+      // Create a rework task with detailed guidance
+      await this.createReworkTask(projectId, taskId, agent, qaResult, remediationPlan, socket);
     }
   }
 
   /**
-   * Retry task with QA feedback and improvement instructions
+   * Assess QA failure severity based on results
    */
-  async retryTaskWithQAFeedback(projectId, taskId, agent, qaResult, socket) {
+  assessQAFailureSeverity(qaResult) {
+    // Critical failures that block deployment
+    if (qaResult.criticalFailures && qaResult.criticalFailures.length > 0) {
+      return 'critical';
+    }
+    
+    // Build failures are always critical
+    if (qaResult.issues.some(issue => issue.includes('CRITICAL: Build command failed') || issue.includes('Build failed'))) {
+      return 'critical';
+    }
+    
+    // Security vulnerabilities are critical
+    if (qaResult.criticalVulnerabilities > 0) {
+      return 'critical';
+    }
+    
+    // Very low scores indicate fundamental problems
+    if (qaResult.score < 0.3) {
+      return 'critical';
+    }
+    
+    // Runtime failures are critical
+    if (qaResult.issues.some(issue => issue.includes('Runtime verification failed') || issue.includes('application cannot start'))) {
+      return 'critical';
+    }
+    
+    // Test failures can be critical if too many
+    const testFailures = qaResult.issues.filter(issue => issue.includes('test') && issue.includes('failed'));
+    if (testFailures.length > 5) {
+      return 'critical';
+    }
+    
+    // Low-medium scores are moderate severity
+    if (qaResult.score < 0.6) {
+      return 'moderate';
+    }
+    
+    // Everything else is minor
+    return 'minor';
+  }
+
+  /**
+   * Get required action based on failure severity
+   */
+  getRequiredAction(severity, qaResult) {
+    switch (severity) {
+      case 'critical':
+        return {
+          action: 'immediate_intervention',
+          description: 'Critical issues prevent deployment. Manual review and fixes required.',
+          canAutoRetry: false,
+          estimatedTime: '2-4 hours',
+          priority: 'urgent'
+        };
+      case 'moderate':
+        return {
+          action: 'guided_rework',
+          description: 'Significant issues require rework with detailed guidance.',
+          canAutoRetry: true,
+          estimatedTime: '30-60 minutes',
+          priority: 'high'
+        };
+      case 'minor':
+        return {
+          action: 'auto_retry',
+          description: 'Minor issues can be auto-fixed with improved instructions.',
+          canAutoRetry: true,
+          estimatedTime: '10-15 minutes',
+          priority: 'medium'
+        };
+      default:
+        return {
+          action: 'review_required',
+          description: 'Unknown issues require review.',
+          canAutoRetry: false,
+          estimatedTime: '15-30 minutes',
+          priority: 'medium'
+        };
+    }
+  }
+
+  /**
+   * Generate comprehensive remediation plan with step-by-step instructions
+   */
+  async generateComprehensiveRemediationPlan(task, qaResult, project) {
+    const plan = {
+      taskId: task.id,
+      taskTitle: task.title,
+      failureAnalysis: {
+        score: qaResult.score,
+        severity: this.assessQAFailureSeverity(qaResult),
+        criticalFailures: qaResult.criticalFailures || [],
+        deploymentReadiness: qaResult.deploymentReadiness
+      },
+      stepByStepFixes: [],
+      prioritizedIssues: this.prioritizeIssues(qaResult),
+      codeExamples: {},
+      verificationSteps: [],
+      estimatedTime: this.estimateFixTime(qaResult),
+      preventionMeasures: []
+    };
+
+    // Generate specific fixes for each issue category
+    const issueCategories = this.categorizeIssues(qaResult.issues);
+    
+    for (const [category, issues] of Object.entries(issueCategories)) {
+      const categoryFixes = await this.generateCategorySpecificFixes(category, issues, task, project);
+      plan.stepByStepFixes.push(...categoryFixes);
+    }
+
+    // Add verification steps
+    plan.verificationSteps = [
+      'Run build commands to ensure compilation success',
+      'Execute all tests and verify 100% pass rate',
+      'Run linting tools and fix all errors',
+      'Perform security scan and address vulnerabilities',
+      'Test runtime startup and basic functionality',
+      'Verify deployment readiness with QA gates'
+    ];
+
+    // Add prevention measures
+    plan.preventionMeasures = [
+      'Implement pre-commit hooks for linting and testing',
+      'Add continuous integration with quality gates',
+      'Use TypeScript for better type safety',
+      'Implement comprehensive error handling',
+      'Add security scanning to development workflow',
+      'Create thorough documentation and README'
+    ];
+
+    return plan;
+  }
+
+  /**
+   * Categorize issues for targeted remediation
+   */
+  categorizeIssues(issues) {
+    const categories = {
+      build: [],
+      tests: [],
+      linting: [],
+      security: [],
+      runtime: [],
+      dependencies: [],
+      configuration: [],
+      other: []
+    };
+
+    issues.forEach(issue => {
+      const issueLower = issue.toLowerCase();
+      
+      if (issueLower.includes('build') || issueLower.includes('compile') || issueLower.includes('npm install')) {
+        categories.build.push(issue);
+      } else if (issueLower.includes('test') || issueLower.includes('jest') || issueLower.includes('cypress')) {
+        categories.tests.push(issue);
+      } else if (issueLower.includes('lint') || issueLower.includes('eslint') || issueLower.includes('error') || issueLower.includes('warning')) {
+        categories.linting.push(issue);
+      } else if (issueLower.includes('security') || issueLower.includes('vulnerability') || issueLower.includes('audit')) {
+        categories.security.push(issue);
+      } else if (issueLower.includes('runtime') || issueLower.includes('server') || issueLower.includes('start')) {
+        categories.runtime.push(issue);
+      } else if (issueLower.includes('dependency') || issueLower.includes('package') || issueLower.includes('module')) {
+        categories.dependencies.push(issue);
+      } else if (issueLower.includes('config') || issueLower.includes('env') || issueLower.includes('setup')) {
+        categories.configuration.push(issue);
+      } else {
+        categories.other.push(issue);
+      }
+    });
+
+    return categories;
+  }
+
+  /**
+   * Generate category-specific fixes with detailed instructions
+   */
+  async generateCategorySpecificFixes(category, issues, task, project) {
+    const fixes = [];
+
+    switch (category) {
+      case 'build':
+        fixes.push({
+          category: 'Build Issues',
+          priority: 'critical',
+          issues: issues,
+          fixes: [
+            'Clear node_modules and package-lock.json: rm -rf node_modules package-lock.json',
+            'Clean npm cache: npm cache clean --force',
+            'Reinstall dependencies: npm install',
+            'Check Node.js version compatibility with engines field in package.json',
+            'Verify all TypeScript types are properly resolved',
+            'Ensure all import paths are correct and modules exist',
+            'Check for circular dependencies that could cause build failures'
+          ],
+          verification: 'Run npm run build and ensure it completes without errors'
+        });
+        break;
+
+      case 'tests':
+        fixes.push({
+          category: 'Test Issues',
+          priority: 'high',
+          issues: issues,
+          fixes: [
+            'Install test dependencies: npm install --save-dev jest @testing-library/react',
+            'Create proper test setup file with required imports',
+            'Mock external dependencies and API calls in tests',
+            'Fix failing assertions by checking expected vs actual values',
+            'Add missing test cases for edge cases and error scenarios',
+            'Ensure test files follow naming convention (*.test.js or *.spec.js)',
+            'Configure Jest properly in package.json or jest.config.js'
+          ],
+          verification: 'Run npm test and ensure all tests pass with > 85% coverage'
+        });
+        break;
+
+      case 'linting':
+        fixes.push({
+          category: 'Linting & Code Quality',
+          priority: 'medium',
+          issues: issues,
+          fixes: [
+            'Install ESLint and Prettier: npm install --save-dev eslint prettier',
+            'Create .eslintrc.js with proper React/TypeScript rules',
+            'Fix undefined variables and unused imports',
+            'Add proper TypeScript type annotations',
+            'Follow consistent naming conventions (camelCase, PascalCase)',
+            'Add proper JSDoc comments for functions and classes',
+            'Remove console.log statements from production code'
+          ],
+          verification: 'Run npm run lint and ensure no errors or excessive warnings'
+        });
+        break;
+
+      case 'security':
+        fixes.push({
+          category: 'Security Issues',
+          priority: 'critical',
+          issues: issues,
+          fixes: [
+            'Update vulnerable dependencies: npm audit fix',
+            'Remove dangerous functions like eval(), innerHTML assignments',
+            'Implement proper input validation and sanitization',
+            'Use parameterized queries to prevent SQL injection',
+            'Add proper authentication and authorization checks',
+            'Implement HTTPS and secure headers',
+            'Sanitize user inputs and outputs to prevent XSS'
+          ],
+          verification: 'Run npm audit and security scanners to ensure no critical vulnerabilities'
+        });
+        break;
+
+      case 'runtime':
+        fixes.push({
+          category: 'Runtime Issues',
+          priority: 'critical',
+          issues: issues,
+          fixes: [
+            'Check server startup script in package.json',
+            'Verify all required environment variables are set',
+            'Ensure database connections are properly configured',
+            'Add proper error handling for server startup',
+            'Check port availability and configuration',
+            'Verify all middleware is properly configured',
+            'Add health check endpoints for monitoring'
+          ],
+          verification: 'Start the application and verify it responds to basic requests'
+        });
+        break;
+
+      case 'dependencies':
+        fixes.push({
+          category: 'Dependency Issues',
+          priority: 'high',
+          issues: issues,
+          fixes: [
+            'Review package.json for correct dependency versions',
+            'Install missing peer dependencies',
+            'Resolve version conflicts between packages',
+            'Update outdated packages to compatible versions',
+            'Remove unused dependencies to reduce bundle size',
+            'Use exact versions for critical dependencies',
+            'Add engines field to specify Node.js version requirements'
+          ],
+          verification: 'Run npm install and ensure no peer dependency warnings'
+        });
+        break;
+
+      default:
+        fixes.push({
+          category: 'General Issues',
+          priority: 'medium',
+          issues: issues,
+          fixes: [
+            'Review error messages and logs for specific guidance',
+            'Check documentation for proper setup instructions',
+            'Verify file structure matches project requirements',
+            'Ensure all configuration files are present and correct',
+            'Test the application manually to identify functional issues'
+          ],
+          verification: 'Perform manual testing to verify fixes'
+        });
+    }
+
+    return fixes;
+  }
+
+  /**
+   * Prioritize issues based on severity and impact
+   */
+  prioritizeIssues(qaResult) {
+    const prioritized = {
+      critical: [],
+      high: [],
+      medium: [],
+      low: []
+    };
+
+    // Critical failures always come first
+    if (qaResult.criticalFailures) {
+      prioritized.critical.push(...qaResult.criticalFailures);
+    }
+
+    // Categorize other issues
+    qaResult.issues.forEach(issue => {
+      const issueLower = issue.toLowerCase();
+      
+      if (issueLower.includes('build') || issueLower.includes('security') || issueLower.includes('critical')) {
+        prioritized.critical.push(issue);
+      } else if (issueLower.includes('test') || issueLower.includes('runtime') || issueLower.includes('error')) {
+        prioritized.high.push(issue);
+      } else if (issueLower.includes('warning') || issueLower.includes('dependency')) {
+        prioritized.medium.push(issue);
+      } else {
+        prioritized.low.push(issue);
+      }
+    });
+
+    return prioritized;
+  }
+
+  /**
+   * Estimate time needed to fix issues
+   */
+  estimateFixTime(qaResult) {
+    let baseMinutes = 15; // Base time for any issue
+    
+    // Add time based on number of critical failures
+    baseMinutes += (qaResult.criticalFailures?.length || 0) * 30;
+    
+    // Add time based on total issues
+    baseMinutes += qaResult.issues.length * 5;
+    
+    // Add time based on score (lower score = more time needed)
+    if (qaResult.score < 0.3) {
+      baseMinutes += 120; // 2 hours for very low scores
+    } else if (qaResult.score < 0.6) {
+      baseMinutes += 60; // 1 hour for low scores
+    } else if (qaResult.score < 0.8) {
+      baseMinutes += 30; // 30 minutes for medium scores
+    }
+    
+    return {
+      estimated: baseMinutes,
+      range: `${Math.max(baseMinutes - 15, 5)}-${baseMinutes + 30} minutes`,
+      confidence: qaResult.score > 0.5 ? 'high' : 'medium'
+    };
+  }
+
+  /**
+   * Enhanced retry with comprehensive QA feedback and remediation plan
+   */
+  async retryTaskWithEnhancedQAFeedback(projectId, taskId, agent, qaResult, remediationPlan, socket) {
     const project = this.activeProjects.get(projectId);
     if (!project) return;
     
@@ -529,28 +938,31 @@ class TaskOrchestrator {
     
     const task = taskNode.data;
     
-    // Create improvement prompt based on QA feedback
-    const improvementPrompt = this.createImprovementPrompt(task, qaResult);
-    const sessionId = `${agent.type}-${task.title.replace(/[^a-zA-Z0-9]/g, '').substring(0, 20)}-retry`;
+    // Create comprehensive improvement prompt with detailed guidance
+    const improvementPrompt = this.createEnhancedImprovementPrompt(task, qaResult, remediationPlan);
+    const sessionId = `${agent.type}-${task.title.replace(/[^a-zA-Z0-9]/g, '').substring(0, 20)}-enhanced-retry`;
     
-    console.log(`[QA-Retry] Starting retry with improvement instructions for: ${task.title}`);
+    console.log(`[QA-Enhanced-Retry] Starting enhanced retry with comprehensive improvement instructions for: ${task.title}`);
     
     try {
       // Update task status
-      task.status = 'retrying';
+      task.status = 'retrying_enhanced';
       task.retryAttempt = (task.retryAttempt || 0) + 1;
       task.retriedAt = new Date();
+      task.lastRemediationPlan = remediationPlan;
       
-      // Emit retry started
-      socket.emit('task_retry_started', {
+      // Emit enhanced retry started
+      socket.emit('task_enhanced_retry_started', {
         projectId,
         taskId,
         agentId: agent.id,
         attempt: task.retryAttempt,
-        improvements: qaResult.recommendations
+        improvements: qaResult.recommendations,
+        remediationPlan: remediationPlan,
+        estimatedTime: remediationPlan.estimatedTime
       });
       
-      // Execute improvement task
+      // Execute enhanced improvement task with remediation plan
       await this.gooseIntegration.executeGooseTask(
         improvementPrompt,
         sessionId,
@@ -558,9 +970,9 @@ class TaskOrchestrator {
         project.projectPath
       );
       
-      console.log(`[QA-Retry] Retry execution completed for: ${task.title}`);
+      console.log(`[QA-Enhanced-Retry] Enhanced retry execution completed for: ${task.title}`);
       
-      // Re-run QA verification
+      // Re-run comprehensive QA verification
       const retryQAResult = await this.qaEngineer.verifyTaskCompletion(
         projectId,
         taskId,
@@ -570,71 +982,162 @@ class TaskOrchestrator {
       );
       
       if (retryQAResult.passed) {
-        console.log(`[QA-Retry] Retry QA verification PASSED for: ${task.title}`);
+        console.log(`[QA-Enhanced-Retry] Enhanced retry QA verification PASSED for: ${task.title}`);
         await this.completeTaskSafely(projectId, taskId, socket);
       } else {
-        console.log(`[QA-Retry] Retry QA verification still FAILED for: ${task.title}`);
-        // Mark as failed after retry
-        await this.handleTaskError(projectId, taskId, agent, 
-          new Error(`Task failed QA verification after retry. Score: ${retryQAResult.score.toFixed(2)}`), 
-          socket);
+        console.log(`[QA-Enhanced-Retry] Enhanced retry QA verification still FAILED for: ${task.title}`);
+        
+        // Check if there's improvement
+        const improvement = retryQAResult.score - qaResult.score;
+        if (improvement > 0.1) {
+          console.log(`[QA-Enhanced-Retry] Improvement detected (+${improvement.toFixed(2)}), attempting one more retry`);
+          // One more retry if there's significant improvement
+          await this.retryTaskWithEnhancedQAFeedback(projectId, taskId, agent, retryQAResult, remediationPlan, socket);
+        } else {
+          // Mark as failed after enhanced retry with no improvement
+          await this.handleTaskError(projectId, taskId, agent, 
+            new Error(`Task failed QA verification after enhanced retry. Score: ${retryQAResult.score.toFixed(2)} (improvement: ${improvement.toFixed(2)})`), 
+            socket);
+        }
       }
       
     } catch (error) {
-      console.error(`[QA-Retry] Retry failed for task: ${task.title}`, error);
+      console.error(`[QA-Enhanced-Retry] Enhanced retry failed for task: ${task.title}`, error);
       await this.handleTaskError(projectId, taskId, agent, error, socket);
     }
   }
 
   /**
-   * Create improvement prompt based on QA feedback
+   * Create enhanced improvement prompt with comprehensive remediation guidance
    */
-  createImprovementPrompt(task, qaResult) {
+  createEnhancedImprovementPrompt(task, qaResult, remediationPlan) {
     const issuesList = qaResult.issues.map(issue => `- ${issue}`).join('\n');
+    const criticalFailuresList = qaResult.criticalFailures ? qaResult.criticalFailures.map(failure => `- ${failure}`).join('\n') : '';
     const recommendationsList = qaResult.recommendations.map(rec => `- ${rec}`).join('\n');
     
+    let stepByStepFixes = '';
+    if (remediationPlan.stepByStepFixes) {
+      stepByStepFixes = remediationPlan.stepByStepFixes.map(fix => `
+## ${fix.category} (Priority: ${fix.priority})
+**Issues:**
+${fix.issues.map(issue => `- ${issue}`).join('\n')}
+
+**Fixes:**
+${fix.fixes.map(fixStep => `- ${fixStep}`).join('\n')}
+
+**Verification:**
+${fix.verification}
+`).join('\n');
+    }
+    
     return `
-TASK IMPROVEMENT REQUIRED
+ENHANCED TASK IMPROVEMENT WITH COMPREHENSIVE REMEDIATION
 
 Original Task: ${task.title}
 Description: ${task.description}
-Current Quality Score: ${qaResult.score.toFixed(2)}/1.0 (Minimum required: 0.7)
+Current Quality Score: ${qaResult.score.toFixed(2)}/1.0 (Target: 0.7+)
+Deployment Readiness: ${qaResult.deploymentReadiness}
+Estimated Fix Time: ${remediationPlan.estimatedTime?.range || '30-60 minutes'}
 
-CRITICAL ISSUES TO FIX:
+${criticalFailuresList ? `
+🚨 CRITICAL FAILURES (MUST FIX IMMEDIATELY):
+${criticalFailuresList}
+` : ''}
+
+🔍 ALL ISSUES TO RESOLVE:
 ${issuesList}
 
-RECOMMENDED IMPROVEMENTS:
+📋 STEP-BY-STEP REMEDIATION PLAN:
+${stepByStepFixes}
+
+🎯 COMPREHENSIVE REQUIREMENTS:
+1. **Build Success**: All build commands must execute without errors
+2. **Test Coverage**: Minimum 85% test coverage with all tests passing
+3. **Code Quality**: No linting errors, minimal warnings
+4. **Security**: No critical security vulnerabilities
+5. **Runtime Verification**: Application must start and respond correctly
+6. **Deployment Ready**: Must be immediately deployable
+
+💡 RECOMMENDED IMPROVEMENTS:
 ${recommendationsList}
 
-QUALITY REQUIREMENTS:
-1. ALL files must be present and properly structured
-2. Code must build and run without errors
-3. All dependencies must be properly configured
-4. README.md must include clear setup and run instructions
-5. Code must follow security best practices
-6. Project must be immediately deployable
+🔧 VERIFICATION CHECKLIST:
+${remediationPlan.verificationSteps ? remediationPlan.verificationSteps.map(step => `- [ ] ${step}`).join('\n') : ''}
 
-INSTRUCTIONS:
-Fix ALL the issues listed above and implement the recommended improvements. 
-Ensure the project meets the "Always Building" principle - it must be complete, 
-working, and buildable immediately after generation.
+🛡️ QUALITY GATES (ALL MUST PASS):
+- [ ] Clean build: npm install && npm run build (0 errors)
+- [ ] All tests pass: npm test (100% pass rate)
+- [ ] Linting clean: npm run lint (0 errors, <10 warnings)
+- [ ] Security scan: npm audit (0 critical vulnerabilities)
+- [ ] Runtime test: npm start (application starts successfully)
+- [ ] Basic functionality: Key features work as expected
 
-Focus on:
-- Creating missing files and directories
-- Fixing build and dependency issues
-- Adding proper documentation
-- Ensuring security best practices
-- Making the project production-ready
+🚀 DEPLOYMENT READINESS CRITERIA:
+- Code compiles and builds successfully
+- All tests pass with good coverage
+- No security vulnerabilities
+- Application starts and runs correctly
+- README has clear setup instructions
+- Error handling is implemented
+- Basic functionality is verified
 
-TEST YOUR WORK:
-After making changes, verify that:
-- All required files exist
-- npm install (or equivalent) works without errors
-- npm start (or equivalent) successfully starts the application
-- README.md has clear, accurate instructions
+CRITICAL INSTRUCTIONS:
+1. Fix ALL critical failures first (security, build, runtime)
+2. Address high-priority issues (tests, configuration)
+3. Clean up medium/low priority issues (linting, documentation)
+4. Test each fix thoroughly before moving to the next
+5. Ensure the application is immediately runnable after fixes
+6. Document any changes made during remediation
 
-The project must be immediately usable by someone following the README instructions.
+FAILURE ANALYSIS:
+Based on the QA results, the main issues are in: ${Object.keys(remediationPlan.prioritizedIssues || {}).filter(k => remediationPlan.prioritizedIssues[k].length > 0).join(', ')}
+
+Remember: The goal is to create production-ready, immediately deployable code that meets all quality standards. Do not skip any verification steps.
 `;
+  }
+
+  /**
+   * Create manual review task for critical failures
+   */
+  async createManualReviewTask(projectId, taskId, agent, qaResult, socket) {
+    console.log(`[MANUAL-REVIEW] Creating manual review task for critical failure: ${taskId}`);
+    
+    // Emit manual review required event
+    socket.emit('manual_review_required', {
+      projectId,
+      originalTaskId: taskId,
+      agentId: agent.id,
+      severity: 'critical',
+      qaResult: qaResult,
+      reason: 'Critical quality failures require human intervention',
+      nextSteps: [
+        'Review QA failure report',
+        'Analyze critical failures and root causes',
+        'Implement fixes manually or provide specific guidance',
+        'Re-run QA validation',
+        'Approve for continuation or request rework'
+      ]
+    });
+  }
+
+  /**
+   * Create rework task with detailed guidance
+   */
+  async createReworkTask(projectId, taskId, agent, qaResult, remediationPlan, socket) {
+    console.log(`[REWORK] Creating rework task for significant issues: ${taskId}`);
+    
+    // Emit rework task created event
+    socket.emit('rework_task_created', {
+      projectId,
+      originalTaskId: taskId,
+      agentId: agent.id,
+      severity: 'moderate',
+      qaResult: qaResult,
+      remediationPlan: remediationPlan,
+      estimatedEffort: remediationPlan.estimatedTime,
+      priority: 'high',
+      instructions: 'Significant rework required based on QA findings'
+    });
   }
 
   /**
