@@ -23,10 +23,8 @@ const modalAgentName = document.getElementById('modal-agent-name');
 const modalAgentDetails = document.getElementById('modal-agent-details');
 
 // Directory selection elements
-const gooseStatusDot = document.getElementById('goose-status-dot');
+const gooseStatusIndicator = document.getElementById('goose-status-indicator');
 const gooseStatusText = document.getElementById('goose-status-text');
-// Removed useGooseToggle - no longer using simulation mode
-// Removed modeDescription - no longer using simulation mode
 const currentPathText = document.getElementById('current-path-text');
 const directoryList = document.getElementById('directory-list');
 const selectedPath = document.getElementById('selected-path');
@@ -55,8 +53,6 @@ let gooseAvailable = false;
 let currentSessionId = null;
 let currentPlanId = null;
 let currentPlan = null;
-let selectedTemplate = null;
-let templateConfigurations = {};
 
 // Agent type icons
 const AGENT_ICONS = {
@@ -76,10 +72,6 @@ const AGENT_ICONS = {
     'security_specialist': 'fas fa-shield-alt'
 };
 
-// Additional global variables
-let systemStartTime = new Date();
-let agentOutputSections = new Map(); // Track agent output sections
-
 // Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize socket connection only once
@@ -92,9 +84,7 @@ document.addEventListener('DOMContentLoaded', function() {
     startUptimeCounter();
     loadHomeDirectory();
     checkGooseStatus();
-    initializeTemplateSystem();
-    initializeJobManagement();
-    addSystemMessage('Welcome to Broadcom Software Architecture Platform! 🚀\n\nKey Features:\n• ✅ Checkpoint system - projects can be paused and resumed from exact point\n• 🔄 Project reconnection - reconnect to projects after browser restart\n• 💾 Persistent execution state - no progress lost on interruptions\n• 📊 Enhanced project management with visual checkpoint indicators\n• 🎯 Intelligent task breakdown with dependency tracking\n• 🔧 Chat-based project control interface\n\nSelect a project directory and submit a development request to get started!');
+    addWelcomeMessage();
 });
 
 function setupSocketEventHandlers() {
@@ -104,7 +94,7 @@ function setupSocketEventHandlers() {
             connectionStatus.className = 'status-dot online';
         }
         if (connectionText) {
-            connectionText.textContent = 'CONNECTED';
+            connectionText.textContent = 'Connected';
         }
         console.log('Connected to server');
     });
@@ -114,7 +104,7 @@ function setupSocketEventHandlers() {
             connectionStatus.className = 'status-dot offline';
         }
         if (connectionText) {
-            connectionText.textContent = 'DISCONNECTED';
+            connectionText.textContent = 'Disconnected';
         }
         console.log('Disconnected from server');
     });
@@ -148,7 +138,6 @@ function setupSocketEventHandlers() {
     socket.on('agent_created', (agent) => {
         agents.set(agent.id, agent);
         updateAgentsDisplay();
-        // Don't show agent creation messages in chat - they're too verbose
         console.log('New agent created:', agent.name);
     });
 
@@ -171,98 +160,57 @@ function setupSocketEventHandlers() {
         }
     });
 
-    socket.on('goose_output', (data) => {
-        // Display important Goose CLI output in agent section only
-        displayAgentOutput(data.sessionId, data.output, data.type, data.level);
-    });
-
-    socket.on('goose_detailed_output', (data) => {
-        // Store detailed output in collapsible section
-        addDetailedOutput(data.sessionId, data.output, data.type);
-    });
-
-    socket.on('session_heartbeat', (data) => {
-        // Update session activity indicator
-        updateSessionActivity(data.sessionId, data.lastActivity, data.inactivityTime);
-    });
-
-    socket.on('goose_status', (data) => {
-        // Don't show Goose status messages in chat console - they're too verbose
-        // Only show in agent sections
-        console.log('Goose Status:', data.message);
-    });
-
     socket.on('project_orchestrated', (data) => {
-        // Clear timeout if it exists
-        if (window.taskSubmissionTimeout) {
-            clearTimeout(window.taskSubmissionTimeout);
-            window.taskSubmissionTimeout = null;
-        }
-        
         console.log('Project orchestrated:', data);
-        addSystemMessage('Project orchestrated successfully! Tasks are being executed...', 'success');
+        addSystemMessage('🚀 Project orchestrated successfully! AI agents are now working on your application...', 'success');
         switchToAgentsView();
     });
 
     socket.on('orchestration_error', (data) => {
-        // Clear timeout if it exists
-        if (window.taskSubmissionTimeout) {
-            clearTimeout(window.taskSubmissionTimeout);
-            window.taskSubmissionTimeout = null;
-        }
-        
         console.error('Orchestration error:', data.error);
-        addSystemMessage(`Orchestration failed: ${data.error}`, 'error');
+        addSystemMessage(`❌ Orchestration failed: ${data.error}`, 'error');
         
         // Re-enable form
         if (submitBtn) {
             submitBtn.disabled = false;
-            submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
+            submitBtn.innerHTML = '<i class="fas fa-rocket"></i><span>Build Application</span>';
         }
     });
 
     socket.on('task_execution_error', (data) => {
         console.error('Task execution error:', data.error);
-        addSystemMessage(`Task execution error: ${data.error}`, 'error');
+        addSystemMessage(`❌ Task execution error: ${data.error}`, 'error');
     });
 
     socket.on('project_completed', (data) => {
         console.log('Project completed:', data);
-        addSystemMessage('Project completed successfully!', 'success');
+        addSystemMessage('🎉 Project completed successfully!', 'success');
         
         // Re-enable form
         if (submitBtn) {
             submitBtn.disabled = false;
-            submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
+            submitBtn.innerHTML = '<i class="fas fa-rocket"></i><span>Build Application</span>';
         }
+        
+        // Show project actions
+        showProjectActions();
     });
 
     socket.on('task_completed', (data) => {
-        // Reset submission flag
-        window.taskSubmissionInProgress = false;
-        
-        // Clear timeout if it exists
-        if (window.taskSubmissionTimeout) {
-            clearTimeout(window.taskSubmissionTimeout);
-            window.taskSubmissionTimeout = null;
-        }
-        
         addSystemMessage(data.message, 'success');
         if (data.summary) {
-            let summaryText = `Task: ${data.summary.task}\nSubtasks Completed: ${data.summary.subtasksCompleted}/${data.summary.totalSubtasks}\nAgents Used: ${data.summary.agentsUsed}\nDuration: ${data.summary.duration}\nStatus: ${data.summary.status}`;
+            let summaryText = `📊 Task Summary:\n• Project: ${data.summary.task}\n• Subtasks: ${data.summary.subtasksCompleted}/${data.summary.totalSubtasks}\n• Agents: ${data.summary.agentsUsed}\n• Duration: ${data.summary.duration}\n• Status: ${data.summary.status}`;
             
-                    // Add build validation info
-        if (data.summary.buildValidation) {
-            const validation = data.summary.buildValidation;
-            if (validation.buildable) {
-                summaryText += `\n\n✅ PROJECT IS BUILDABLE!\nInstall commands: ${validation.instructions.join(' AND ')}`;
-                
-                // Show run project button
-                showRunProjectButton(validation.instructions);
-            } else {
-                summaryText += `\n\n⚠️ Build validation: Missing some components`;
+            // Add build validation info
+            if (data.summary.buildValidation) {
+                const validation = data.summary.buildValidation;
+                if (validation.buildable) {
+                    summaryText += `\n\n✅ PROJECT IS READY!\n📋 Run: ${validation.instructions.join(' && ')}`;
+                    showProjectActions();
+                } else {
+                    summaryText += `\n\n⚠️ Build validation: Some components missing`;
+                }
             }
-        }
             
             addSystemMessage(summaryText, 'summary');
         }
@@ -270,8 +218,9 @@ function setupSocketEventHandlers() {
         // Re-enable form
         if (submitBtn) {
             submitBtn.disabled = false;
-            submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
+            submitBtn.innerHTML = '<i class="fas fa-rocket"></i><span>Build Application</span>';
         }
+        
         currentPlanId = null;
         currentPlan = null;
         completedTasks++;
@@ -279,34 +228,26 @@ function setupSocketEventHandlers() {
             completedTasksCount.textContent = completedTasks;
         }
         
-        // Clean up agent output sections
-        cleanupAgentOutputSections();
-        
         // Add completion message to console
-        addConsoleMessage('🎉 Task completed successfully! You can now visit the project or open it in your IDE.', 'success');
+        addConsoleMessage('🎉 Development completed successfully! Your application is ready.', 'success');
+        showProjectActions();
     });
 
     socket.on('task_error', (data) => {
-        // Reset submission flag
-        window.taskSubmissionInProgress = false;
-        
-        addSystemMessage(`Error: ${data.error}`, 'error');
+        addSystemMessage(`❌ Error: ${data.error}`, 'error');
         if (submitBtn) {
             submitBtn.disabled = false;
-            submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
+            submitBtn.innerHTML = '<i class="fas fa-rocket"></i><span>Build Application</span>';
         }
         currentPlanId = null;
         currentPlan = null;
     });
 
     socket.on('task_cancelled', (data) => {
-        // Reset submission flag
-        window.taskSubmissionInProgress = false;
-        
         // Re-enable form
         if (submitBtn) {
             submitBtn.disabled = false;
-            submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
+            submitBtn.innerHTML = '<i class="fas fa-rocket"></i><span>Build Application</span>';
         }
         
         addSystemMessage(data.message, 'system');
@@ -315,45 +256,32 @@ function setupSocketEventHandlers() {
         currentPlan = null;
     });
 
-    // New socket events for multi-agent coordination
+    // Multi-agent coordination events
     socket.on('execution_plan_created', (plan) => {
         currentPlan = plan;
         currentPlanId = plan.id;
         displayExecutionPlan(plan);
-        addSystemMessage(`Starting multi-agent execution with ${plan.subtasks.length} specialized agents`, 'system');
+        addSystemMessage(`🎯 Multi-agent plan created with ${plan.subtasks.length} specialized tasks`, 'system');
         
         // Switch to agents view
         switchToAgentsView();
     });
 
     socket.on('subtask_started', (data) => {
-        // Show minimal info in chat, detailed info in agent sections
         addSystemMessage(`🚀 Started: ${data.subtaskName}`, 'system');
-        createAgentOutputSection(data.sessionId, data.agentName, data.subtaskName);
     });
 
     socket.on('subtask_completed', (data) => {
-        addSystemMessage(`✅ Completed: ${data.subtaskName} in ${data.duration}`, 'success');
-        finalizeAgentOutputSection(data.sessionId, 'completed');
+        addSystemMessage(`✅ Completed: ${data.subtaskName} (${data.duration})`, 'success');
     });
 
     socket.on('subtask_failed', (data) => {
         addSystemMessage(`❌ Failed: ${data.subtaskName} - ${data.error}`, 'error');
-        finalizeAgentOutputSection(data.sessionId, 'failed');
     });
 
     // QA Verification events
     socket.on('qa_verification_started', (data) => {
-        addSystemMessage(`🔍 QA Verification started for: ${data.taskTitle}`, 'system');
-        createQAVerificationSection(data.verificationId, data.taskTitle);
-    });
-
-    socket.on('qa_step_started', (data) => {
-        updateQAStep(data.step, data.description, 'in_progress');
-    });
-
-    socket.on('qa_step_completed', (data) => {
-        updateQAStep(data.step, '', data.passed ? 'passed' : 'failed', data.score);
+        addSystemMessage(`🔍 Quality assurance started for: ${data.taskTitle}`, 'system');
     });
 
     socket.on('qa_verification_completed', (data) => {
@@ -365,54 +293,26 @@ function setupSocketEventHandlers() {
                          data.passed ? 'success' : 'error');
         
         if (!data.passed && data.issues.length > 0) {
-            addSystemMessage(`Issues found: ${data.issues.slice(0, 3).join(', ')}${data.issues.length > 3 ? '...' : ''}`, 'warning');
+            addSystemMessage(`⚠️ Issues: ${data.issues.slice(0, 3).join(', ')}`, 'warning');
         }
-        
-        finalizeQAVerificationSection(data.verificationId, data.passed, data.score, data.issues, data.recommendations);
-    });
-
-    socket.on('qa_verification_error', (data) => {
-        addSystemMessage(`🔍 QA Verification Error: ${data.error}`, 'error');
-    });
-
-    socket.on('task_qa_failed', (data) => {
-        addSystemMessage(`🔧 Task requires revision: ${data.task.title}`, 'warning');
-        if (data.qaResult.recommendations.length > 0) {
-            addSystemMessage(`Recommendations: ${data.qaResult.recommendations[0]}`, 'info');
-        }
-    });
-
-    socket.on('task_retry_started', (data) => {
-        addSystemMessage(`🔄 Auto-retry with improvements (Attempt ${data.attempt})`, 'system');
     });
 
     socket.on('build_validation', (data) => {
         const validation = data.validation;
         if (validation.buildable) {
-            addSystemMessage(`🔨 Build Validation: Project is ready to build and run!`, 'success');
+            addSystemMessage(`🔨 Build validation: Project is ready to build and run!`, 'success');
             if (validation.instructions.length > 0) {
-                addSystemMessage(`📋 Quick Start: ${validation.instructions[0]}`, 'system');
+                addSystemMessage(`📋 Quick start: ${validation.instructions[0]}`, 'system');
             }
+            showProjectActions();
         } else {
             let issues = [];
             if (!validation.hasPackageJson) issues.push('missing package.json');
             if (!validation.hasReadme) issues.push('missing README');
             if (!validation.hasSourceFiles) issues.push('missing source files');
             
-            addSystemMessage(`⚠️ Build Validation: ${issues.join(', ')}`, 'error');
+            addSystemMessage(`⚠️ Build validation: ${issues.join(', ')}`, 'error');
         }
-    });
-
-    // Terminal event handlers
-    socket.on('terminal_opened', (data) => {
-        addSystemMessage(`✅ Terminal opened in: ${data.projectPath}`, 'success');
-    });
-
-    // Initialize job management events
-    setupJobManagementEvents();
-
-    socket.on('terminal_error', (data) => {
-        addSystemMessage(`❌ Failed to open terminal: ${data.error}`, 'error');
     });
 }
 
@@ -455,15 +355,13 @@ function initializeEventListeners() {
         createDirBtn.addEventListener('click', showCreateDirModal);
     }
     
-    // Removed useGoose toggle handling - no longer using simulation mode
-    
     // Project name input
     if (projectNameInput) {
         projectNameInput.addEventListener('input', updateProjectPathPreview);
         projectNameInput.addEventListener('blur', sanitizeProjectName);
     }
     
-    // Modal close events - Fixed to handle all close buttons
+    // Modal close events
     window.addEventListener('click', function(event) {
         // Close agent modal
         if (event.target === agentModal) {
@@ -472,11 +370,6 @@ function initializeEventListeners() {
         // Close create directory modal
         if (event.target === createDirModal) {
             closeCreateDirModal();
-        }
-        // Close template modal
-        const templateModal = document.getElementById('template-config-modal');
-        if (event.target === templateModal) {
-            closeTemplateModal();
         }
     });
     
@@ -487,11 +380,6 @@ function initializeEventListeners() {
             const modal = event.target.closest('.modal');
             if (modal) {
                 modal.style.display = 'none';
-                
-                // Reset specific modal states
-                if (modal.id === 'template-config-modal') {
-                    selectedTemplate = null;
-                }
             }
         }
     });
@@ -501,18 +389,23 @@ function initializeEventListeners() {
         if (event.key === 'Escape') {
             closeModal();
             closeCreateDirModal();
-            closeTemplateModal();
         }
     });
+    
+    // Console controls
+    const clearConsoleBtn = document.getElementById('clear-console-btn');
+    if (clearConsoleBtn) {
+        clearConsoleBtn.addEventListener('click', clearConsole);
+    }
 }
 
 async function checkGooseStatus() {
     try {
-        if (gooseStatusDot) {
-            gooseStatusDot.className = 'status-dot checking';
+        if (gooseStatusIndicator) {
+            gooseStatusIndicator.className = 'status-indicator checking';
         }
         if (gooseStatusText) {
-            gooseStatusText.textContent = 'Checking Goose CLI...';
+            gooseStatusText.textContent = 'Checking System Status...';
         }
         
         const response = await fetch('/api/goose-status');
@@ -520,39 +413,34 @@ async function checkGooseStatus() {
         
         if (data.available) {
             gooseAvailable = true;
-            if (gooseStatusDot) {
-                gooseStatusDot.className = 'status-dot available';
+            if (gooseStatusIndicator) {
+                gooseStatusIndicator.className = 'status-indicator available';
             }
             if (gooseStatusText) {
-                gooseStatusText.textContent = 'Goose CLI Available';
+                gooseStatusText.textContent = 'System Ready';
             }
-            // Removed useGoose toggle handling
-            console.log('Goose CLI config:', data.config);
+            console.log('Goose CLI available:', data.config);
         } else {
             gooseAvailable = false;
-            if (gooseStatusDot) {
-                gooseStatusDot.className = 'status-dot unavailable';
+            if (gooseStatusIndicator) {
+                gooseStatusIndicator.className = 'status-indicator unavailable';
             }
             if (gooseStatusText) {
-                gooseStatusText.textContent = data.message || 'Goose CLI Not Available';
+                gooseStatusText.textContent = data.message || 'System Not Available';
             }
-            // Removed useGoose toggle handling
             console.warn('Goose CLI not available:', data.error);
         }
     } catch (error) {
         console.error('Error checking Goose status:', error);
         gooseAvailable = false;
-        if (gooseStatusDot) {
-            gooseStatusDot.className = 'status-dot unavailable';
+        if (gooseStatusIndicator) {
+            gooseStatusIndicator.className = 'status-indicator unavailable';
         }
         if (gooseStatusText) {
-            gooseStatusText.textContent = 'Error checking Goose CLI';
+            gooseStatusText.textContent = 'Error checking system status';
         }
-        // Removed useGoose toggle handling
     }
 }
-
-// Removed handleToggleChange function - no longer using simulation mode
 
 async function loadHomeDirectory() {
     try {
@@ -754,7 +642,7 @@ async function createDirectory() {
         const data = await response.json();
         
         if (response.ok) {
-            addSystemMessage(`Directory '${dirName}' created successfully`, 'success');
+            addSystemMessage(`✅ Directory '${dirName}' created successfully`, 'success');
             closeCreateDirModal();
             refreshCurrentDirectory();
             
@@ -767,7 +655,7 @@ async function createDirectory() {
         }
     } catch (error) {
         console.error('Error creating directory:', error);
-        addSystemMessage(`Error creating directory: ${error.message}`, 'error');
+        addSystemMessage(`❌ Error creating directory: ${error.message}`, 'error');
     }
 }
 
@@ -810,20 +698,20 @@ function handleTaskSubmit(event) {
     
     // Check if project directory is selected
     if (!selectedProjectPath) {
-        addSystemMessage('Please select a project directory before submitting a task', 'error');
+        addSystemMessage('❌ Please select a project directory before starting', 'error');
         return;
     }
     
     // Check if project name is provided
     if (!projectName) {
-        addSystemMessage('Please enter a project name before submitting a task', 'error');
+        addSystemMessage('❌ Please enter a project name before starting', 'error');
         return;
     }
     
     // Disable form during processing
     if (submitBtn) {
         submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Building...</span>';
     }
     
     // Add user message to chat
@@ -831,55 +719,37 @@ function handleTaskSubmit(event) {
     
     // Show project path in chat if selected
     if (finalProjectPath) {
-        addSystemMessage(`Project will be created at: ${finalProjectPath}`, 'system');
-    } else if (selectedProjectPath) {
-        addSystemMessage(`Project directory: ${selectedProjectPath}`, 'system');
+        addSystemMessage(`📁 Project location: ${finalProjectPath}`, 'system');
     }
     
-    // Get job name if provided
-    const jobNameInput = document.getElementById('job-name-input');
-    const jobName = jobNameInput ? jobNameInput.value.trim() : '';
-
     // Send task to server
     const taskData = {
         task: task,
         description: `User requested: ${task}`,
         projectPath: finalProjectPath || selectedProjectPath,
         projectName: projectName,
-        jobName: jobName,
-        useGoose: true // Always use real orchestration, no simulation mode
+        useGoose: true
     };
-    
-    // Set up timeout to prevent hanging
-    const submitTimeout = setTimeout(() => {
-        console.error('Task submission timed out');
-        addSystemMessage('Task submission timed out. Please try again.', 'error');
-        
-        // Re-enable form
-        if (submitBtn) {
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
-        }
-    }, 45000); // 45 second timeout
-    
-    // Store timeout ID to clear it if successful
-    window.taskSubmissionTimeout = submitTimeout;
     
     socket.emit('submit_task', taskData);
     
-    // Clear inputs
+    // Clear input
     if (taskInput) {
         taskInput.value = '';
-    }
-    if (jobNameInput) {
-        jobNameInput.value = '';
     }
 }
 
 function addUserMessage(message) {
     const messageElement = document.createElement('div');
     messageElement.className = 'message user';
-    messageElement.textContent = message;
+    messageElement.innerHTML = `
+        <div class="message-content">
+            <i class="fas fa-user"></i>
+            <div class="message-text">
+                <strong>You:</strong> ${message}
+            </div>
+        </div>
+    `;
     if (chatMessages) {
         chatMessages.appendChild(messageElement);
     }
@@ -889,7 +759,38 @@ function addUserMessage(message) {
 function addSystemMessage(message, type = 'system') {
     const messageElement = document.createElement('div');
     messageElement.className = `message ${type}`;
-    messageElement.textContent = message;
+    
+    let icon = 'fas fa-info-circle';
+    let title = 'System';
+    
+    switch (type) {
+        case 'success':
+            icon = 'fas fa-check-circle';
+            title = 'Success';
+            break;
+        case 'error':
+            icon = 'fas fa-exclamation-triangle';
+            title = 'Error';
+            break;
+        case 'warning':
+            icon = 'fas fa-exclamation-circle';
+            title = 'Warning';
+            break;
+        case 'summary':
+            icon = 'fas fa-chart-bar';
+            title = 'Summary';
+            break;
+    }
+    
+    messageElement.innerHTML = `
+        <div class="message-content">
+            <i class="${icon}"></i>
+            <div class="message-text">
+                <strong>${title}:</strong> ${message.replace(/\n/g, '<br>')}
+            </div>
+        </div>
+    `;
+    
     if (chatMessages) {
         chatMessages.appendChild(messageElement);
     }
@@ -916,6 +817,9 @@ function addConsoleMessage(message, type = 'info') {
         case 'error':
             prefix = '❌ ';
             break;
+        case 'warning':
+            prefix = '⚠️ ';
+            break;
         case 'system':
             prefix = '🔧 ';
             break;
@@ -931,18 +835,15 @@ function addConsoleMessage(message, type = 'info') {
 function switchToAgentsView() {
     if (setupPanel && agentsPanel) {
         setupPanel.style.display = 'none';
-        agentsPanel.style.display = 'flex';
-        
-        // Show project action buttons
-        if (visitProjectBtn) visitProjectBtn.style.display = 'flex';
-        if (openIdeBtn) openIdeBtn.style.display = 'flex';
+        agentsPanel.style.display = 'block';
         
         // Copy existing chat messages to console
         if (chatMessages && consoleMessages) {
             const messages = chatMessages.querySelectorAll('.message');
             messages.forEach(msg => {
                 const type = msg.className.split(' ')[1] || 'info';
-                addConsoleMessage(msg.textContent, type);
+                const text = msg.querySelector('.message-text')?.textContent || msg.textContent;
+                addConsoleMessage(text, type);
             });
         }
     }
@@ -950,12 +851,11 @@ function switchToAgentsView() {
 
 function switchToSetupView() {
     if (setupPanel && agentsPanel) {
-        setupPanel.style.display = 'grid';
+        setupPanel.style.display = 'flex';
         agentsPanel.style.display = 'none';
         
-        // Hide project action buttons
-        if (visitProjectBtn) visitProjectBtn.style.display = 'none';
-        if (openIdeBtn) openIdeBtn.style.display = 'none';
+        // Hide project actions
+        hideProjectActions();
         
         // Clear console messages
         if (consoleMessages) {
@@ -964,10 +864,23 @@ function switchToSetupView() {
     }
 }
 
+function showProjectActions() {
+    const projectActions = document.getElementById('project-actions');
+    if (projectActions) {
+        projectActions.style.display = 'flex';
+    }
+}
+
+function hideProjectActions() {
+    const projectActions = document.getElementById('project-actions');
+    if (projectActions) {
+        projectActions.style.display = 'none';
+    }
+}
+
 function visitProject() {
     const pathToOpen = finalProjectPath || selectedProjectPath;
     if (pathToOpen) {
-        // Send request to open project directory
         fetch('/api/visit-project', {
             method: 'POST',
             headers: {
@@ -994,7 +907,6 @@ function visitProject() {
 function openInIde() {
     const pathToOpen = finalProjectPath || selectedProjectPath;
     if (pathToOpen) {
-        // Send request to open project in IDE
         fetch('/api/open-ide', {
             method: 'POST',
             headers: {
@@ -1028,22 +940,9 @@ function displayExecutionPlan(plan) {
         return `• ${subtask.name} - ${subtask.description}${dependencies}`;
     }).join('\n');
     
-    planElement.innerHTML = `
-        <div class="plan-header">
-            <strong>🎯 Execution Plan Created</strong>
-        </div>
-        <div class="plan-details">
-            <strong>Task:</strong> ${plan.originalTask}<br>
-            <strong>Subtasks (${plan.subtasks.length}):</strong><br>
-            <pre>${subtasksList}</pre>
-            <strong>Estimated Time:</strong> ${plan.totalEstimatedTime} minutes
-        </div>
-    `;
+    const planText = `🎯 Execution Plan Created\n\nTask: ${plan.originalTask}\n\nSubtasks (${plan.subtasks.length}):\n${subtasksList}\n\nEstimated Time: ${plan.totalEstimatedTime} minutes`;
     
-    if (chatMessages) {
-        chatMessages.appendChild(planElement);
-    }
-    scrollToBottom();
+    addSystemMessage(planText, 'system');
 }
 
 function scrollToBottom() {
@@ -1114,37 +1013,6 @@ function showAgentDetails(agent) {
         modalAgentName.textContent = `${agent.name || 'Unknown Agent'} Details`;
     }
     
-    // Get Goose output for this agent if available
-    const agentSection = agentOutputSections.get(agent.sessionId);
-    let gooseOutput = '';
-    
-    if (agentSection) {
-        const importantOutput = document.getElementById(`important-${agent.sessionId}`);
-        const detailedOutput = document.getElementById(`detailed-${agent.sessionId}`);
-        
-        if (importantOutput) {
-            gooseOutput = `
-                <div class="agent-detail-section">
-                    <h4><i class="fas fa-terminal"></i> Goose CLI Output</h4>
-                    <div class="goose-output-display">
-                        ${importantOutput.innerHTML}
-                    </div>
-                </div>
-            `;
-        }
-        
-        if (detailedOutput && detailedOutput.innerHTML.trim()) {
-            gooseOutput += `
-                <div class="agent-detail-section">
-                    <h4><i class="fas fa-list"></i> Detailed Logs</h4>
-                    <div class="detailed-logs-display">
-                        ${detailedOutput.innerHTML}
-                    </div>
-                </div>
-            `;
-        }
-    }
-    
     const details = `
         <div class="agent-detail-section">
             <h4><i class="fas fa-info-circle"></i> Agent Information</h4>
@@ -1167,8 +1035,6 @@ function showAgentDetails(agent) {
                 </div>
             </div>
         </div>
-        
-        ${gooseOutput}
         
         <div class="agent-detail-section">
             <h4><i class="fas fa-history"></i> Activity History</h4>
@@ -1214,34 +1080,17 @@ function updateUptime() {
     }
 }
 
-// Add cancel task functionality
-function cancelCurrentTask() {
-    if (currentPlanId) {
-        socket.emit('cancel_task', { planId: currentPlanId });
-        addSystemMessage('Cancelling multi-agent plan and all active sessions...', 'system');
-    } else if (currentSessionId) {
-        socket.emit('cancel_task', { sessionId: currentSessionId });
-        addSystemMessage('Cancelling current task...', 'system');
+function clearConsole() {
+    if (consoleMessages) {
+        consoleMessages.innerHTML = '';
     }
 }
 
-// Add keyboard shortcut for cancelling tasks
-document.addEventListener('keydown', function(event) {
-    if (event.ctrlKey && event.key === 'c' && (currentPlanId || currentSessionId)) {
-        event.preventDefault();
-        cancelCurrentTask();
-    }
-});
-
-// Make createDirectory available globally for the modal
-window.createDirectory = createDirectory;
-window.closeCreateDirModal = closeCreateDirModal;
+function addWelcomeMessage() {
+    // The welcome message is now in the HTML, so we don't need to add it via JavaScript
+}
 
 // Utility functions
-function formatTime(timestamp) {
-    return new Date(timestamp).toLocaleTimeString();
-}
-
 function getAgentTypeDescription(type) {
     const descriptions = {
         'orchestrator': 'Coordinates and manages all other agents',
@@ -1250,8 +1099,7 @@ function getAgentTypeDescription(type) {
         'tester': 'Creates and runs tests for the code',
         'documentation': 'Creates documentation and guides',
         'deployment': 'Handles deployment and publishing',
-        // TaskOrchestrator agent types
-        'frontend_specialist': 'Specializes in frontend development with React, Vue, Angular',
+        'frontend_specialist': 'Specializes in frontend development',
         'backend_specialist': 'Develops backend APIs and server-side logic',
         'database_architect': 'Designs and optimizes database schemas',
         'test_engineer': 'Creates comprehensive test suites and automation',
@@ -1260,2024 +1108,9 @@ function getAgentTypeDescription(type) {
         'security_specialist': 'Ensures security best practices and compliance'
     };
     
-    return descriptions[type] || 'Specialized agent';
+    return descriptions[type] || 'Specialized AI agent';
 }
 
-// Add some demo functionality for development
-function addDemoAgent() {
-    const demoAgent = {
-        id: 'demo-' + Date.now(),
-        type: 'code_generator',
-        name: 'Demo Code Generator',
-        status: 'working',
-        progress: 75,
-        logs: [
-            { timestamp: new Date(), message: 'Starting code generation' },
-            { timestamp: new Date(), message: 'Analyzing requirements' },
-            { timestamp: new Date(), message: 'Writing core logic' }
-        ],
-        createdAt: new Date()
-    };
-    
-    agents.set(demoAgent.id, demoAgent);
-    updateAgentsDisplay();
-}
-
-// Template system functionality
-const templateConfigs = {
-    react: {
-        title: 'React Application Configuration',
-        sections: [
-            {
-                title: 'Project Details',
-                icon: 'fas fa-info-circle',
-                fields: [
-                    { name: 'projectName', label: 'Project Name', type: 'text', required: true, placeholder: 'my-react-app' },
-                    { name: 'description', label: 'Description', type: 'textarea', placeholder: 'A modern React application' }
-                ]
-            },
-            {
-                title: 'Framework Options',
-                icon: 'fab fa-react',
-                fields: [
-                    { name: 'typescript', label: 'Use TypeScript', type: 'checkbox', checked: true },
-                    { name: 'router', label: 'Include React Router', type: 'checkbox', checked: true },
-                    { name: 'stateManagement', label: 'State Management', type: 'select', options: ['None', 'Redux Toolkit', 'Zustand', 'Context API'], value: 'Redux Toolkit' }
-                ]
-            },
-            {
-                title: 'Styling & UI',
-                icon: 'fas fa-palette',
-                fields: [
-                    { name: 'styling', label: 'CSS Framework', type: 'select', options: ['Tailwind CSS', 'Material-UI', 'Styled Components', 'CSS Modules'], value: 'Tailwind CSS' },
-                    { name: 'components', label: 'UI Components', type: 'checkbox', checked: true }
-                ]
-            },
-            {
-                title: 'Features',
-                icon: 'fas fa-cogs',
-                fields: [
-                    { name: 'features', label: 'Include Features', type: 'checkbox-group', options: ['Authentication', 'API Integration', 'Form Handling', 'Testing Setup', 'PWA Support'] }
-                ]
-            }
-        ]
-    },
-    angular: {
-        title: 'Angular Application Configuration',
-        sections: [
-            {
-                title: 'Project Details',
-                icon: 'fas fa-info-circle',
-                fields: [
-                    { name: 'projectName', label: 'Project Name', type: 'text', required: true, placeholder: 'my-angular-app' },
-                    { name: 'description', label: 'Description', type: 'textarea', placeholder: 'A modern Angular application' }
-                ]
-            },
-            {
-                title: 'Angular Options',
-                icon: 'fab fa-angular',
-                fields: [
-                    { name: 'routing', label: 'Include Routing', type: 'checkbox', checked: true },
-                    { name: 'ssr', label: 'Server-Side Rendering', type: 'checkbox', checked: false },
-                    { name: 'pwa', label: 'Progressive Web App', type: 'checkbox', checked: false }
-                ]
-            },
-            {
-                title: 'UI Framework',
-                icon: 'fas fa-palette',
-                fields: [
-                    { name: 'uiFramework', label: 'UI Framework', type: 'select', options: ['Angular Material', 'PrimeNG', 'Ng-Bootstrap', 'None'], value: 'Angular Material' }
-                ]
-            },
-            {
-                title: 'Features',
-                icon: 'fas fa-cogs',
-                fields: [
-                    { name: 'features', label: 'Include Features', type: 'checkbox-group', options: ['Authentication', 'HTTP Interceptors', 'Guards', 'Services', 'Testing Setup'] }
-                ]
-            }
-        ]
-    },
-    static: {
-        title: 'Static Website Configuration',
-        sections: [
-            {
-                title: 'Project Details',
-                icon: 'fas fa-info-circle',
-                fields: [
-                    { name: 'projectName', label: 'Project Name', type: 'text', required: true, placeholder: 'my-website' },
-                    { name: 'description', label: 'Description', type: 'textarea', placeholder: 'A modern static website' }
-                ]
-            },
-            {
-                title: 'Website Type',
-                icon: 'fas fa-globe',
-                fields: [
-                    { name: 'siteType', label: 'Website Type', type: 'select', options: ['Portfolio', 'Business Landing', 'Blog', 'Documentation', 'Custom'], value: 'Portfolio' },
-                    { name: 'pages', label: 'Number of Pages', type: 'select', options: ['1 (Single Page)', '3-5 Pages', '5-10 Pages', '10+ Pages'], value: '3-5 Pages' }
-                ]
-            },
-            {
-                title: 'Styling & Features',
-                icon: 'fas fa-palette',
-                fields: [
-                    { name: 'styling', label: 'CSS Framework', type: 'select', options: ['Tailwind CSS', 'Bootstrap', 'Bulma', 'Custom CSS'], value: 'Tailwind CSS' },
-                    { name: 'responsive', label: 'Responsive Design', type: 'checkbox', checked: true },
-                    { name: 'animations', label: 'CSS Animations', type: 'checkbox', checked: true }
-                ]
-            },
-            {
-                title: 'Features',
-                icon: 'fas fa-cogs',
-                fields: [
-                    { name: 'features', label: 'Include Features', type: 'checkbox-group', options: ['Contact Form', 'Image Gallery', 'SEO Optimization', 'Analytics', 'Social Media Links'] }
-                ]
-            }
-        ]
-    }
-};
-
-function openTemplateModal(templateType) {
-    console.log('Opening template modal for:', templateType);
-    selectedTemplate = templateType;
-    const config = templateConfigs[templateType];
-    
-    if (!config) {
-        console.log('Template config not found for:', templateType);
-        addSystemMessage(`Template "${templateType}" configuration coming soon!`, 'system');
-        return;
-    }
-    
-    const modalTitle = document.getElementById('template-modal-title');
-    if (modalTitle) {
-        modalTitle.textContent = config.title;
-    }
-    
-    const formContainer = document.getElementById('template-config-form');
-    if (formContainer) {
-        formContainer.innerHTML = '';
-    }
-    
-    config.sections.forEach(section => {
-        const sectionDiv = document.createElement('div');
-        sectionDiv.className = 'config-section';
-        
-        const sectionHeader = document.createElement('h4');
-        sectionHeader.innerHTML = `<i class="${section.icon}"></i> ${section.title}`;
-        sectionDiv.appendChild(sectionHeader);
-        
-        section.fields.forEach(field => {
-            const fieldDiv = document.createElement('div');
-            fieldDiv.className = field.type === 'checkbox-group' ? 'config-row full-width' : 'form-group';
-            
-            if (field.type === 'text' || field.type === 'textarea') {
-                const label = document.createElement('label');
-                label.textContent = field.label + (field.required ? ' *' : '');
-                fieldDiv.appendChild(label);
-                
-                const input = document.createElement(field.type === 'textarea' ? 'textarea' : 'input');
-                input.type = field.type === 'textarea' ? undefined : 'text';
-                input.name = field.name;
-                input.placeholder = field.placeholder || '';
-                input.required = field.required || false;
-                fieldDiv.appendChild(input);
-                
-            } else if (field.type === 'select') {
-                const label = document.createElement('label');
-                label.textContent = field.label;
-                fieldDiv.appendChild(label);
-                
-                const select = document.createElement('select');
-                select.name = field.name;
-                field.options.forEach(option => {
-                    const optionEl = document.createElement('option');
-                    optionEl.value = option;
-                    optionEl.textContent = option;
-                    optionEl.selected = option === field.value;
-                    select.appendChild(optionEl);
-                });
-                fieldDiv.appendChild(select);
-                
-            } else if (field.type === 'checkbox') {
-                const checkboxDiv = document.createElement('div');
-                checkboxDiv.className = 'checkbox-item';
-                
-                const input = document.createElement('input');
-                input.type = 'checkbox';
-                input.name = field.name;
-                input.checked = field.checked || false;
-                checkboxDiv.appendChild(input);
-                
-                const label = document.createElement('label');
-                label.textContent = field.label;
-                checkboxDiv.appendChild(label);
-                
-                fieldDiv.appendChild(checkboxDiv);
-                
-            } else if (field.type === 'checkbox-group') {
-                const label = document.createElement('label');
-                label.textContent = field.label;
-                fieldDiv.appendChild(label);
-                
-                const checkboxGroup = document.createElement('div');
-                checkboxGroup.className = 'checkbox-group';
-                
-                field.options.forEach(option => {
-                    const checkboxDiv = document.createElement('div');
-                    checkboxDiv.className = 'checkbox-item';
-                    
-                    const input = document.createElement('input');
-                    input.type = 'checkbox';
-                    input.name = field.name;
-                    input.value = option;
-                    checkboxDiv.appendChild(input);
-                    
-                    const label = document.createElement('label');
-                    label.textContent = option;
-                    checkboxDiv.appendChild(label);
-                    
-                    checkboxGroup.appendChild(checkboxDiv);
-                });
-                
-                fieldDiv.appendChild(checkboxGroup);
-            }
-            
-            if (formContainer) {
-                formContainer.appendChild(fieldDiv);
-            }
-        });
-        
-        if (formContainer) {
-            formContainer.appendChild(sectionDiv);
-        }
-    });
-    
-    const templateConfigModal = document.getElementById('template-config-modal');
-    if (templateConfigModal) {
-        templateConfigModal.style.display = 'block';
-    }
-}
-
-function closeTemplateModal() {
-    const templateConfigModal = document.getElementById('template-config-modal');
-    if (templateConfigModal) {
-        templateConfigModal.style.display = 'none';
-    }
-    selectedTemplate = null;
-}
-
-function generateFromTemplate() {
-    if (!selectedTemplate) {
-        console.error('No template selected');
-        return;
-    }
-    
-    const formContainer = document.getElementById('template-config-form');
-    if (!formContainer) {
-        console.error('Template config form not found');
-        return;
-    }
-    
-    const config = {};
-    console.log('Generating from template:', selectedTemplate);
-    
-    // Collect form data manually since we're not using a real form element
-    const inputs = formContainer.querySelectorAll('input, select, textarea');
-    
-    inputs.forEach(input => {
-        if (input.type === 'checkbox') {
-            if (input.checked) {
-                if (config[input.name]) {
-                    // Handle checkbox groups
-                    if (Array.isArray(config[input.name])) {
-                        config[input.name].push(input.value || true);
-                    } else {
-                        config[input.name] = [config[input.name], input.value || true];
-                    }
-                } else {
-                    // Check if this is part of a checkbox group
-                    const allWithSameName = formContainer.querySelectorAll(`input[name="${input.name}"]`);
-                    if (allWithSameName.length > 1) {
-                        // Checkbox group - store as array
-                        config[input.name] = [input.value];
-                    } else {
-                        // Single checkbox - store as boolean
-                        config[input.name] = true;
-                    }
-                }
-            } else {
-                // Handle unchecked single checkboxes
-                const allWithSameName = formContainer.querySelectorAll(`input[name="${input.name}"]`);
-                if (allWithSameName.length === 1 && !config.hasOwnProperty(input.name)) {
-                    config[input.name] = false;
-                }
-            }
-        } else if (input.type === 'radio') {
-            if (input.checked) {
-                config[input.name] = input.value;
-            }
-        } else {
-            // Text, textarea, select
-            if (input.name && input.value) {
-                config[input.name] = input.value;
-            }
-        }
-    });
-    
-    // Validate required fields
-    const requiredFields = formContainer.querySelectorAll('input[required], select[required], textarea[required]');
-    for (let field of requiredFields) {
-        if (!field.value.trim()) {
-            alert(`Please fill in the required field: ${field.previousElementSibling?.textContent || field.name}`);
-            field.focus();
-            return;
-        }
-    }
-    
-    // Generate task description from template
-    const taskDescription = generateTaskFromTemplate(selectedTemplate, config);
-    
-    // Close modal
-    closeTemplateModal();
-    
-    // Submit the generated task
-    submitTaskFromTemplate(taskDescription, config);
-}
-
-function generateTaskFromTemplate(templateType, config) {
-    const projectName = config.projectName || 'my-project';
-    
-    const templates = {
-        react: `Create a complete React application called "${projectName}" with the following specifications:
-
-Project Details:
-- Name: ${projectName}
-- Description: ${config.description || 'A modern React application'}
-
-Technical Requirements:
-- ${config.typescript ? 'TypeScript' : 'JavaScript'} implementation
-- ${config.router ? 'React Router for navigation' : 'Single page application'}
-- State management with ${config.stateManagement || 'Context API'}
-- Styling with ${config.styling || 'CSS modules'}
-- ${config.components ? 'Reusable UI components library' : 'Basic components'}
-
-Features to include:
-${Array.isArray(config.features) ? config.features.join(', ') : 'Basic functionality'}
-
-Build a complete, production-ready application with package.json, build scripts, README, and all necessary configuration files.`,
-
-        angular: `Create a complete Angular application called "${projectName}" with the following specifications:
-
-Project Details:
-- Name: ${projectName}
-- Description: ${config.description || 'A modern Angular application'}
-
-Technical Requirements:
-- Latest Angular version with TypeScript
-- ${config.routing ? 'Angular Router with lazy loading' : 'Single component application'}
-- ${config.ssr ? 'Server-Side Rendering (Angular Universal)' : 'Client-side rendering'}
-- ${config.pwa ? 'Progressive Web App features' : 'Standard web application'}
-- UI framework: ${config.uiFramework || 'Angular Material'}
-
-Features to include:
-${Array.isArray(config.features) ? config.features.join(', ') : 'Basic functionality'}
-
-Build a complete, production-ready application with package.json, build scripts, README, and all necessary configuration files.`,
-
-        static: `Create a complete static website called "${projectName}" with the following specifications:
-
-Project Details:
-- Name: ${projectName}
-- Description: ${config.description || 'A modern static website'}
-- Type: ${config.siteType || 'Portfolio'}
-- Pages: ${config.pages || '3-5 Pages'}
-
-Technical Requirements:
-- Modern HTML5, CSS3, and JavaScript
-- CSS Framework: ${config.styling || 'Tailwind CSS'}
-- ${config.responsive ? 'Fully responsive design' : 'Desktop-focused design'}
-- ${config.animations ? 'CSS animations and transitions' : 'Static design'}
-
-Features to include:
-${Array.isArray(config.features) ? config.features.join(', ') : 'Basic website functionality'}
-
-Build a complete, production-ready website with proper file structure, build process, README, and all necessary assets.`
-    };
-    
-    return templates[templateType] || `Create a ${templateType} application with the specified configuration.`;
-}
-
-function submitTaskFromTemplate(taskDescription, config) {
-    // Prevent multiple submissions
-    if (window.taskSubmissionInProgress) {
-        console.log('Task submission already in progress, ignoring duplicate');
-        return;
-    }
-    
-    // Check if project name is provided
-    if (!projectName) {
-        addSystemMessage('Please enter a project name before generating from template', 'error');
-        return;
-    }
-    
-    window.taskSubmissionInProgress = true;
-    
-    // Add template info to chat
-    addSystemMessage(`🚀 Generating ${selectedTemplate} project: ${config.projectName || projectName}`, 'system');
-    addSystemMessage(taskDescription, 'user');
-    
-    // Show project path in chat if selected
-    if (finalProjectPath) {
-        addSystemMessage(`Project will be created at: ${finalProjectPath}`, 'system');
-    } else if (selectedProjectPath) {
-        addSystemMessage(`Project directory: ${selectedProjectPath}`, 'system');
-    }
-    
-    // Submit to backend
-    const taskData = {
-        task: taskDescription,
-        description: `Generated from ${selectedTemplate} template`,
-        projectPath: finalProjectPath || selectedProjectPath,
-        projectName: projectName || config.projectName,
-        useGoose: true, // Always use real orchestration, no simulation mode
-        templateType: selectedTemplate,
-        templateConfig: config
-    };
-    
-    socket.emit('submit_task', taskData);
-    
-    // Update UI
-    if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-    }
-    
-    // Reset submission flag after a delay
-    setTimeout(() => {
-        window.taskSubmissionInProgress = false;
-    }, 2000);
-}
-
-// Initialize template system when DOM is ready
-function initializeTemplateSystem() {
-    // Prevent multiple initializations
-    if (window.templateSystemInitialized) {
-        return;
-    }
-    window.templateSystemInitialized = true;
-    
-    // Add template card click handlers
-    document.querySelectorAll('.template-card').forEach(card => {
-        card.addEventListener('click', function() {
-            const templateType = this.getAttribute('data-template');
-            openTemplateModal(templateType);
-        });
-    });
-    
-    // Add modal close handlers (use event delegation to prevent duplicates)
-    document.body.addEventListener('click', function(e) {
-        if (e.target.classList.contains('close-btn')) {
-            closeTemplateModal();
-        }
-        if (e.target.id === 'template-config-modal') {
-            closeTemplateModal();
-        }
-    });
-    
-    // Add escape key handler
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && document.getElementById('template-config-modal').style.display === 'block') {
-            closeTemplateModal();
-        }
-    });
-}
-
-// Make functions available globally
-window.closeTemplateModal = closeTemplateModal;
-window.generateFromTemplate = generateFromTemplate;
-
-// Export functions for debugging (remove in production)
-window.gooseDebug = {
-    addDemoAgent,
-    agents,
-    socket,
-    openTemplateModal,
-    templateConfigs
-}; 
-
-/**
- * Create a collapsible output section for an agent
- */
-function createAgentOutputSection(sessionId, agentName, taskName) {
-    const chatMessages = document.getElementById('chat-messages');
-    
-    const agentSection = document.createElement('div');
-    agentSection.className = 'agent-output-section';
-    agentSection.id = `agent-section-${sessionId}`;
-    
-    agentSection.innerHTML = `
-        <div class="agent-header" onclick="toggleAgentOutput('${sessionId}')">
-            <div class="agent-info">
-                <i class="fas fa-robot agent-icon"></i>
-                <span class="agent-name">${agentName}</span>
-                <span class="agent-task">${taskName}</span>
-            </div>
-            <div class="agent-status">
-                <div class="activity-indicator" id="activity-${sessionId}">
-                    <div class="pulse"></div>
-                </div>
-                <span class="status-text" id="status-${sessionId}">Working...</span>
-                <i class="fas fa-chevron-down toggle-icon" id="toggle-${sessionId}"></i>
-            </div>
-        </div>
-        <div class="agent-output-content" id="output-${sessionId}">
-            <div class="important-output" id="important-${sessionId}"></div>
-            <div class="detailed-output-container">
-                <div class="detailed-output-toggle" onclick="toggleDetailedOutput('${sessionId}')">
-                    <i class="fas fa-terminal"></i>
-                    <span>Show Detailed Logs</span>
-                    <i class="fas fa-chevron-right detailed-toggle-icon" id="detailed-toggle-${sessionId}"></i>
-                </div>
-                <div class="detailed-output collapsed" id="detailed-${sessionId}"></div>
-            </div>
-        </div>
-    `;
-    
-    if (chatMessages) {
-        chatMessages.appendChild(agentSection);
-    }
-    agentOutputSections.set(sessionId, {
-        element: agentSection,
-        agentName: agentName,
-        taskName: taskName,
-        status: 'working'
-    });
-    
-    scrollToBottom();
-}
-
-/**
- * Display agent output in the appropriate section
- */
-function displayAgentOutput(sessionId, output, type, level) {
-    const importantOutput = document.getElementById(`important-${sessionId}`);
-    if (!importantOutput) return;
-    
-    const outputElement = document.createElement('div');
-    outputElement.className = `output-line ${type} ${level}`;
-    
-    // Add appropriate icons based on type
-    let icon = '';
-    switch (type) {
-        case 'progress':
-            icon = '<i class="fas fa-spinner fa-spin"></i>';
-            break;
-        case 'error':
-            icon = '<i class="fas fa-exclamation-triangle"></i>';
-            break;
-        case 'task':
-            icon = '<i class="fas fa-tasks"></i>';
-            break;
-        default:
-            icon = '<i class="fas fa-info-circle"></i>';
-    }
-    
-    outputElement.innerHTML = `${icon} <span class="output-text">${output}</span>`;
-    importantOutput.appendChild(outputElement);
-    
-    // Auto-scroll if section is visible
-    const section = agentOutputSections.get(sessionId);
-    if (section && !section.element.classList.contains('collapsed')) {
-        importantOutput.scrollTop = importantOutput.scrollHeight;
-    }
-}
-
-/**
- * Add detailed output to the collapsible detailed section
- */
-function addDetailedOutput(sessionId, output, type) {
-    const detailedOutput = document.getElementById(`detailed-${sessionId}`);
-    if (!detailedOutput) return;
-    
-    const outputElement = document.createElement('div');
-    outputElement.className = `detailed-line ${type}`;
-    outputElement.innerHTML = `<span class="timestamp">${new Date().toLocaleTimeString()}</span> ${output}`;
-    
-    detailedOutput.appendChild(outputElement);
-    
-    // Auto-scroll if detailed section is visible
-    if (!detailedOutput.classList.contains('collapsed')) {
-        detailedOutput.scrollTop = detailedOutput.scrollHeight;
-    }
-}
-
-/**
- * Update session activity indicator
- */
-function updateSessionActivity(sessionId, lastActivity, inactivityTime) {
-    const activityIndicator = document.getElementById(`activity-${sessionId}`);
-    const statusText = document.getElementById(`status-${sessionId}`);
-    
-    if (activityIndicator && statusText) {
-        if (inactivityTime > 60) { // More than 1 minute inactive
-            activityIndicator.className = 'activity-indicator inactive';
-            statusText.textContent = `Inactive for ${inactivityTime}s`;
-        } else {
-            activityIndicator.className = 'activity-indicator active';
-            statusText.textContent = 'Working...';
-        }
-    }
-}
-
-/**
- * Finalize agent output section when task completes
- */
-function finalizeAgentOutputSection(sessionId, status) {
-    const section = agentOutputSections.get(sessionId);
-    if (!section) return;
-    
-    const activityIndicator = document.getElementById(`activity-${sessionId}`);
-    const statusText = document.getElementById(`status-${sessionId}`);
-    
-    if (activityIndicator && statusText) {
-        activityIndicator.className = `activity-indicator ${status}`;
-        statusText.textContent = status === 'completed' ? 'Completed' : 'Failed';
-    }
-    
-    section.status = status;
-    
-    // Auto-collapse completed sections after 5 seconds
-    if (status === 'completed') {
-        setTimeout(() => {
-            const agentSection = document.getElementById(`agent-section-${sessionId}`);
-            if (agentSection) {
-                agentSection.classList.add('collapsed');
-                const toggleIcon = document.getElementById(`toggle-${sessionId}`);
-                if (toggleIcon) {
-                    toggleIcon.classList.remove('fa-chevron-down');
-                    toggleIcon.classList.add('fa-chevron-right');
-                }
-            }
-        }, 5000);
-    }
-}
-
-/**
- * Toggle agent output section visibility
- */
-function toggleAgentOutput(sessionId) {
-    const outputContent = document.getElementById(`output-${sessionId}`);
-    const toggleIcon = document.getElementById(`toggle-${sessionId}`);
-    const agentSection = document.getElementById(`agent-section-${sessionId}`);
-    
-    if (outputContent && toggleIcon && agentSection) {
-        if (agentSection.classList.contains('collapsed')) {
-            agentSection.classList.remove('collapsed');
-            toggleIcon.classList.remove('fa-chevron-right');
-            toggleIcon.classList.add('fa-chevron-down');
-        } else {
-            agentSection.classList.add('collapsed');
-            toggleIcon.classList.remove('fa-chevron-down');
-            toggleIcon.classList.add('fa-chevron-right');
-        }
-    }
-}
-
-/**
- * Toggle detailed output visibility
- */
-function toggleDetailedOutput(sessionId) {
-    const detailedOutput = document.getElementById(`detailed-${sessionId}`);
-    const toggleIcon = document.getElementById(`detailed-toggle-${sessionId}`);
-    
-    if (detailedOutput && toggleIcon) {
-        if (detailedOutput.classList.contains('collapsed')) {
-            detailedOutput.classList.remove('collapsed');
-            toggleIcon.classList.remove('fa-chevron-right');
-            toggleIcon.classList.add('fa-chevron-down');
-        } else {
-            detailedOutput.classList.add('collapsed');
-            toggleIcon.classList.remove('fa-chevron-down');
-            toggleIcon.classList.add('fa-chevron-right');
-        }
-    }
-}
-
-/**
- * Clean up agent output sections after task completion
- */
-function cleanupAgentOutputSections() {
-    // Auto-collapse all completed sections after 10 seconds
-    setTimeout(() => {
-        agentOutputSections.forEach((section, sessionId) => {
-            if (section.status === 'completed') {
-                const agentSection = document.getElementById(`agent-section-${sessionId}`);
-                if (agentSection) {
-                    agentSection.classList.add('collapsed');
-                    const toggleIcon = document.getElementById(`toggle-${sessionId}`);
-                    if (toggleIcon) {
-                        toggleIcon.classList.remove('fa-chevron-down');
-                        toggleIcon.classList.add('fa-chevron-right');
-                    }
-                }
-            }
-        });
-    }, 10000);
-} 
-
-/**
- * Show run project button after successful completion
- */
-function showRunProjectButton(buildInstructions) {
-    // Remove any existing run button
-    const existingButton = document.getElementById('run-project-button');
-    if (existingButton) {
-        existingButton.remove();
-    }
-    
-    // Create run project button
-    const runButton = document.createElement('div');
-    runButton.id = 'run-project-button';
-    runButton.className = 'run-project-container';
-    runButton.innerHTML = `
-        <div class="run-project-card">
-            <div class="run-project-header">
-                <i class="fas fa-play-circle"></i>
-                <h3>Project Ready to Run!</h3>
-            </div>
-            <div class="run-project-content">
-                <p>Your project has been built successfully. You can now:</p>
-                <div class="run-options">
-                    <button class="run-btn primary" onclick="runProjectInTerminal()">
-                        <i class="fas fa-terminal"></i>
-                        <span>Run in Terminal</span>
-                    </button>
-                    <button class="run-btn secondary" onclick="openProjectInIDE()">
-                        <i class="fas fa-code"></i>
-                        <span>Open in IDE</span>
-                    </button>
-                </div>
-                <div class="build-instructions">
-                    <small><strong>Manual steps:</strong> ${buildInstructions.join(' then ')}</small>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    // Add to chat messages
-    const chatMessages = document.getElementById('chat-messages');
-    if (chatMessages) {
-        chatMessages.appendChild(runButton);
-        scrollToBottom();
-    }
-}
-
-/**
- * Run project in terminal (opens project directory and shows instructions)
- */
-function runProjectInTerminal() {
-    if (finalProjectPath) { // Use finalProjectPath for the run button
-        // Send request to open terminal in project directory
-        socket.emit('open_terminal', { projectPath: finalProjectPath });
-        addSystemMessage('Opening terminal in project directory...', 'system');
-    } else if (selectedProjectPath) { // Fallback to selectedProjectPath
-        addSystemMessage('Project path not available for direct terminal run. Please visit the directory manually.', 'error');
-    } else {
-        addSystemMessage('No project path available. Please visit the project directory manually.', 'error');
-    }
-}
-
-/**
- * Open project in IDE
- */
-function openProjectInIDE() {
-    if (finalProjectPath) { // Use finalProjectPath for the run button
-        openInIde();
-    } else if (selectedProjectPath) { // Fallback to selectedProjectPath
-        addSystemMessage('Project path not available for direct IDE open. Please visit the directory manually.', 'error');
-    } else {
-        addSystemMessage('No project directory selected', 'error');
-    }
-}
-
-// Job Management Functions
-let currentActiveJobId = null;
-let jobChatInterface = null;
-
-function initializeJobManagement() {
-    // Setup panel controls
-    const jobChatBtnSetup = document.getElementById('job-chat-btn-setup');
-    const showJobsBtnSetup = document.getElementById('show-jobs-btn-setup');
-    const closeJobChatBtnSetup = document.getElementById('close-job-chat-setup');
-    const sendJobChatBtnSetup = document.getElementById('send-job-chat-setup');
-    const jobChatInputSetup = document.getElementById('job-chat-input-setup');
-    const jobFilterSetup = document.getElementById('job-filter-setup');
-
-    // Agents panel controls
-    const jobChatBtn = document.getElementById('job-chat-btn');
-    const showJobsBtn = document.getElementById('show-jobs-btn');
-    const closeJobChatBtn = document.getElementById('close-job-chat');
-    const sendJobChatBtn = document.getElementById('send-job-chat');
-    const jobChatInput = document.getElementById('job-chat-input');
-    const jobFilter = document.getElementById('job-filter');
-
-    // Setup panel event listeners
-    if (jobChatBtnSetup) {
-        jobChatBtnSetup.addEventListener('click', () => toggleJobChatInterface('setup'));
-    }
-
-    if (showJobsBtnSetup) {
-        showJobsBtnSetup.addEventListener('click', () => loadJobsList('setup'));
-    }
-
-    if (closeJobChatBtnSetup) {
-        closeJobChatBtnSetup.addEventListener('click', () => {
-            document.getElementById('job-chat-interface-setup').style.display = 'none';
-        });
-    }
-
-    if (sendJobChatBtnSetup) {
-        sendJobChatBtnSetup.addEventListener('click', () => sendJobChatMessage('setup'));
-    }
-
-    if (jobChatInputSetup) {
-        jobChatInputSetup.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                sendJobChatMessage('setup');
-            }
-        });
-    }
-
-    if (jobFilterSetup) {
-        jobFilterSetup.addEventListener('change', () => loadJobsList('setup'));
-    }
-
-    // Agents panel event listeners
-    if (jobChatBtn) {
-        jobChatBtn.addEventListener('click', () => toggleJobChatInterface('agents'));
-    }
-
-    if (showJobsBtn) {
-        showJobsBtn.addEventListener('click', () => loadJobsList('agents'));
-    }
-
-    if (closeJobChatBtn) {
-        closeJobChatBtn.addEventListener('click', () => {
-            document.getElementById('job-chat-interface').style.display = 'none';
-        });
-    }
-
-    if (sendJobChatBtn) {
-        sendJobChatBtn.addEventListener('click', () => sendJobChatMessage('agents'));
-    }
-
-    if (jobChatInput) {
-        jobChatInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                sendJobChatMessage('agents');
-            }
-        });
-    }
-
-    if (jobFilter) {
-        jobFilter.addEventListener('change', () => loadJobsList('agents'));
-    }
-
-    // Load initial jobs list for both panels
-    loadJobsList('setup');
-    loadJobsList('agents');
-}
-
-function toggleJobChatInterface(panel = 'agents') {
-    const chatInterfaceId = panel === 'setup' ? 'job-chat-interface-setup' : 'job-chat-interface';
-    const chatInterface = document.getElementById(chatInterfaceId);
-    if (chatInterface) {
-        if (chatInterface.style.display === 'none' || !chatInterface.style.display) {
-            chatInterface.style.display = 'block';
-        } else {
-            chatInterface.style.display = 'none';
-        }
-    }
-}
-
-function sendJobChatMessage(panel = 'agents') {
-    const inputId = panel === 'setup' ? 'job-chat-input-setup' : 'job-chat-input';
-    const input = document.getElementById(inputId);
-    const message = input.value.trim();
-    
-    if (!message) return;
-
-    // Add user message to chat
-    addJobChatMessage(message, 'user', panel);
-    
-    // Send to server
-    socket.emit('job_chat_command', {
-        message: message,
-        jobId: currentActiveJobId
-    });
-
-    input.value = '';
-}
-
-function addJobChatMessage(message, type, panel = 'agents') {
-    const chatMessagesId = panel === 'setup' ? 'job-chat-messages-setup' : 'job-chat-messages';
-    const chatMessages = document.getElementById(chatMessagesId);
-    
-    if (!chatMessages) return;
-    
-    const messageDiv = document.createElement('div');
-    messageDiv.className = `chat-message ${type}`;
-    
-    const content = document.createElement('div');
-    content.className = 'message-content';
-    
-    if (type === 'user') {
-        content.innerHTML = `<strong>You:</strong> ${message}`;
-    } else if (type === 'response') {
-        content.innerHTML = `<strong>System:</strong> ${message}`;
-    } else {
-        content.innerHTML = message;
-    }
-    
-    messageDiv.appendChild(content);
-    chatMessages.appendChild(messageDiv);
-    
-    // Scroll to bottom
-    chatMessages.scrollTop = chatMessages.scrollHeight;
-}
-
-function loadJobsList(panel = 'agents') {
-    const filterId = panel === 'setup' ? 'job-filter-setup' : 'job-filter';
-    const filter = document.getElementById(filterId)?.value || 'active';
-    socket.emit('get_jobs', { type: filter, panel: panel });
-}
-
-function displayJobsList(jobs, panel = 'agents') {
-    const containerId = panel === 'setup' ? 'jobs-container-setup' : 'jobs-container';
-    const container = document.getElementById(containerId);
-    
-    if (!container) return;
-    
-    container.innerHTML = '';
-
-    if (jobs.length === 0) {
-        container.innerHTML = '<div style="color: #fff; text-align: center; padding: 20px;">No jobs found</div>';
-        return;
-    }
-
-    jobs.forEach(job => {
-        const jobCard = createJobCard(job);
-        container.appendChild(jobCard);
-    });
-}
-
-function createJobCard(job) {
-    const card = document.createElement('div');
-    card.className = 'job-card';
-    card.setAttribute('data-job-id', job.id);
-
-    const statusClass = job.status.toLowerCase();
-    const createdDate = new Date(job.createdAt).toLocaleString();
-
-    const checkpointIndicator = job.checkpointId ? '<i class="fas fa-save" title="Has checkpoint"></i>' : '';
-    
-    card.innerHTML = `
-        <div class="job-card-header">
-            <div class="job-name">${job.name} ${checkpointIndicator}</div>
-            <div class="job-status ${statusClass}">${job.status}</div>
-        </div>
-        <div class="job-description">${job.description}</div>
-        <div class="job-info">
-            <small>Created: ${createdDate}</small>
-            ${job.checkpointId ? '<small style="color: #4CAF50;"><i class="fas fa-save"></i> Checkpoint available</small>' : ''}
-        </div>
-        <div class="job-actions-row">
-            ${getJobActionButtons(job)}
-        </div>
-    `;
-
-    return card;
-}
-
-function getJobActionButtons(job) {
-    let buttons = '';
-    
-    switch (job.status) {
-        case 'running':
-            buttons = `
-                <button class="job-action-btn" onclick="pauseJob('${job.id}')">Pause</button>
-                <button class="job-action-btn danger" onclick="stopJob('${job.id}')">Stop</button>
-                <button class="job-action-btn" onclick="editJob('${job.id}')">Edit</button>
-            `;
-            break;
-        case 'paused':
-            buttons = `
-                <button class="job-action-btn primary" onclick="resumeJob('${job.id}')">Resume from Checkpoint</button>
-                <button class="job-action-btn danger" onclick="stopJob('${job.id}')">Stop</button>
-                <button class="job-action-btn" onclick="editJob('${job.id}')">Edit</button>
-            `;
-            break;
-        case 'editing':
-            buttons = `
-                <button class="job-action-btn" onclick="restartJob('${job.id}')">Restart</button>
-                <button class="job-action-btn danger" onclick="stopJob('${job.id}')">Cancel</button>
-            `;
-            break;
-        case 'stopped':
-        case 'failed':
-        case 'completed':
-            buttons = `
-                <button class="job-action-btn" onclick="viewJobLogs('${job.id}')">View Logs</button>
-                <button class="job-action-btn" onclick="reconnectJob('${job.id}')">Reconnect</button>
-            `;
-            break;
-    }
-    
-    return buttons;
-}
-
-function pauseJob(jobId) {
-    socket.emit('pause_job', { jobId });
-    currentActiveJobId = jobId;
-}
-
-function resumeJob(jobId) {
-    socket.emit('resume_job', { jobId });
-    currentActiveJobId = jobId;
-}
-
-function stopJob(jobId) {
-    if (confirm('Are you sure you want to stop this job?')) {
-        socket.emit('stop_job', { jobId });
-    }
-}
-
-function editJob(jobId) {
-    currentActiveJobId = jobId;
-    toggleJobChatInterface();
-    addJobChatMessage('Job editing mode activated. You can now modify the job goals using natural language.', 'system');
-}
-
-function restartJob(jobId) {
-    if (confirm('Are you sure you want to restart this job with the updated goals?')) {
-        socket.emit('restart_job', { jobId });
-        currentActiveJobId = jobId;
-    }
-}
-
-function viewJobLogs(jobId) {
-    // TODO: Implement job logs viewer
-    console.log('View logs for job:', jobId);
-}
-
-function reconnectJob(jobId) {
-    socket.emit('reconnect_job', { jobId });
-    currentActiveJobId = jobId;
-    addSystemMessage(`Attempting to reconnect to job ${jobId}...`, 'system');
-}
-
-// Add job management socket event handlers
-function setupJobManagementEvents() {
-    socket.on('job_created', (data) => {
-        currentActiveJobId = data.id;
-        loadJobsList('setup');
-        loadJobsList('agents');
-        addSystemMessage(`Job created: ${data.name}`, 'system');
-    });
-
-    socket.on('job_paused', (data) => {
-        loadJobsList('setup');
-        loadJobsList('agents');
-        addSystemMessage(`Job paused: ${data.job.name}`, 'system');
-    });
-
-    socket.on('job_resumed', (data) => {
-        loadJobsList('setup');
-        loadJobsList('agents');
-        addSystemMessage(`Job resumed: ${data.job.name}`, 'system');
-    });
-
-    socket.on('job_stopped', (data) => {
-        loadJobsList('setup');
-        loadJobsList('agents');
-        addSystemMessage(`Job stopped: ${data.job.name}`, 'system');
-    });
-
-    socket.on('job_goals_updated', (data) => {
-        loadJobsList('setup');
-        loadJobsList('agents');
-        addSystemMessage(`Job goals updated for: ${data.job.name}`, 'system');
-    });
-
-    socket.on('job_restarted', (data) => {
-        loadJobsList('setup');
-        loadJobsList('agents');
-        addSystemMessage(`Job restarted: ${data.job.name}`, 'system');
-    });
-
-    socket.on('jobs_list', (data) => {
-        displayJobsList(data.jobs, data.panel || 'agents');
-        // Also update the other panel if not specified
-        if (!data.panel) {
-            displayJobsList(data.jobs, 'setup');
-        }
-    });
-
-    socket.on('job_chat_response', (data) => {
-        // Add response to both chat interfaces
-        addJobChatMessage(data.response, 'response', 'setup');
-        addJobChatMessage(data.response, 'response', 'agents');
-    });
-
-    socket.on('job_error', (data) => {
-        addSystemMessage(`Job error: ${data.error}`, 'error');
-    });
-
-    socket.on('job_reconnected', (data) => {
-        loadJobsList('setup');
-        loadJobsList('agents');
-        addSystemMessage(`Reconnected to job: ${data.job.name}`, 'success');
-    });
-}
-
-// Call this in the existing setupSocketEventHandlers function
-function enhanceSocketEventHandlers() {
-    setupJobManagementEvents();
-}
-
-// QA Verification UI functions
-function createQAVerificationSection(verificationId, taskTitle) {
-    const outputContainer = document.getElementById('output-container');
-    if (!outputContainer) return;
-
-    const section = document.createElement('div');
-    section.id = `qa-${verificationId}`;
-    section.className = 'qa-verification-section mb-4 p-4 border-2 border-blue-300 rounded-lg bg-blue-50';
-    
-    section.innerHTML = `
-        <div class="flex items-center justify-between mb-2">
-            <h3 class="text-lg font-semibold text-blue-700">🔍 QA Verification: ${taskTitle}</h3>
-            <div class="qa-status text-blue-600">In Progress...</div>
-        </div>
-        <div class="qa-steps space-y-2">
-            <!-- QA steps will be added here -->
-        </div>
-        <div class="qa-summary mt-4 hidden">
-            <!-- Summary will be added here when completed -->
-        </div>
-    `;
-    
-    outputContainer.appendChild(section);
-    section.scrollIntoView({ behavior: 'smooth' });
-}
-
-function updateQAStep(stepName, description, status, score = null) {
-    const sections = document.querySelectorAll('.qa-verification-section');
-    const currentSection = sections[sections.length - 1]; // Get the most recent QA section
-    if (!currentSection) return;
-    
-    const stepsContainer = currentSection.querySelector('.qa-steps');
-    if (!stepsContainer) return;
-    
-    let stepElement = stepsContainer.querySelector(`[data-step="${stepName}"]`);
-    
-    if (!stepElement) {
-        stepElement = document.createElement('div');
-        stepElement.setAttribute('data-step', stepName);
-        stepElement.className = 'qa-step p-2 border rounded';
-        stepsContainer.appendChild(stepElement);
-    }
-    
-    let statusIcon = '⏳';
-    let statusClass = 'text-blue-600';
-    
-    if (status === 'passed') {
-        statusIcon = '✅';
-        statusClass = 'text-green-600';
-    } else if (status === 'failed') {
-        statusIcon = '❌';
-        statusClass = 'text-red-600';
-    }
-    
-    const scoreText = score !== null ? ` (${(score * 100).toFixed(1)}%)` : '';
-    // Map step names to friendly titles
-    const stepTitleMap = {
-        'file_structure': 'File Structure Validation',
-        'build_validation': 'Build Process Validation', 
-        'test_generation': 'Test Script Generation & Execution',
-        'comprehensive_build': 'Comprehensive Build Verification',
-        'packageJsonValidation': 'Package.json Validation',
-        'dependencyCheck': 'Dependency Check',
-        'apiEndpointValidation': 'API Endpoint Validation',
-        'securityCheck': 'Security Check',
-        'errorHandlingCheck': 'Error Handling Check',
-        'databaseConnectionCheck': 'Database Connection Check',
-        'performanceCheck': 'Performance Check',
-        'codeQualityCheck': 'Code Quality Check'
-    };
-    
-    const stepTitle = stepTitleMap[stepName] || stepName.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
-    
-    stepElement.innerHTML = `
-        <div class="flex items-center justify-between">
-            <span class="font-medium">${statusIcon} ${stepTitle}</span>
-            <span class="${statusClass}">${status}${scoreText}</span>
-        </div>
-        ${description ? `<div class="text-sm text-gray-600 mt-1">${description}</div>` : ''}
-    `;
-    
-    stepElement.className = `qa-step p-2 border rounded ${statusClass.includes('green') ? 'bg-green-50' : statusClass.includes('red') ? 'bg-red-50' : 'bg-blue-50'}`;
-}
-
-function finalizeQAVerificationSection(verificationId, passed, score, issues, recommendations) {
-    const section = document.getElementById(`qa-${verificationId}`);
-    if (!section) return;
-    
-    const statusElement = section.querySelector('.qa-status');
-    const summaryElement = section.querySelector('.qa-summary');
-    
-    if (statusElement) {
-        const statusText = passed ? 'PASSED ✅' : 'FAILED ❌';
-        const statusClass = passed ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold';
-        statusElement.textContent = statusText;
-        statusElement.className = `qa-status ${statusClass}`;
-    }
-    
-    if (summaryElement) {
-        const scorePercent = (score * 100).toFixed(1);
-        const qualityLevel = score >= 0.9 ? 'Excellent' : score >= 0.8 ? 'Good' : score >= 0.7 ? 'Acceptable' : 'Needs Improvement';
-        
-        let summaryHTML = `
-            <div class="qa-summary-content p-3 bg-white rounded border">
-                <div class="flex items-center justify-between mb-2">
-                    <span class="font-semibold">Quality Score: ${scorePercent}%</span>
-                    <span class="text-sm px-2 py-1 rounded ${passed ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">${qualityLevel}</span>
-                </div>
-        `;
-        
-        if (issues.length > 0) {
-            summaryHTML += `
-                <div class="mb-2">
-                    <strong class="text-red-600">Issues (${issues.length}):</strong>
-                    <ul class="list-disc list-inside text-sm mt-1 space-y-1">
-                        ${issues.slice(0, 5).map(issue => `<li class="text-red-700">${issue}</li>`).join('')}
-                        ${issues.length > 5 ? `<li class="text-gray-500">...and ${issues.length - 5} more</li>` : ''}
-                    </ul>
-                </div>
-            `;
-        }
-        
-        if (recommendations.length > 0) {
-            summaryHTML += `
-                <div>
-                    <strong class="text-blue-600">Recommendations (${recommendations.length}):</strong>
-                    <ul class="list-disc list-inside text-sm mt-1 space-y-1">
-                        ${recommendations.slice(0, 3).map(rec => `<li class="text-blue-700">${rec}</li>`).join('')}
-                        ${recommendations.length > 3 ? `<li class="text-gray-500">...and ${recommendations.length - 3} more</li>` : ''}
-                    </ul>
-                </div>
-            `;
-        }
-        
-        summaryHTML += '</div>';
-        summaryElement.innerHTML = summaryHTML;
-        summaryElement.classList.remove('hidden');
-    }
-    
-    // Update section border color based on result
-    section.className = section.className.replace('border-blue-300 bg-blue-50', 
-        passed ? 'border-green-300 bg-green-50' : 'border-red-300 bg-red-50');
-} 
-
-// =================================
-// TASK GRAPH VISUALIZATION SYSTEM
-// =================================
-
-class TaskGraphVisualization {
-    constructor() {
-        this.svg = document.getElementById('task-graph-svg');
-        this.container = document.getElementById('graph-container');
-        this.nodesGroup = document.getElementById('nodes-group');
-        this.edgesGroup = document.getElementById('edges-group');
-        this.graphEmpty = document.getElementById('graph-empty');
-        this.graphLoading = document.getElementById('graph-loading');
-        
-        this.currentGraph = null;
-        this.nodePositions = new Map();
-        this.dragState = {
-            isDragging: false,
-            currentNode: null,
-            startX: 0,
-            startY: 0,
-            isPanning: false
-        };
-        
-        this.viewBox = { x: 0, y: 0, width: 1000, height: 500 };
-        this.zoom = 1;
-        
-        this.init();
-    }
-    
-    init() {
-        this.setupEventListeners();
-        this.setupControlButtons();
-        this.updateViewBox();
-        this.showEmptyState();
-    }
-    
-    setupEventListeners() {
-        // Mouse events for dragging
-        this.svg.addEventListener('mousedown', this.handleMouseDown.bind(this));
-        this.svg.addEventListener('mousemove', this.handleMouseMove.bind(this));
-        this.svg.addEventListener('mouseup', this.handleMouseUp.bind(this));
-        this.svg.addEventListener('mouseleave', this.handleMouseUp.bind(this));
-        
-        // Prevent context menu
-        this.svg.addEventListener('contextmenu', (e) => e.preventDefault());
-        
-        // Zoom with mouse wheel
-        this.svg.addEventListener('wheel', this.handleWheel.bind(this));
-    }
-    
-    setupControlButtons() {
-        const centerBtn = document.getElementById('center-graph-btn');
-        const zoomInBtn = document.getElementById('zoom-in-btn');
-        const zoomOutBtn = document.getElementById('zoom-out-btn');
-        const autoLayoutBtn = document.getElementById('auto-layout-btn');
-        
-        if (centerBtn) centerBtn.addEventListener('click', () => this.centerGraph());
-        if (zoomInBtn) zoomInBtn.addEventListener('click', () => this.zoomIn());
-        if (zoomOutBtn) zoomOutBtn.addEventListener('click', () => this.zoomOut());
-        if (autoLayoutBtn) autoLayoutBtn.addEventListener('click', () => this.autoLayout());
-    }
-    
-    handleMouseDown(e) {
-        const target = e.target.closest('.task-node');
-        
-        if (target) {
-            // Node dragging
-            this.dragState.isDragging = true;
-            this.dragState.currentNode = target;
-            this.dragState.startX = e.clientX;
-            this.dragState.startY = e.clientY;
-            
-            target.classList.add('dragging');
-            e.preventDefault();
-        } else {
-            // Canvas panning
-            this.dragState.isPanning = true;
-            this.dragState.startX = e.clientX;
-            this.dragState.startY = e.clientY;
-            this.svg.style.cursor = 'grabbing';
-        }
-    }
-    
-    handleMouseMove(e) {
-        if (this.dragState.isDragging && this.dragState.currentNode) {
-            const dx = (e.clientX - this.dragState.startX) / this.zoom;
-            const dy = (e.clientY - this.dragState.startY) / this.zoom;
-            
-            const nodeId = this.dragState.currentNode.dataset.taskId;
-            const position = this.nodePositions.get(nodeId);
-            
-            if (position) {
-                position.x += dx;
-                position.y += dy;
-                
-                this.updateNodePosition(nodeId, position.x, position.y);
-                this.updateEdges();
-            }
-            
-            this.dragState.startX = e.clientX;
-            this.dragState.startY = e.clientY;
-        } else if (this.dragState.isPanning) {
-            const dx = (e.clientX - this.dragState.startX) / this.zoom;
-            const dy = (e.clientY - this.dragState.startY) / this.zoom;
-            
-            this.viewBox.x -= dx;
-            this.viewBox.y -= dy;
-            this.updateViewBox();
-            
-            this.dragState.startX = e.clientX;
-            this.dragState.startY = e.clientY;
-        }
-    }
-    
-    handleMouseUp(e) {
-        if (this.dragState.currentNode) {
-            this.dragState.currentNode.classList.remove('dragging');
-        }
-        
-        this.dragState.isDragging = false;
-        this.dragState.currentNode = null;
-        this.dragState.isPanning = false;
-        this.svg.style.cursor = 'grab';
-    }
-    
-    handleWheel(e) {
-        e.preventDefault();
-        
-        const rect = this.svg.getBoundingClientRect();
-        const centerX = rect.width / 2;
-        const centerY = rect.height / 2;
-        
-        const scaleFactor = e.deltaY > 0 ? 0.9 : 1.1;
-        this.zoom *= scaleFactor;
-        this.zoom = Math.max(0.1, Math.min(3, this.zoom));
-        
-        // Adjust viewBox to zoom towards center
-        const scaleChange = 1 / scaleFactor;
-        const dx = (centerX / this.zoom - centerX / (this.zoom / scaleFactor)) / 2;
-        const dy = (centerY / this.zoom - centerY / (this.zoom / scaleFactor)) / 2;
-        
-        this.viewBox.x += dx;
-        this.viewBox.y += dy;
-        this.viewBox.width = 1000 / this.zoom;
-        this.viewBox.height = 500 / this.zoom;
-        
-        this.updateViewBox();
-    }
-    
-    updateViewBox() {
-        this.svg.setAttribute('viewBox', 
-            `${this.viewBox.x} ${this.viewBox.y} ${this.viewBox.width} ${this.viewBox.height}`
-        );
-    }
-    
-    showEmptyState() {
-        if (this.graphEmpty) this.graphEmpty.style.display = 'flex';
-        if (this.graphLoading) this.graphLoading.style.display = 'none';
-    }
-    
-    showLoading() {
-        if (this.graphEmpty) this.graphEmpty.style.display = 'none';
-        if (this.graphLoading) this.graphLoading.style.display = 'flex';
-    }
-    
-    hideOverlays() {
-        if (this.graphEmpty) this.graphEmpty.style.display = 'none';
-        if (this.graphLoading) this.graphLoading.style.display = 'none';
-    }
-    
-    renderGraph(taskGraph) {
-        if (!taskGraph || !taskGraph.nodes) {
-            this.showEmptyState();
-            return;
-        }
-        
-        this.currentGraph = taskGraph;
-        this.hideOverlays();
-        
-        // Clear existing content
-        this.nodesGroup.innerHTML = '';
-        this.edgesGroup.innerHTML = '';
-        this.nodePositions.clear();
-        
-        // Calculate initial positions if not set
-        this.calculateInitialPositions(taskGraph.nodes);
-        
-        // Render edges first (so they appear behind nodes)
-        this.renderEdges(taskGraph.edges || []);
-        
-        // Render nodes
-        this.renderNodes(taskGraph.nodes);
-        
-        // Auto-fit the graph
-        this.autoLayout();
-    }
-    
-    calculateInitialPositions(nodes) {
-        const nodeWidth = 200;
-        const nodeHeight = 100;
-        const padding = 50;
-        
-        // Simple grid layout
-        const cols = Math.ceil(Math.sqrt(nodes.length));
-        
-        nodes.forEach((node, index) => {
-            if (!this.nodePositions.has(node.id)) {
-                const row = Math.floor(index / cols);
-                const col = index % cols;
-                
-                const x = col * (nodeWidth + padding) + padding;
-                const y = row * (nodeHeight + padding) + padding;
-                
-                this.nodePositions.set(node.id, { x, y });
-            }
-        });
-    }
-    
-    renderNodes(nodes) {
-        nodes.forEach(node => {
-            const position = this.nodePositions.get(node.id);
-            if (!position) return;
-            
-            const nodeGroup = this.createNodeElement(node, position.x, position.y);
-            this.nodesGroup.appendChild(nodeGroup);
-        });
-    }
-    
-    createNodeElement(node, x, y) {
-        const data = node.data || node;
-        const status = data.status || 'todo';
-        const progress = data.progress || 0;
-        const title = data.title || 'Untitled Task';
-        const agentName = data.assignedAgent || 'Unassigned';
-        
-        const nodeGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        nodeGroup.classList.add('task-node', status);
-        nodeGroup.dataset.taskId = node.id;
-        nodeGroup.style.cursor = 'pointer';
-        
-        // Main rectangle
-        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        rect.classList.add('task-node-rect');
-        rect.setAttribute('x', x);
-        rect.setAttribute('y', y);
-        rect.setAttribute('width', '180');
-        rect.setAttribute('height', '80');
-        
-        // Status icon
-        const statusIcon = this.getStatusIcon(status);
-        const icon = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        icon.classList.add('task-node-status-icon');
-        icon.setAttribute('x', x + 15);
-        icon.setAttribute('y', y + 25);
-        icon.textContent = statusIcon;
-        
-        // Title text
-        const titleText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        titleText.classList.add('task-node-text', 'task-node-title');
-        titleText.setAttribute('x', x + 90);
-        titleText.setAttribute('y', y + 25);
-        titleText.textContent = this.truncateText(title, 20);
-        
-        // Agent text
-        const agentText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        agentText.classList.add('task-node-text', 'task-node-agent');
-        agentText.setAttribute('x', x + 90);
-        agentText.setAttribute('y', y + 40);
-        agentText.textContent = this.truncateText(agentName, 18);
-        
-        // Progress bar background
-        const progressBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        progressBg.classList.add('task-node-progress-bar');
-        progressBg.setAttribute('x', x + 10);
-        progressBg.setAttribute('y', y + 60);
-        progressBg.setAttribute('width', '160');
-        progressBg.setAttribute('height', '6');
-        
-        // Progress bar fill
-        const progressFill = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        progressFill.classList.add('task-node-progress-fill');
-        progressFill.setAttribute('x', x + 10);
-        progressFill.setAttribute('y', y + 60);
-        progressFill.setAttribute('width', (160 * progress / 100).toString());
-        progressFill.setAttribute('height', '6');
-        
-        // Progress text
-        const progressText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        progressText.classList.add('task-node-text', 'task-node-progress');
-        progressText.setAttribute('x', x + 90);
-        progressText.setAttribute('y', y + 55);
-        progressText.textContent = `${progress}%`;
-        
-        // Add click handler
-        nodeGroup.addEventListener('click', (e) => {
-            e.stopPropagation();
-            this.openTaskLogs(node);
-        });
-        
-        // Assemble node
-        nodeGroup.appendChild(rect);
-        nodeGroup.appendChild(icon);
-        nodeGroup.appendChild(titleText);
-        nodeGroup.appendChild(agentText);
-        nodeGroup.appendChild(progressBg);
-        nodeGroup.appendChild(progressFill);
-        nodeGroup.appendChild(progressText);
-        
-        return nodeGroup;
-    }
-    
-    renderEdges(edges) {
-        edges.forEach(edge => {
-            const sourcePos = this.nodePositions.get(edge.source);
-            const targetPos = this.nodePositions.get(edge.target);
-            
-            if (sourcePos && targetPos) {
-                const edgeElement = this.createEdgeElement(sourcePos, targetPos, edge);
-                this.edgesGroup.appendChild(edgeElement);
-            }
-        });
-    }
-    
-    createEdgeElement(sourcePos, targetPos, edge) {
-        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        path.classList.add('task-edge');
-        
-        if (edge.animated) {
-            path.classList.add('animated');
-        }
-        
-        path.dataset.edgeId = edge.id;
-        
-        const d = this.calculateEdgePath(sourcePos, targetPos);
-        path.setAttribute('d', d);
-        
-        return path;
-    }
-    
-    calculateEdgePath(sourcePos, targetPos) {
-        const startX = sourcePos.x + 180; // Right edge of source node
-        const startY = sourcePos.y + 40;  // Middle of source node
-        const endX = targetPos.x;         // Left edge of target node
-        const endY = targetPos.y + 40;    // Middle of target node
-        
-        // Create a curved path
-        const controlX1 = startX + (endX - startX) * 0.5;
-        const controlY1 = startY;
-        const controlX2 = startX + (endX - startX) * 0.5;
-        const controlY2 = endY;
-        
-        return `M ${startX} ${startY} C ${controlX1} ${controlY1}, ${controlX2} ${controlY2}, ${endX} ${endY}`;
-    }
-    
-    updateEdges() {
-        if (!this.currentGraph || !this.currentGraph.edges) return;
-        
-        this.currentGraph.edges.forEach(edge => {
-            const sourcePos = this.nodePositions.get(edge.source);
-            const targetPos = this.nodePositions.get(edge.target);
-            const pathElement = this.edgesGroup.querySelector(`[data-edge-id="${edge.id}"]`);
-            
-            if (sourcePos && targetPos && pathElement) {
-                const d = this.calculateEdgePath(sourcePos, targetPos);
-                pathElement.setAttribute('d', d);
-            }
-        });
-    }
-    
-    updateNodePosition(nodeId, x, y) {
-        const nodeElement = this.nodesGroup.querySelector(`[data-task-id="${nodeId}"]`);
-        if (!nodeElement) return;
-        
-        // Update all child elements' positions
-        const rect = nodeElement.querySelector('.task-node-rect');
-        const icon = nodeElement.querySelector('.task-node-status-icon');
-        const titleText = nodeElement.querySelector('.task-node-title');
-        const agentText = nodeElement.querySelector('.task-node-agent');
-        const progressBg = nodeElement.querySelector('.task-node-progress-bar');
-        const progressFill = nodeElement.querySelector('.task-node-progress-fill');
-        const progressText = nodeElement.querySelector('.task-node-progress');
-        
-        if (rect) {
-            rect.setAttribute('x', x);
-            rect.setAttribute('y', y);
-        }
-        if (icon) {
-            icon.setAttribute('x', x + 15);
-            icon.setAttribute('y', y + 25);
-        }
-        if (titleText) {
-            titleText.setAttribute('x', x + 90);
-            titleText.setAttribute('y', y + 25);
-        }
-        if (agentText) {
-            agentText.setAttribute('x', x + 90);
-            agentText.setAttribute('y', y + 40);
-        }
-        if (progressBg) {
-            progressBg.setAttribute('x', x + 10);
-            progressBg.setAttribute('y', y + 60);
-        }
-        if (progressFill) {
-            progressFill.setAttribute('x', x + 10);
-            progressFill.setAttribute('y', y + 60);
-        }
-        if (progressText) {
-            progressText.setAttribute('x', x + 90);
-            progressText.setAttribute('y', y + 55);
-        }
-    }
-    
-    getStatusIcon(status) {
-        const icons = {
-            'todo': '⏳',
-            'in_progress': '⚡',
-            'completed': '✅',
-            'failed': '❌',
-            'needs_revision': '🔄'
-        };
-        return icons[status] || '❓';
-    }
-    
-    truncateText(text, maxLength) {
-        if (text.length <= maxLength) return text;
-        return text.substring(0, maxLength - 3) + '...';
-    }
-    
-    centerGraph() {
-        if (this.nodePositions.size === 0) return;
-        
-        const positions = Array.from(this.nodePositions.values());
-        const minX = Math.min(...positions.map(p => p.x));
-        const maxX = Math.max(...positions.map(p => p.x));
-        const minY = Math.min(...positions.map(p => p.y));
-        const maxY = Math.max(...positions.map(p => p.y));
-        
-        const graphWidth = maxX - minX + 200; // Add node width
-        const graphHeight = maxY - minY + 100; // Add node height
-        
-        this.viewBox.x = minX - 50;
-        this.viewBox.y = minY - 50;
-        this.viewBox.width = Math.max(graphWidth + 100, 1000);
-        this.viewBox.height = Math.max(graphHeight + 100, 500);
-        
-        this.zoom = 1;
-        this.updateViewBox();
-    }
-    
-    zoomIn() {
-        this.zoom = Math.min(3, this.zoom * 1.2);
-        this.viewBox.width = 1000 / this.zoom;
-        this.viewBox.height = 500 / this.zoom;
-        this.updateViewBox();
-    }
-    
-    zoomOut() {
-        this.zoom = Math.max(0.1, this.zoom * 0.8);
-        this.viewBox.width = 1000 / this.zoom;
-        this.viewBox.height = 500 / this.zoom;
-        this.updateViewBox();
-    }
-    
-    autoLayout() {
-        if (!this.currentGraph || !this.currentGraph.nodes) return;
-        
-        // Simple force-directed layout
-        const nodes = this.currentGraph.nodes;
-        const edges = this.currentGraph.edges || [];
-        
-        // Reset positions in a grid
-        this.calculateInitialPositions(nodes);
-        
-        // Apply layout algorithm (simplified)
-        for (let i = 0; i < 50; i++) {
-            this.applyForces(nodes, edges);
-        }
-        
-        // Re-render with new positions
-        this.renderGraph(this.currentGraph);
-        this.centerGraph();
-    }
-    
-    applyForces(nodes, edges) {
-        const positions = this.nodePositions;
-        const forces = new Map();
-        
-        // Initialize forces
-        nodes.forEach(node => {
-            forces.set(node.id, { x: 0, y: 0 });
-        });
-        
-        // Repulsion between nodes
-        nodes.forEach(nodeA => {
-            nodes.forEach(nodeB => {
-                if (nodeA.id === nodeB.id) return;
-                
-                const posA = positions.get(nodeA.id);
-                const posB = positions.get(nodeB.id);
-                const forceA = forces.get(nodeA.id);
-                
-                const dx = posA.x - posB.x;
-                const dy = posA.y - posB.y;
-                const distance = Math.sqrt(dx * dx + dy * dy) || 1;
-                
-                const repulsion = 5000 / (distance * distance);
-                forceA.x += (dx / distance) * repulsion;
-                forceA.y += (dy / distance) * repulsion;
-            });
-        });
-        
-        // Attraction along edges
-        edges.forEach(edge => {
-            const posSource = positions.get(edge.source);
-            const posTarget = positions.get(edge.target);
-            const forceSource = forces.get(edge.source);
-            const forceTarget = forces.get(edge.target);
-            
-            if (!posSource || !posTarget || !forceSource || !forceTarget) return;
-            
-            const dx = posTarget.x - posSource.x;
-            const dy = posTarget.y - posSource.y;
-            const distance = Math.sqrt(dx * dx + dy * dy) || 1;
-            
-            const attraction = distance * 0.01;
-            forceSource.x += (dx / distance) * attraction;
-            forceSource.y += (dy / distance) * attraction;
-            forceTarget.x -= (dx / distance) * attraction;
-            forceTarget.y -= (dy / distance) * attraction;
-        });
-        
-        // Apply forces with damping
-        nodes.forEach(node => {
-            const pos = positions.get(node.id);
-            const force = forces.get(node.id);
-            
-            pos.x += force.x * 0.1;
-            pos.y += force.y * 0.1;
-        });
-    }
-    
-    openTaskLogs(node) {
-        const data = node.data || node;
-        showTaskLogsModal(data);
-    }
-    
-    updateNodeStatus(nodeId, status, progress) {
-        const nodeElement = this.nodesGroup.querySelector(`[data-task-id="${nodeId}"]`);
-        if (!nodeElement) return;
-        
-        // Update node class
-        nodeElement.className = `task-node ${status}`;
-        
-        // Update status icon
-        const icon = nodeElement.querySelector('.task-node-status-icon');
-        if (icon) {
-            icon.textContent = this.getStatusIcon(status);
-        }
-        
-        // Update progress
-        const progressFill = nodeElement.querySelector('.task-node-progress-fill');
-        const progressText = nodeElement.querySelector('.task-node-progress');
-        
-        if (progressFill) {
-            progressFill.setAttribute('width', (160 * progress / 100).toString());
-        }
-        if (progressText) {
-            progressText.textContent = `${progress}%`;
-        }
-    }
-}
-
-// Initialize task graph visualization
-let taskGraphViz = null;
-
-// Task Logs Modal Functions
-function showTaskLogsModal(taskData) {
-    const modal = document.getElementById('task-logs-modal');
-    const title = document.getElementById('task-logs-title');
-    const statusBadge = document.getElementById('task-status-badge');
-    const statusText = document.getElementById('task-status-text');
-    const agentName = document.getElementById('task-agent-name');
-    const progressFill = document.getElementById('task-progress-fill');
-    const progressText = document.getElementById('task-progress-text');
-    const startedTime = document.getElementById('task-started-time');
-    
-    if (title) title.textContent = `${taskData.title || 'Task'} - Execution Logs`;
-    
-    if (statusBadge && statusText) {
-        const status = taskData.status || 'todo';
-        statusBadge.className = `task-status-badge ${status}`;
-        statusText.textContent = status.replace('_', ' ').toUpperCase();
-    }
-    
-    if (agentName) {
-        agentName.textContent = taskData.assignedAgent || 'Unassigned';
-    }
-    
-    if (progressFill && progressText) {
-        const progress = taskData.progress || 0;
-        progressFill.style.width = `${progress}%`;
-        progressText.textContent = `${progress}%`;
-    }
-    
-    if (startedTime) {
-        startedTime.textContent = taskData.startedAt ? 
-            new Date(taskData.startedAt).toLocaleString() : '-';
-    }
-    
-    // Load logs for this task
-    loadTaskLogs(taskData.id);
-    
-    if (modal) modal.style.display = 'block';
-}
-
-function closeTaskLogsModal() {
-    const modal = document.getElementById('task-logs-modal');
-    if (modal) modal.style.display = 'none';
-}
-
-function refreshTaskLogs() {
-    // Re-load current task logs
-    console.log('Refreshing task logs...');
-}
-
-function loadTaskLogs(taskId) {
-    // Clear existing logs
-    const gooseLogs = document.querySelector('#goose-logs .logs-container');
-    const agentLogs = document.querySelector('#agent-logs .logs-container');
-    const systemLogs = document.querySelector('#system-logs .logs-container');
-    
-    // Load logs from stored data
-    const gooseOutput = agentOutputSections.get(taskId);
-    
-    if (gooseOutput && gooseLogs) {
-        const importantOutput = document.getElementById(`important-${taskId}`);
-        if (importantOutput) {
-            gooseLogs.innerHTML = importantOutput.innerHTML;
-        } else {
-            gooseLogs.innerHTML = '<div class="log-entry-placeholder"><i class="fas fa-terminal"></i><p>No Goose CLI output available</p></div>';
-        }
-    }
-    
-    // Load agent activity logs
-    if (agentLogs) {
-        const agent = Array.from(agents.values()).find(a => a.currentTask === taskId);
-        if (agent && agent.logs) {
-            agentLogs.innerHTML = agent.logs.map(log => 
-                `<div class="log-entry"><span class="log-timestamp">${formatTime(log.timestamp)}</span>${log.message}</div>`
-            ).join('');
-        } else {
-            agentLogs.innerHTML = '<div class="log-entry-placeholder"><i class="fas fa-robot"></i><p>No agent activity logs available</p></div>';
-        }
-    }
-    
-    // Load system events
-    if (systemLogs) {
-        systemLogs.innerHTML = '<div class="log-entry-placeholder"><i class="fas fa-cog"></i><p>No system events available</p></div>';
-    }
-}
-
-// Log tab switching
-document.addEventListener('click', function(e) {
-    if (e.target.classList.contains('log-tab')) {
-        const tabName = e.target.dataset.tab;
-        
-        // Update active tab
-        document.querySelectorAll('.log-tab').forEach(tab => tab.classList.remove('active'));
-        e.target.classList.add('active');
-        
-        // Update active panel
-        document.querySelectorAll('.log-panel').forEach(panel => panel.classList.remove('active'));
-        const panel = document.getElementById(`${tabName}-logs`);
-        if (panel) panel.classList.add('active');
-    }
-});
-
-// Initialize task graph when agents panel is shown
-function initializeTaskGraph() {
-    if (!taskGraphViz) {
-        taskGraphViz = new TaskGraphVisualization();
-    }
-}
-
-// Update the existing switchToAgentsView function to initialize the graph
-const originalSwitchToAgentsView = switchToAgentsView;
-function switchToAgentsView() {
-    originalSwitchToAgentsView();
-    initializeTaskGraph();
-}
-
-// Add task graph updates to socket events
-const originalSetupSocketEventHandlers = setupSocketEventHandlers;
-function setupSocketEventHandlers() {
-    originalSetupSocketEventHandlers();
-    
-    // Listen for project orchestration to show graph
-    socket.on('project_orchestrated', (data) => {
-        if (taskGraphViz && data.taskGraph) {
-            taskGraphViz.renderGraph(data.taskGraph);
-        }
-    });
-    
-    // Update node status when tasks change
-    socket.on('task_started', (data) => {
-        if (taskGraphViz) {
-            taskGraphViz.updateNodeStatus(data.taskId, 'in_progress', 25);
-        }
-    });
-    
-    socket.on('task_completed', (data) => {
-        if (taskGraphViz) {
-            taskGraphViz.updateNodeStatus(data.taskId, 'completed', 100);
-        }
-    });
-    
-    socket.on('task_failed', (data) => {
-        if (taskGraphViz) {
-            taskGraphViz.updateNodeStatus(data.taskId, 'failed', 0);
-        }
-    });
-    
-    socket.on('task_qa_failed', (data) => {
-        if (taskGraphViz) {
-            taskGraphViz.updateNodeStatus(data.taskId, 'needs_revision', 75);
-        }
-    });
-}
-
-// Make functions available globally
-window.closeTaskLogsModal = closeTaskLogsModal;
-window.refreshTaskLogs = refreshTaskLogs;
+// Make functions available globally for modal usage
+window.createDirectory = createDirectory;
+window.closeCreateDirModal = closeCreateDirModal;

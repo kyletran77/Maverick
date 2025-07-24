@@ -3,589 +3,288 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Broadcom Maverick - Software Architecture Platform</title>
+    <title>Broadcom Maverick - AI Development Platform</title>
     <link rel="stylesheet" href="styles.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Roboto:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="container">
+    <div class="app-container">
         <!-- Header -->
         <header class="header">
-            <div class="logo">
-                <div class="logo-icon">
-                    <img src="broadcom_logo.png" alt="Broadcom Logo" class="logo-image">
+            <div class="header-brand">
+                <div class="logo">
+                    <img src="broadcom_logo.png" alt="Broadcom" class="logo-image">
                 </div>
-                <div class="logo-text">
-                    <h1>MAVERICK</h1>
-                    <span class="subtitle">SOFTWARE ARCHITECTURE PLATFORM</span>
-                    
+                <div class="brand-info">
+                    <h1 class="brand-title">MAVERICK</h1>
+                    <p class="brand-subtitle">AI Development Platform</p>
                 </div>
             </div>
+            
             <div class="header-actions">
-                <div class="platform-controls">
-                    <button id="visit-project-btn" class="action-btn visit-project-btn" title="Open Project Directory" style="display: none;">
-                        <i class="fas fa-folder-open"></i>
-                        <span>PROJECT</span>
-                    </button>
-                    <button id="open-ide-btn" class="action-btn open-ide-btn" title="Open in IDE" style="display: none;">
-                        <i class="fas fa-code"></i>
-                        <span>IDE</span>
-                    </button>
+                <div class="connection-indicator">
+                    <div id="connection-status" class="status-dot offline"></div>
+                    <span id="connection-text">Connecting...</span>
                 </div>
-                <div class="connection-panel">
-                    <div class="connection-display">
-                        <div id="connection-status" class="status-dot offline"></div>
-                        <div class="connection-info">
-                            <span id="connection-text">CONNECTING...</span>
-                            <div class="frequency">FREQ: 121.5</div>
-                        </div>
-                    </div>
+                
+                <div class="project-actions" id="project-actions" style="display: none;">
+                    <button id="visit-project-btn" class="action-btn" title="Open Project Directory">
+                        <i class="fas fa-folder-open"></i>
+                        <span>Open Project</span>
+                    </button>
+                    <button id="open-ide-btn" class="action-btn" title="Open in IDE">
+                        <i class="fas fa-code"></i>
+                        <span>Open IDE</span>
+                    </button>
                 </div>
             </div>
         </header>
 
         <!-- Main Content -->
-        <div class="main-content">
-            <!-- Setup Panel (shown initially) -->
+        <main class="main-content">
+            <!-- Setup Panel -->
             <div id="setup-panel" class="setup-panel">
-                <!-- Architecture Templates Section -->
-                <div class="templates-section">
-                    <div class="section-header">
-                        <h2><i class="fas fa-clipboard-list"></i> ARCHITECTURE TEMPLATES</h2>
-                        <div class="platform-badge">BROADCOM</div>
+                <div class="setup-header">
+                    <div class="welcome-section">
+                        <h2>Welcome to Maverick AI</h2>
+                        <p>Transform your ideas into production-ready applications with our intelligent multi-agent development platform.</p>
                     </div>
-                    <p class="templates-description">Select your architecture template - Our AI agents will generate complete, production-ready software solutions!</p>
                     
-                    <div class="template-grid">
-                        <div class="template-card" data-template="react">
-                            <div class="template-header">
-                                <div class="template-icon">
-                                    <i class="fab fa-react"></i>
-                                </div>
-                                <div class="tech-badge">REACT</div>
-                            </div>
-                            <h3>React Application</h3>
-                            <p>Modern React application with enterprise-grade architecture</p>
-                            <div class="template-features">
-                                <span class="feature-tag">TypeScript</span>
-                                <span class="feature-tag">Vite</span>
-                                <span class="feature-tag">Tailwind</span>
-                            </div>
-                            <div class="complexity-level">
-                                <span class="complexity-label">COMPLEXITY:</span>
-                                <div class="complexity-bars">
-                                    <div class="bar active"></div>
-                                    <div class="bar active"></div>
-                                    <div class="bar"></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="template-card" data-template="angular">
-                            <div class="template-header">
-                                <div class="template-icon">
-                                    <i class="fab fa-angular"></i>
-                                </div>
-                                <div class="tech-badge">ANGULAR</div>
-                            </div>
-                            <h3>Angular Application</h3>
-                            <p>Full Angular application with enterprise-grade architecture</p>
-                            <div class="template-features">
-                                <span class="feature-tag">TypeScript</span>
-                                <span class="feature-tag">Angular CLI</span>
-                                <span class="feature-tag">Material</span>
-                            </div>
-                            <div class="complexity-level">
-                                <span class="complexity-label">COMPLEXITY:</span>
-                                <div class="complexity-bars">
-                                    <div class="bar active"></div>
-                                    <div class="bar active"></div>
-                                    <div class="bar active"></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="template-card" data-template="vue">
-                            <div class="template-header">
-                                <div class="template-icon">
-                                    <i class="fab fa-vuejs"></i>
-                                </div>
-                                <div class="tech-badge">VUE</div>
-                            </div>
-                            <h3>Vue Application</h3>
-                            <p>Vue 3 application with modern composition architecture</p>
-                            <div class="template-features">
-                                <span class="feature-tag">Vue 3</span>
-                                <span class="feature-tag">Vite</span>
-                                <span class="feature-tag">Pinia</span>
-                            </div>
-                            <div class="complexity-level">
-                                <span class="complexity-label">COMPLEXITY:</span>
-                                <div class="complexity-bars">
-                                    <div class="bar active"></div>
-                                    <div class="bar active"></div>
-                                    <div class="bar"></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="template-card" data-template="fullstack">
-                            <div class="template-header">
-                                <div class="template-icon">
-                                    <i class="fas fa-layer-group"></i>
-                                </div>
-                                <div class="tech-badge">FULL-STACK</div>
-                            </div>
-                            <h3>Full-Stack Application</h3>
-                            <p>Complete end-to-end solution with integrated architecture</p>
-                            <div class="template-features">
-                                <span class="feature-tag">React/Vue</span>
-                                <span class="feature-tag">Node.js</span>
-                                <span class="feature-tag">Database</span>
-                            </div>
-                            <div class="complexity-level">
-                                <span class="complexity-label">COMPLEXITY:</span>
-                                <div class="complexity-bars">
-                                    <div class="bar active"></div>
-                                    <div class="bar active"></div>
-                                    <div class="bar active"></div>
-                                    <div class="bar active"></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="template-card" data-template="api">
-                            <div class="template-header">
-                                <div class="template-icon">
-                                    <i class="fas fa-server"></i>
-                                </div>
-                                <div class="tech-badge">API</div>
-                            </div>
-                            <h3>REST API Service</h3>
-                            <p>Production-ready API with enterprise security standards</p>
-                            <div class="template-features">
-                                <span class="feature-tag">Express</span>
-                                <span class="feature-tag">Auth</span>
-                                <span class="feature-tag">OpenAPI</span>
-                            </div>
-                            <div class="complexity-level">
-                                <span class="complexity-label">COMPLEXITY:</span>
-                                <div class="complexity-bars">
-                                    <div class="bar active"></div>
-                                    <div class="bar active"></div>
-                                    <div class="bar active"></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="template-card" data-template="static">
-                            <div class="template-header">
-                                <div class="template-icon">
-                                    <i class="fab fa-html5"></i>
-                                </div>
-                                <div class="tech-badge">STATIC</div>
-                            </div>
-                            <h3>Static Website</h3>
-                            <p>Modern HTML/CSS/JS solution with optimized performance</p>
-                            <div class="template-features">
-                                <span class="feature-tag">HTML5</span>
-                                <span class="feature-tag">CSS3</span>
-                                <span class="feature-tag">Responsive</span>
-                            </div>
-                            <div class="complexity-level">
-                                <span class="complexity-label">COMPLEXITY:</span>
-                                <div class="complexity-bars">
-                                    <div class="bar active"></div>
-                                    <div class="bar"></div>
-                                    <div class="bar"></div>
-                                </div>
+                    <div class="system-status">
+                        <div class="status-card">
+                            <div id="goose-status-indicator" class="status-indicator checking">
+                                <div class="status-dot"></div>
+                                <span id="goose-status-text">Checking System Status...</span>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Custom Development Section -->
-                <div class="chat-section">
-                    <div class="section-header">
-                        <h2><i class="fas fa-satellite-dish"></i> CUSTOM DEVELOPMENT REQUEST</h2>
-                        <div class="platform-badge">BROADCOM</div>
-                    </div>
-                    <p class="section-description">Describe your development requirements in natural language</p>
-                    <div id="chat-messages" class="chat-messages">
-                        <!-- Messages will be displayed here -->
-                    </div>
-                    
-                    <!-- Development Input -->
-                    <div class="chat-input-container">
-                        <form id="task-form" class="input-group">
-                            <input 
-                                type="text" 
-                                id="job-name-input" 
-                                placeholder="Project Name (optional - e.g., 'Chat App Development')" 
-                                class="job-name-field"
-                            >
-                            <div>
+                <div class="setup-content">
+                    <!-- Project Configuration -->
+                    <div class="config-section">
+                        <div class="section-header">
+                            <i class="fas fa-cog"></i>
+                            <h3>Project Configuration</h3>
+                        </div>
+                        
+                        <div class="config-grid">
+                            <div class="config-item">
+                                <label for="project-name-input">Project Name</label>
                                 <input 
                                     type="text" 
-                                    id="task-input" 
-                                    placeholder="Describe development requirements (e.g., 'Build a real-time chat application with Socket.io')" 
-                                    required
+                                    id="project-name-input" 
+                                    placeholder="my-awesome-project"
+                                    class="form-input"
                                 >
-                                <button type="submit" id="submit-btn">
-                                    <i class="fas fa-paper-plane"></i>
-                                    <span class="btn-text">GENERATE</span>
-                                </button>
+                                <small class="input-hint">Choose a descriptive name for your project</small>
                             </div>
-                        </form>
+                            
+                            <div class="config-item">
+                                <label for="project-directory">Project Directory</label>
+                                <div class="directory-selector">
+                                    <div class="current-path">
+                                        <i class="fas fa-folder"></i>
+                                        <span id="current-path-text">Loading...</span>
+                                    </div>
+                                    
+                                    <div class="directory-controls">
+                                        <button id="parent-dir-btn" class="control-btn" title="Parent Directory">
+                                            <i class="fas fa-arrow-up"></i>
+                                        </button>
+                                        <button id="refresh-dir-btn" class="control-btn" title="Refresh">
+                                            <i class="fas fa-sync-alt"></i>
+                                        </button>
+                                        <button id="create-dir-btn" class="control-btn" title="Create Directory">
+                                            <i class="fas fa-folder-plus"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div id="directory-list" class="directory-list">
+                                    <!-- Directory items will be populated here -->
+                                </div>
+                                
+                                <div class="selected-directory">
+                                    <div class="selection-info">
+                                        <i class="fas fa-check-circle"></i>
+                                        <span>Selected: </span>
+                                        <span id="selected-path">No directory selected</span>
+                                    </div>
+                                    <div id="project-path-preview" class="project-preview" style="display: none;">
+                                        <i class="fas fa-folder-open"></i>
+                                        <span>Project will be created at: </span>
+                                        <strong id="full-project-path"></strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                </div>
 
-                <!-- Development Examples -->
-                <div class="task-examples">
-                    <h3><i class="fas fa-lightbulb"></i> EXAMPLE PROJECTS</h3>
-                    <div class="example-buttons">
-                        <button class="example-btn" data-task="Create a real-time chat application with Socket.io">
+                    <!-- Development Request -->
+                    <div class="request-section">
+                        <div class="section-header">
+                            <i class="fas fa-magic"></i>
+                            <h3>Describe Your Application</h3>
+                        </div>
+                        
+                        <div class="request-container">
+                            <form id="task-form" class="task-form">
+                                <div class="input-group">
+                                    <textarea 
+                                        id="task-input" 
+                                        placeholder="Describe the application you want to build... (e.g., 'Create a modern e-commerce website with React, user authentication, product catalog, shopping cart, and payment processing')"
+                                        rows="4"
+                                        required
+                                    ></textarea>
+                                    <button type="submit" id="submit-btn" class="submit-btn">
+                                        <i class="fas fa-rocket"></i>
+                                        <span>Build Application</span>
+                                    </button>
+                                </div>
+                            </form>
+                            
+                            <div class="quick-examples">
+                                <p>Need inspiration? Try these examples:</p>
+                                <div class="example-grid">
+                                    <button class="example-btn" data-task="Create a modern task management app with React, drag-and-drop functionality, real-time collaboration, and user authentication">
+                                        <i class="fas fa-tasks"></i>
+                                        <span>Task Management App</span>
+                                    </button>
+                                    <button class="example-btn" data-task="Build a real-time chat application with WebSocket support, user profiles, file sharing, and message encryption">
+                                        <i class="fas fa-comments"></i>
+                                        <span>Chat Application</span>
+                                    </button>
+                                    <button class="example-btn" data-task="Develop a REST API with Node.js, authentication, database integration, and comprehensive documentation">
+                                        <i class="fas fa-server"></i>
+                                        <span>REST API Service</span>
+                                    </button>
+                                    <button class="example-btn" data-task="Create a responsive portfolio website with modern design, animations, contact form, and blog functionality">
+                                        <i class="fas fa-globe"></i>
+                                        <span>Portfolio Website</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Chat Messages -->
+                    <div class="chat-section">
+                        <div class="section-header">
                             <i class="fas fa-comments"></i>
-                            <span>Chat Application</span>
-                            <div class="example-callsign">REACT</div>
-                        </button>
-                        <button class="example-btn" data-task="Build a weather dashboard with API integration">
-                            <i class="fas fa-cloud-sun"></i>
-                            <span>Weather Dashboard</span>
-                            <div class="example-callsign">VUE</div>
-                        </button>
-                        <button class="example-btn" data-task="Create a blog platform with admin panel">
-                            <i class="fas fa-blog"></i>
-                            <span>Blog Platform</span>
-                            <div class="example-callsign">ANGULAR</div>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Project Setup -->
-                <div class="project-section">
-                    <h3><i class="fas fa-cog"></i> PROJECT CONFIGURATION</h3>
-                    
-                    <!-- System Status -->
-                    <div class="goose-status">
-                        <div class="status-indicator">
-                            <div id="goose-status-dot" class="status-dot checking"></div>
-                            <span id="goose-status-text">Checking System Status...</span>
+                            <h3>Development Console</h3>
                         </div>
-                    </div>
-                    
-
-
-                    <!-- Project Name Input -->
-                    <div class="project-name-section">
-                        <div class="form-group">
-                            <label for="project-name-input">
-                                <i class="fas fa-folder"></i>
-                                <strong>PROJECT NAME:</strong>
-                            </label>
-                            <input 
-                                type="text" 
-                                id="project-name-input" 
-                                placeholder="Enter project name (e.g., 'customer-portal')" 
-                                class="project-name-input"
-                            >
-                            <div class="project-name-hint">
-                                A folder with this name will be created in the selected directory
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Directory Browser -->
-                    <div class="directory-browser">
-                        <div class="directory-header">
-                            <span><strong>Select Project Directory:</strong></span>
-                            <div class="directory-actions">
-                                <button id="parent-dir-btn" class="action-btn" title="Go to parent directory">
-                                    <i class="fas fa-arrow-up"></i>
-                                </button>
-                                <button id="refresh-dir-btn" class="action-btn" title="Refresh directory">
-                                    <i class="fas fa-sync-alt"></i>
-                                </button>
-                                <button id="create-dir-btn" class="action-btn" title="Create new directory">
-                                    <i class="fas fa-folder-plus"></i>
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <div class="current-path">
-                            <i class="fas fa-folder"></i>
-                            <span id="current-path-text">Loading...</span>
-                        </div>
-                        
-                        <div id="directory-list" class="directory-list">
-                            <!-- Directory items will be populated here -->
-                        </div>
-                        
-                        <div class="selected-directory">
-                            <div class="selection-header">
-                                <i class="fas fa-check-circle"></i>
-                                <strong>Selected Directory:</strong>
-                            </div>
-                            <div id="selected-path" class="selected-path">
-                                No directory selected
-                            </div>
-                            <div id="project-path-preview" class="project-path-preview" style="display: none;">
-                                <div class="preview-header">
-                                    <i class="fas fa-folder-open"></i>
-                                    <strong>Project will be created at:</strong>
-                                </div>
-                                <div id="full-project-path" class="full-project-path"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Job Management Section (Setup Panel) -->
-                <div class="job-management-section">
-                    <div class="job-header">
-                        <h3><i class="fas fa-tasks"></i> JOB CONTROL</h3>
-                        <div class="job-actions">
-                            <button id="show-jobs-btn-setup" class="action-btn">
-                                <i class="fas fa-list"></i>
-                                <span>VIEW JOBS</span>
-                            </button>
-                            <button id="job-chat-btn-setup" class="action-btn">
-                                <i class="fas fa-comments"></i>
-                                <span>JOB CHAT</span>
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <!-- Job Chat Interface (Setup Panel) -->
-                    <div id="job-chat-interface-setup" class="job-chat-interface" style="display: none;">
-                        <div class="chat-header">
-                            <h4>Job Control Chat</h4>
-                            <button id="close-job-chat-setup" class="close-btn">&times;</button>
-                        </div>
-                        <div id="job-chat-messages-setup" class="job-chat-messages">
-                            <div class="chat-message system">
+                        <div id="chat-messages" class="chat-messages">
+                            <div class="welcome-message">
                                 <div class="message-content">
-                                    <strong>System:</strong> Job control chat activated. You can control jobs using natural language commands.
+                                    <i class="fas fa-robot"></i>
+                                    <div class="message-text">
+                                        <h4>Welcome to Maverick AI! 🚀</h4>
+                                        <p>I'm your AI development assistant. Configure your project above and describe what you'd like to build. I'll orchestrate a team of specialized AI agents to create your application.</p>
+                                        <ul>
+                                            <li>✅ Real-time development monitoring</li>
+                                            <li>🔄 Checkpoint system for project continuity</li>
+                                            <li>🎯 Intelligent task breakdown</li>
+                                            <li>📊 Quality assurance validation</li>
+                                        </ul>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="job-chat-input">
-                            <input type="text" id="job-chat-input-setup" placeholder="Type job control commands (e.g., 'stop current job', 'change React to Vue')">
-                            <button id="send-job-chat-setup" class="action-btn">
-                                <i class="fas fa-paper-plane"></i>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Active Jobs Display (Setup Panel) -->
-                    <div id="active-jobs-display-setup" class="active-jobs-display">
-                        <div class="jobs-header">
-                            <h4>Jobs</h4>
-                            <select id="job-filter-setup">
-                                <option value="active">Active</option>
-                                <option value="all">All Jobs</option>
-                                <option value="completed">Completed</option>
-                            </select>
-                        </div>
-                        <div id="jobs-container-setup" class="jobs-container">
-                            <!-- Job cards will be populated here -->
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Squadron Panel (shown when mission is active) -->
+            <!-- Agents Panel -->
             <div id="agents-panel" class="agents-panel" style="display: none;">
-                <!-- Task Graph Visualization Section -->
-                <div class="task-graph-section">
-                    <div class="graph-header">
-                        <div class="graph-title">
-                            <h3><i class="fas fa-project-diagram"></i> TASK EXECUTION GRAPH</h3>
-                            <div class="graph-controls">
-                                <button id="center-graph-btn" class="control-btn" title="Center Graph">
-                                    <i class="fas fa-crosshairs"></i>
-                                </button>
-                                <button id="zoom-in-btn" class="control-btn" title="Zoom In">
-                                    <i class="fas fa-search-plus"></i>
-                                </button>
-                                <button id="zoom-out-btn" class="control-btn" title="Zoom Out">
-                                    <i class="fas fa-search-minus"></i>
-                                </button>
-                                <button id="auto-layout-btn" class="control-btn" title="Auto Layout">
-                                    <i class="fas fa-magic"></i>
-                                </button>
-                            </div>
-                        </div>
+                <div class="agents-header">
+                    <div class="header-content">
+                        <h2><i class="fas fa-users"></i> AI Development Team</h2>
+                        <p>Watch your specialized AI agents collaborate to build your application</p>
                     </div>
-                    <div id="task-graph-container" class="task-graph-container">
-                        <svg id="task-graph-svg" class="task-graph-svg">
-                            <defs>
-                                <marker id="arrowhead" markerWidth="10" markerHeight="7" 
-                                        refX="9" refY="3.5" orient="auto">
-                                    <polygon points="0 0, 10 3.5, 0 7" fill="#6c757d" />
-                                </marker>
-                                <filter id="drop-shadow" x="-50%" y="-50%" width="200%" height="200%">
-                                    <feDropShadow dx="2" dy="2" stdDeviation="3" flood-color="rgba(0,0,0,0.2)"/>
-                                </filter>
-                            </defs>
-                            <g id="graph-container">
-                                <g id="edges-group"></g>
-                                <g id="nodes-group"></g>
-                            </g>
-                        </svg>
-                        <div class="graph-overlay">
-                            <div id="graph-loading" class="graph-loading" style="display: none;">
-                                <div class="spinner"></div>
-                                <p>Loading task graph...</p>
-                            </div>
-                            <div id="graph-empty" class="graph-empty">
-                                <i class="fas fa-project-diagram"></i>
-                                <p>No active task graph</p>
-                                <span>Submit a task to see the execution graph</span>
-                            </div>
-                        </div>
-                    </div>
+                    <button id="back-to-setup-btn" class="back-btn">
+                        <i class="fas fa-arrow-left"></i>
+                        <span>Back to Setup</span>
+                    </button>
                 </div>
 
-                <!-- Squadron Section -->
-                <div class="agents-section">
-                    <div class="agents-header">
-                        <div class="squadron-title">
-                            <h2><i class="fas fa-fighter-jet"></i> ACTIVE SQUADRON</h2>
-                            <div class="mission-status-badge">MISSION ACTIVE</div>
+                <div class="agents-content">
+                    <!-- Agent Cards -->
+                    <div class="agents-grid">
+                        <div id="agents-container" class="agents-container">
+                            <!-- Agent cards will be populated here -->
                         </div>
-                        <button id="back-to-setup-btn" class="action-btn back-btn">
-                            <i class="fas fa-home"></i>
-                            <span>RETURN TO BASE</span>
-                        </button>
                     </div>
-                    <div id="agents-container" class="agents-container">
-                        <!-- Agent cards will be populated here -->
-                    </div>
-                </div>
 
-                <!-- Job Management Section -->
-                <div class="job-management-section">
-                    <div class="job-header">
-                        <h3><i class="fas fa-tasks"></i> JOB CONTROL</h3>
-                        <div class="job-actions">
-                            <button id="show-jobs-btn" class="action-btn">
-                                <i class="fas fa-list"></i>
-                                <span>JOBS</span>
-                            </button>
-                            <button id="job-chat-btn" class="action-btn">
-                                <i class="fas fa-comments"></i>
-                                <span>CHAT</span>
-                            </button>
+                    <!-- Development Console -->
+                    <div class="console-section">
+                        <div class="console-header">
+                            <h3><i class="fas fa-terminal"></i> Development Console</h3>
+                            <div class="console-controls">
+                                <button id="clear-console-btn" class="control-btn" title="Clear Console">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                                <button id="toggle-console-btn" class="control-btn" title="Toggle Console">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div id="console-messages" class="console-messages">
+                            <!-- Console messages will be displayed here -->
                         </div>
                     </div>
-                    
-                    <!-- Job Chat Interface -->
-                    <div id="job-chat-interface" class="job-chat-interface" style="display: none;">
-                        <div class="chat-header">
-                            <h4>Job Control Chat</h4>
-                            <button id="close-job-chat" class="close-btn">&times;</button>
+
+                    <!-- Project Statistics -->
+                    <div class="stats-section">
+                        <div class="stats-header">
+                            <h3><i class="fas fa-chart-bar"></i> Project Statistics</h3>
                         </div>
-                        <div id="job-chat-messages" class="job-chat-messages">
-                            <div class="chat-message system">
-                                <div class="message-content">
-                                    <strong>System:</strong> Job control chat activated. You can control jobs using natural language commands.
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-icon">
+                                    <i class="fas fa-users"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <div class="stat-value" id="active-agents-count">0</div>
+                                    <div class="stat-label">Active Agents</div>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon">
+                                    <i class="fas fa-check-circle"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <div class="stat-value" id="completed-tasks-count">0</div>
+                                    <div class="stat-label">Completed Tasks</div>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon">
+                                    <i class="fas fa-clock"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <div class="stat-value" id="uptime">00:00:00</div>
+                                    <div class="stat-label">Session Time</div>
                                 </div>
                             </div>
                         </div>
-                        <div class="job-chat-input">
-                            <input type="text" id="job-chat-input" placeholder="Type job control commands (e.g., 'stop current job', 'change React to Vue')">
-                            <button id="send-job-chat" class="action-btn">
-                                <i class="fas fa-paper-plane"></i>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Active Jobs Display -->
-                    <div id="active-jobs-display" class="active-jobs-display">
-                        <div class="jobs-header">
-                            <h4>Active Jobs</h4>
-                            <select id="job-filter">
-                                <option value="active">Active</option>
-                                <option value="all">All Jobs</option>
-                                <option value="completed">Completed</option>
-                            </select>
-                        </div>
-                        <div id="jobs-container" class="jobs-container">
-                            <!-- Job cards will be populated here -->
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Mission Command Section -->
-                <div class="console-section">
-                    <div class="command-header">
-                        <h3><i class="fas fa-satellite-dish"></i> MISSION COMMAND</h3>
-                        <div class="frequency-display">FREQ: 121.5</div>
-                    </div>
-                    <div id="console-messages" class="console-messages">
-                        <!-- Console messages will be displayed here -->
-                    </div>
-                </div>
-
-                <!-- Mission Intel -->
-                <div class="system-stats">
-                    <div class="intel-header">
-                        <h3><i class="fas fa-radar"></i> MISSION INTEL</h3>
-                        <div class="classification-badge">CLASSIFIED</div>
-                    </div>
-                    <div class="stats-grid">
-                        <div class="stat-item">
-                            <div class="stat-label">Squadron Status</div>
-                            <div id="active-agents-count" class="stat-value">0</div>
-                            <div class="stat-unit">ACTIVE</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-label">Objectives Complete</div>
-                            <div id="completed-tasks-count" class="stat-value">0</div>
-                            <div class="stat-unit">MISSIONS</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-label">Mission Duration</div>
-                            <div id="uptime" class="stat-value">00:00:00</div>
-                            <div class="stat-unit">ELAPSED</div>
-                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+        </main>
     </div>
 
-    <!-- Template Configuration Modal -->
-    <div id="template-config-modal" class="modal">
-        <div class="modal-content template-modal">
-            <div class="modal-header">
-                <h3 id="template-modal-title">Configure Project Template</h3>
-                <span class="close-btn" onclick="closeTemplateModal()">&times;</span>
-            </div>
-            <div class="modal-body">
-                <div id="template-config-form">
-                    <!-- Template-specific configuration will be loaded here -->
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeTemplateModal()">Cancel</button>
-                <button class="btn btn-primary" onclick="generateFromTemplate()">
-                    <i class="fas fa-rocket"></i> Generate Project
-                </button>
-            </div>
-        </div>
-    </div>
-
+    <!-- Modals -->
+    
     <!-- Agent Details Modal -->
     <div id="agent-modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
                 <h3 id="modal-agent-name">Agent Details</h3>
-                <span class="close-btn">&times;</span>
+                <button class="close-btn">&times;</button>
             </div>
             <div class="modal-body">
                 <div id="modal-agent-details">
@@ -600,12 +299,12 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h3>Create New Directory</h3>
-                <span class="close-btn" onclick="closeCreateDirModal()">&times;</span>
+                <button class="close-btn" onclick="closeCreateDirModal()">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="form-group">
                     <label for="new-dir-name">Directory Name:</label>
-                    <input type="text" id="new-dir-name" placeholder="Enter directory name">
+                    <input type="text" id="new-dir-name" placeholder="Enter directory name" class="form-input">
                 </div>
                 <div class="parent-dir-display">
                     <strong>Parent Directory:</strong>
@@ -615,95 +314,6 @@
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeCreateDirModal()">Cancel</button>
                 <button class="btn btn-primary" onclick="createDirectory()">Create Directory</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Task Logs Modal -->
-    <div id="task-logs-modal" class="modal">
-        <div class="modal-content task-logs-modal">
-            <div class="modal-header">
-                <h3 id="task-logs-title">Task Execution Logs</h3>
-                <span class="close-btn" onclick="closeTaskLogsModal()">&times;</span>
-            </div>
-            <div class="modal-body">
-                <div class="task-info-section">
-                    <div class="task-details">
-                        <div class="task-status-badge" id="task-status-badge">
-                            <i class="fas fa-circle"></i>
-                            <span id="task-status-text">Loading...</span>
-                        </div>
-                        <div class="task-metadata">
-                            <div class="meta-item">
-                                <span class="meta-label">Agent:</span>
-                                <span id="task-agent-name">-</span>
-                            </div>
-                            <div class="meta-item">
-                                <span class="meta-label">Progress:</span>
-                                <div class="task-progress-display">
-                                    <div class="progress-bar-mini">
-                                        <div id="task-progress-fill" class="progress-fill-mini"></div>
-                                    </div>
-                                    <span id="task-progress-text">0%</span>
-                                </div>
-                            </div>
-                            <div class="meta-item">
-                                <span class="meta-label">Started:</span>
-                                <span id="task-started-time">-</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="logs-tabs">
-                    <button class="log-tab active" data-tab="goose">
-                        <i class="fas fa-terminal"></i>
-                        Goose CLI Output
-                    </button>
-                    <button class="log-tab" data-tab="agent">
-                        <i class="fas fa-robot"></i>
-                        Agent Activity
-                    </button>
-                    <button class="log-tab" data-tab="system">
-                        <i class="fas fa-cog"></i>
-                        System Events
-                    </button>
-                </div>
-
-                <div class="logs-content">
-                    <div id="goose-logs" class="log-panel active">
-                        <div class="logs-container">
-                            <div class="log-entry-placeholder">
-                                <i class="fas fa-terminal"></i>
-                                <p>No Goose CLI output available</p>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div id="agent-logs" class="log-panel">
-                        <div class="logs-container">
-                            <div class="log-entry-placeholder">
-                                <i class="fas fa-robot"></i>
-                                <p>No agent activity logs available</p>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div id="system-logs" class="log-panel">
-                        <div class="logs-container">
-                            <div class="log-entry-placeholder">
-                                <i class="fas fa-cog"></i>
-                                <p>No system events available</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="refreshTaskLogs()">
-                    <i class="fas fa-sync-alt"></i> Refresh
-                </button>
-                <button class="btn btn-secondary" onclick="closeTaskLogsModal()">Close</button>
             </div>
         </div>
     </div>
