@@ -1,0 +1,1006 @@
+{
+  "id": "6ea44379-754b-454c-aa38-66611f1bc016",
+  "nodes": [
+    {
+      "id": "06a56797-6084-4a8b-92e5-813c01cc87eb",
+      "type": "task",
+      "position": {
+        "x": 50,
+        "y": 50
+      },
+      "data": {
+        "type": "frontend",
+        "title": "Frontend Development",
+        "description": "Create user interface components and frontend architecture for: ou are a senior full-stack engineer. Build the initial Broadcom corporate website using React.js (with Vite or CRA) for the frontend and Python (FastAPI) for the backend API.\n\nFrontend Requirements (React.js):\n– Professional, modern enterprise layout using Tailwind CSS\n– Top Navbar: Home, Products, Solutions, Support, About, Contact\n– Homepage should include:\n    • Hero section with call-to-action\n    • Summary of Broadcom’s core solutions\n    • “Trusted by” logos section\n– Responsive and accessible design\n– Footer with sitemap, terms, privacy, and language selector\n\nBackend Requirements (Python – FastAPI):\n– Setup basic API with route /api/contact to handle POST contact form submission\n– Enable CORS for React frontend\n– Use Pydantic schema validation for the contact form\n– Include instructions or comments for connecting to an email service or database\n\nDeliverables:\n\nReact file structure with components folder and routing using React Router\n\nFastAPI app with organized folder structure (main.py, routes/, schemas/)\n\nInstructions to run both frontend and backend locally\n\nBegin by generating the file structure, then scaffold the code for homepage, navigation bar, and FastAPI contact route.: User requested: ou are a senior full-stack engineer. Build the initial Broadcom corporate website using React.js (with Vite or CRA) for the frontend and Python (FastAPI) for the backend API.\n\nFrontend Requirements (React.js):\n– Professional, modern enterprise layout using Tailwind CSS\n– Top Navbar: Home, Products, Solutions, Support, About, Contact\n– Homepage should include:\n    • Hero section with call-to-action\n    • Summary of Broadcom’s core solutions\n    • “Trusted by” logos section\n– Responsive and accessible design\n– Footer with sitemap, terms, privacy, and language selector\n\nBackend Requirements (Python – FastAPI):\n– Setup basic API with route /api/contact to handle POST contact form submission\n– Enable CORS for React frontend\n– Use Pydantic schema validation for the contact form\n– Include instructions or comments for connecting to an email service or database\n\nDeliverables:\n\nReact file structure with components folder and routing using React Router\n\nFastAPI app with organized folder structure (main.py, routes/, schemas/)\n\nInstructions to run both frontend and backend locally\n\nBegin by generating the file structure, then scaffold the code for homepage, navigation bar, and FastAPI contact route.",
+        "priority": "high",
+        "estimatedHours": 8,
+        "skills": [
+          "react",
+          "javascript",
+          "css",
+          "html",
+          "ui_design"
+        ],
+        "deliverables": [
+          "UI components",
+          "Frontend architecture",
+          "User interface",
+          "Responsive design"
+        ],
+        "id": "06a56797-6084-4a8b-92e5-813c01cc87eb",
+        "dependencies": [
+          null,
+          null
+        ],
+        "status": "todo",
+        "progress": 0,
+        "assignedAgent": null,
+        "createdAt": "2025-07-28T18:33:05.608Z",
+        "projectId": "6ea44379-754b-454c-aa38-66611f1bc016",
+        "isCheckpoint": false,
+        "checkpointType": null,
+        "originalTaskId": null,
+        "startedAt": null,
+        "completedAt": null
+      }
+    },
+    {
+      "id": "83a428aa-7a89-4d15-bfd9-a77481130e15",
+      "type": "task",
+      "position": {
+        "x": 300,
+        "y": 50
+      },
+      "data": {
+        "type": "backend",
+        "title": "Backend Development",
+        "description": "Build backend services and API infrastructure for: ou are a senior full-stack engineer. Build the initial Broadcom corporate website using React.js (with Vite or CRA) for the frontend and Python (FastAPI) for the backend API.\n\nFrontend Requirements (React.js):\n– Professional, modern enterprise layout using Tailwind CSS\n– Top Navbar: Home, Products, Solutions, Support, About, Contact\n– Homepage should include:\n    • Hero section with call-to-action\n    • Summary of Broadcom’s core solutions\n    • “Trusted by” logos section\n– Responsive and accessible design\n– Footer with sitemap, terms, privacy, and language selector\n\nBackend Requirements (Python – FastAPI):\n– Setup basic API with route /api/contact to handle POST contact form submission\n– Enable CORS for React frontend\n– Use Pydantic schema validation for the contact form\n– Include instructions or comments for connecting to an email service or database\n\nDeliverables:\n\nReact file structure with components folder and routing using React Router\n\nFastAPI app with organized folder structure (main.py, routes/, schemas/)\n\nInstructions to run both frontend and backend locally\n\nBegin by generating the file structure, then scaffold the code for homepage, navigation bar, and FastAPI contact route.: User requested: ou are a senior full-stack engineer. Build the initial Broadcom corporate website using React.js (with Vite or CRA) for the frontend and Python (FastAPI) for the backend API.\n\nFrontend Requirements (React.js):\n– Professional, modern enterprise layout using Tailwind CSS\n– Top Navbar: Home, Products, Solutions, Support, About, Contact\n– Homepage should include:\n    • Hero section with call-to-action\n    • Summary of Broadcom’s core solutions\n    • “Trusted by” logos section\n– Responsive and accessible design\n– Footer with sitemap, terms, privacy, and language selector\n\nBackend Requirements (Python – FastAPI):\n– Setup basic API with route /api/contact to handle POST contact form submission\n– Enable CORS for React frontend\n– Use Pydantic schema validation for the contact form\n– Include instructions or comments for connecting to an email service or database\n\nDeliverables:\n\nReact file structure with components folder and routing using React Router\n\nFastAPI app with organized folder structure (main.py, routes/, schemas/)\n\nInstructions to run both frontend and backend locally\n\nBegin by generating the file structure, then scaffold the code for homepage, navigation bar, and FastAPI contact route.",
+        "priority": "high",
+        "estimatedHours": 10,
+        "skills": [
+          "nodejs",
+          "api_design",
+          "microservices",
+          "authentication"
+        ],
+        "deliverables": [
+          "API endpoints",
+          "Business logic",
+          "Service architecture",
+          "Data processing"
+        ],
+        "id": "83a428aa-7a89-4d15-bfd9-a77481130e15",
+        "dependencies": [],
+        "status": "todo",
+        "progress": 0,
+        "assignedAgent": null,
+        "createdAt": "2025-07-28T18:33:05.608Z",
+        "projectId": "6ea44379-754b-454c-aa38-66611f1bc016",
+        "isCheckpoint": false,
+        "checkpointType": null,
+        "originalTaskId": null,
+        "startedAt": null,
+        "completedAt": null
+      }
+    },
+    {
+      "id": "3b912ac7-125a-4f76-8865-328a891f4a72",
+      "type": "task",
+      "position": {
+        "x": 550,
+        "y": 50
+      },
+      "data": {
+        "type": "database",
+        "title": "Database Design",
+        "description": "Design and implement database schema for: ou are a senior full-stack engineer. Build the initial Broadcom corporate website using React.js (with Vite or CRA) for the frontend and Python (FastAPI) for the backend API.\n\nFrontend Requirements (React.js):\n– Professional, modern enterprise layout using Tailwind CSS\n– Top Navbar: Home, Products, Solutions, Support, About, Contact\n– Homepage should include:\n    • Hero section with call-to-action\n    • Summary of Broadcom’s core solutions\n    • “Trusted by” logos section\n– Responsive and accessible design\n– Footer with sitemap, terms, privacy, and language selector\n\nBackend Requirements (Python – FastAPI):\n– Setup basic API with route /api/contact to handle POST contact form submission\n– Enable CORS for React frontend\n– Use Pydantic schema validation for the contact form\n– Include instructions or comments for connecting to an email service or database\n\nDeliverables:\n\nReact file structure with components folder and routing using React Router\n\nFastAPI app with organized folder structure (main.py, routes/, schemas/)\n\nInstructions to run both frontend and backend locally\n\nBegin by generating the file structure, then scaffold the code for homepage, navigation bar, and FastAPI contact route.: User requested: ou are a senior full-stack engineer. Build the initial Broadcom corporate website using React.js (with Vite or CRA) for the frontend and Python (FastAPI) for the backend API.\n\nFrontend Requirements (React.js):\n– Professional, modern enterprise layout using Tailwind CSS\n– Top Navbar: Home, Products, Solutions, Support, About, Contact\n– Homepage should include:\n    • Hero section with call-to-action\n    • Summary of Broadcom’s core solutions\n    • “Trusted by” logos section\n– Responsive and accessible design\n– Footer with sitemap, terms, privacy, and language selector\n\nBackend Requirements (Python – FastAPI):\n– Setup basic API with route /api/contact to handle POST contact form submission\n– Enable CORS for React frontend\n– Use Pydantic schema validation for the contact form\n– Include instructions or comments for connecting to an email service or database\n\nDeliverables:\n\nReact file structure with components folder and routing using React Router\n\nFastAPI app with organized folder structure (main.py, routes/, schemas/)\n\nInstructions to run both frontend and backend locally\n\nBegin by generating the file structure, then scaffold the code for homepage, navigation bar, and FastAPI contact route.",
+        "priority": "high",
+        "estimatedHours": 6,
+        "skills": [
+          "sql",
+          "schema_design",
+          "data_modeling",
+          "optimization"
+        ],
+        "deliverables": [
+          "Database schema",
+          "Data models",
+          "Migrations",
+          "Indexes"
+        ],
+        "id": "3b912ac7-125a-4f76-8865-328a891f4a72",
+        "dependencies": [],
+        "status": "todo",
+        "progress": 0,
+        "assignedAgent": null,
+        "createdAt": "2025-07-28T18:33:05.608Z",
+        "projectId": "6ea44379-754b-454c-aa38-66611f1bc016",
+        "isCheckpoint": false,
+        "checkpointType": null,
+        "originalTaskId": null,
+        "startedAt": null,
+        "completedAt": null
+      }
+    },
+    {
+      "id": "af9da1d6-b976-481a-a9dd-66b19d512cd1",
+      "type": "task",
+      "position": {
+        "x": 800,
+        "y": 50
+      },
+      "data": {
+        "type": "backend",
+        "title": "Multi-Agent System Architecture",
+        "description": "Design and implement multi-agent orchestration system for: ou are a senior full-stack engineer. Build the initial Broadcom corporate website using React.js (with Vite or CRA) for the frontend and Python (FastAPI) for the backend API.\n\nFrontend Requirements (React.js):\n– Professional, modern enterprise layout using Tailwind CSS\n– Top Navbar: Home, Products, Solutions, Support, About, Contact\n– Homepage should include:\n    • Hero section with call-to-action\n    • Summary of Broadcom’s core solutions\n    • “Trusted by” logos section\n– Responsive and accessible design\n– Footer with sitemap, terms, privacy, and language selector\n\nBackend Requirements (Python – FastAPI):\n– Setup basic API with route /api/contact to handle POST contact form submission\n– Enable CORS for React frontend\n– Use Pydantic schema validation for the contact form\n– Include instructions or comments for connecting to an email service or database\n\nDeliverables:\n\nReact file structure with components folder and routing using React Router\n\nFastAPI app with organized folder structure (main.py, routes/, schemas/)\n\nInstructions to run both frontend and backend locally\n\nBegin by generating the file structure, then scaffold the code for homepage, navigation bar, and FastAPI contact route.: User requested: ou are a senior full-stack engineer. Build the initial Broadcom corporate website using React.js (with Vite or CRA) for the frontend and Python (FastAPI) for the backend API.\n\nFrontend Requirements (React.js):\n– Professional, modern enterprise layout using Tailwind CSS\n– Top Navbar: Home, Products, Solutions, Support, About, Contact\n– Homepage should include:\n    • Hero section with call-to-action\n    • Summary of Broadcom’s core solutions\n    • “Trusted by” logos section\n– Responsive and accessible design\n– Footer with sitemap, terms, privacy, and language selector\n\nBackend Requirements (Python – FastAPI):\n– Setup basic API with route /api/contact to handle POST contact form submission\n– Enable CORS for React frontend\n– Use Pydantic schema validation for the contact form\n– Include instructions or comments for connecting to an email service or database\n\nDeliverables:\n\nReact file structure with components folder and routing using React Router\n\nFastAPI app with organized folder structure (main.py, routes/, schemas/)\n\nInstructions to run both frontend and backend locally\n\nBegin by generating the file structure, then scaffold the code for homepage, navigation bar, and FastAPI contact route.",
+        "priority": "high",
+        "estimatedHours": 12,
+        "skills": [
+          "nodejs",
+          "microservices",
+          "api_design",
+          "orchestration"
+        ],
+        "deliverables": [
+          "Agent framework",
+          "Orchestration logic",
+          "Communication protocols",
+          "Task distribution"
+        ],
+        "id": "af9da1d6-b976-481a-a9dd-66b19d512cd1",
+        "dependencies": [],
+        "status": "todo",
+        "progress": 0,
+        "assignedAgent": null,
+        "createdAt": "2025-07-28T18:33:05.608Z",
+        "projectId": "6ea44379-754b-454c-aa38-66611f1bc016",
+        "isCheckpoint": false,
+        "checkpointType": null,
+        "originalTaskId": null,
+        "startedAt": null,
+        "completedAt": null
+      }
+    },
+    {
+      "id": "c46cb263-78c1-4e9b-a656-c50343fb8789",
+      "type": "task",
+      "position": {
+        "x": 1050,
+        "y": 50
+      },
+      "data": {
+        "type": "backend",
+        "title": "Agent Communication System",
+        "description": "Build communication and coordination system between agents for: ou are a senior full-stack engineer. Build the initial Broadcom corporate website using React.js (with Vite or CRA) for the frontend and Python (FastAPI) for the backend API.\n\nFrontend Requirements (React.js):\n– Professional, modern enterprise layout using Tailwind CSS\n– Top Navbar: Home, Products, Solutions, Support, About, Contact\n– Homepage should include:\n    • Hero section with call-to-action\n    • Summary of Broadcom’s core solutions\n    • “Trusted by” logos section\n– Responsive and accessible design\n– Footer with sitemap, terms, privacy, and language selector\n\nBackend Requirements (Python – FastAPI):\n– Setup basic API with route /api/contact to handle POST contact form submission\n– Enable CORS for React frontend\n– Use Pydantic schema validation for the contact form\n– Include instructions or comments for connecting to an email service or database\n\nDeliverables:\n\nReact file structure with components folder and routing using React Router\n\nFastAPI app with organized folder structure (main.py, routes/, schemas/)\n\nInstructions to run both frontend and backend locally\n\nBegin by generating the file structure, then scaffold the code for homepage, navigation bar, and FastAPI contact route.: User requested: ou are a senior full-stack engineer. Build the initial Broadcom corporate website using React.js (with Vite or CRA) for the frontend and Python (FastAPI) for the backend API.\n\nFrontend Requirements (React.js):\n– Professional, modern enterprise layout using Tailwind CSS\n– Top Navbar: Home, Products, Solutions, Support, About, Contact\n– Homepage should include:\n    • Hero section with call-to-action\n    • Summary of Broadcom’s core solutions\n    • “Trusted by” logos section\n– Responsive and accessible design\n– Footer with sitemap, terms, privacy, and language selector\n\nBackend Requirements (Python – FastAPI):\n– Setup basic API with route /api/contact to handle POST contact form submission\n– Enable CORS for React frontend\n– Use Pydantic schema validation for the contact form\n– Include instructions or comments for connecting to an email service or database\n\nDeliverables:\n\nReact file structure with components folder and routing using React Router\n\nFastAPI app with organized folder structure (main.py, routes/, schemas/)\n\nInstructions to run both frontend and backend locally\n\nBegin by generating the file structure, then scaffold the code for homepage, navigation bar, and FastAPI contact route.",
+        "priority": "high",
+        "estimatedHours": 8,
+        "skills": [
+          "nodejs",
+          "real_time",
+          "api_design",
+          "messaging"
+        ],
+        "deliverables": [
+          "Message queues",
+          "Event system",
+          "Agent coordination",
+          "Status tracking"
+        ],
+        "id": "c46cb263-78c1-4e9b-a656-c50343fb8789",
+        "dependencies": [],
+        "status": "todo",
+        "progress": 0,
+        "assignedAgent": null,
+        "createdAt": "2025-07-28T18:33:05.608Z",
+        "projectId": "6ea44379-754b-454c-aa38-66611f1bc016",
+        "isCheckpoint": false,
+        "checkpointType": null,
+        "originalTaskId": null,
+        "startedAt": null,
+        "completedAt": null
+      }
+    },
+    {
+      "id": "3fe7aed8-19ab-4d34-92dc-1ada49dbbd1a",
+      "type": "task",
+      "position": {
+        "x": 50,
+        "y": 200
+      },
+      "data": {
+        "type": "security",
+        "title": "Security Implementation",
+        "description": "Implement security measures and authentication for: ou are a senior full-stack engineer. Build the initial Broadcom corporate website using React.js (with Vite or CRA) for the frontend and Python (FastAPI) for the backend API.\n\nFrontend Requirements (React.js):\n– Professional, modern enterprise layout using Tailwind CSS\n– Top Navbar: Home, Products, Solutions, Support, About, Contact\n– Homepage should include:\n    • Hero section with call-to-action\n    • Summary of Broadcom’s core solutions\n    • “Trusted by” logos section\n– Responsive and accessible design\n– Footer with sitemap, terms, privacy, and language selector\n\nBackend Requirements (Python – FastAPI):\n– Setup basic API with route /api/contact to handle POST contact form submission\n– Enable CORS for React frontend\n– Use Pydantic schema validation for the contact form\n– Include instructions or comments for connecting to an email service or database\n\nDeliverables:\n\nReact file structure with components folder and routing using React Router\n\nFastAPI app with organized folder structure (main.py, routes/, schemas/)\n\nInstructions to run both frontend and backend locally\n\nBegin by generating the file structure, then scaffold the code for homepage, navigation bar, and FastAPI contact route.: User requested: ou are a senior full-stack engineer. Build the initial Broadcom corporate website using React.js (with Vite or CRA) for the frontend and Python (FastAPI) for the backend API.\n\nFrontend Requirements (React.js):\n– Professional, modern enterprise layout using Tailwind CSS\n– Top Navbar: Home, Products, Solutions, Support, About, Contact\n– Homepage should include:\n    • Hero section with call-to-action\n    • Summary of Broadcom’s core solutions\n    • “Trusted by” logos section\n– Responsive and accessible design\n– Footer with sitemap, terms, privacy, and language selector\n\nBackend Requirements (Python – FastAPI):\n– Setup basic API with route /api/contact to handle POST contact form submission\n– Enable CORS for React frontend\n– Use Pydantic schema validation for the contact form\n– Include instructions or comments for connecting to an email service or database\n\nDeliverables:\n\nReact file structure with components folder and routing using React Router\n\nFastAPI app with organized folder structure (main.py, routes/, schemas/)\n\nInstructions to run both frontend and backend locally\n\nBegin by generating the file structure, then scaffold the code for homepage, navigation bar, and FastAPI contact route.",
+        "priority": "high",
+        "estimatedHours": 6,
+        "skills": [
+          "authentication",
+          "authorization",
+          "encryption",
+          "security_audit"
+        ],
+        "deliverables": [
+          "Authentication system",
+          "Security policies",
+          "Access control",
+          "Audit logging"
+        ],
+        "id": "3fe7aed8-19ab-4d34-92dc-1ada49dbbd1a",
+        "dependencies": [
+          null,
+          null
+        ],
+        "status": "todo",
+        "progress": 0,
+        "assignedAgent": null,
+        "createdAt": "2025-07-28T18:33:05.608Z",
+        "projectId": "6ea44379-754b-454c-aa38-66611f1bc016",
+        "isCheckpoint": false,
+        "checkpointType": null,
+        "originalTaskId": null,
+        "startedAt": null,
+        "completedAt": null
+      }
+    },
+    {
+      "id": "4a344755-53fb-42e2-829a-bdc06788ebfd",
+      "type": "checkpoint",
+      "position": {
+        "x": 300,
+        "y": 200
+      },
+      "data": {
+        "id": "4a344755-53fb-42e2-829a-bdc06788ebfd",
+        "type": "code_review",
+        "title": "Code Review: Frontend Development",
+        "description": "Comprehensive code review and quality assessment for: Create user interface components and frontend architecture for: ou are a senior full-stack engineer. Build the initial Broadcom corporate website using React.js (with Vite or CRA) for the frontend and Python (FastAPI) for the backend API.\n\nFrontend Requirements (React.js):\n– Professional, modern enterprise layout using Tailwind CSS\n– Top Navbar: Home, Products, Solutions, Support, About, Contact\n– Homepage should include:\n    • Hero section with call-to-action\n    • Summary of Broadcom’s core solutions\n    • “Trusted by” logos section\n– Responsive and accessible design\n– Footer with sitemap, terms, privacy, and language selector\n\nBackend Requirements (Python – FastAPI):\n– Setup basic API with route /api/contact to handle POST contact form submission\n– Enable CORS for React frontend\n– Use Pydantic schema validation for the contact form\n– Include instructions or comments for connecting to an email service or database\n\nDeliverables:\n\nReact file structure with components folder and routing using React Router\n\nFastAPI app with organized folder structure (main.py, routes/, schemas/)\n\nInstructions to run both frontend and backend locally\n\nBegin by generating the file structure, then scaffold the code for homepage, navigation bar, and FastAPI contact route.: User requested: ou are a senior full-stack engineer. Build the initial Broadcom corporate website using React.js (with Vite or CRA) for the frontend and Python (FastAPI) for the backend API.\n\nFrontend Requirements (React.js):\n– Professional, modern enterprise layout using Tailwind CSS\n– Top Navbar: Home, Products, Solutions, Support, About, Contact\n– Homepage should include:\n    • Hero section with call-to-action\n    • Summary of Broadcom’s core solutions\n    • “Trusted by” logos section\n– Responsive and accessible design\n– Footer with sitemap, terms, privacy, and language selector\n\nBackend Requirements (Python – FastAPI):\n– Setup basic API with route /api/contact to handle POST contact form submission\n– Enable CORS for React frontend\n– Use Pydantic schema validation for the contact form\n– Include instructions or comments for connecting to an email service or database\n\nDeliverables:\n\nReact file structure with components folder and routing using React Router\n\nFastAPI app with organized folder structure (main.py, routes/, schemas/)\n\nInstructions to run both frontend and backend locally\n\nBegin by generating the file structure, then scaffold the code for homepage, navigation bar, and FastAPI contact route.",
+        "priority": "high",
+        "estimatedHours": 3,
+        "skills": [
+          "code_quality",
+          "security_review",
+          "performance_analysis",
+          "best_practices"
+        ],
+        "deliverables": [
+          "Code review report",
+          "Security assessment",
+          "Quality score",
+          "Improvement recommendations"
+        ],
+        "originalTaskId": "06a56797-6084-4a8b-92e5-813c01cc87eb",
+        "checkpointType": "code_review",
+        "dependencies": [
+          "4513d6ee-8baa-44ac-90c0-55764f2caedd"
+        ],
+        "createdAt": "2025-07-28T18:33:05.608Z",
+        "projectId": "6ea44379-754b-454c-aa38-66611f1bc016",
+        "status": "todo",
+        "progress": 0,
+        "assignedAgent": null,
+        "isCheckpoint": true,
+        "startedAt": null,
+        "completedAt": null
+      }
+    },
+    {
+      "id": "4513d6ee-8baa-44ac-90c0-55764f2caedd",
+      "type": "checkpoint",
+      "position": {
+        "x": 550,
+        "y": 200
+      },
+      "data": {
+        "id": "4513d6ee-8baa-44ac-90c0-55764f2caedd",
+        "type": "qa_testing",
+        "title": "QA Testing: Frontend Development",
+        "description": "Quality assurance testing and validation for: Create user interface components and frontend architecture for: ou are a senior full-stack engineer. Build the initial Broadcom corporate website using React.js (with Vite or CRA) for the frontend and Python (FastAPI) for the backend API.\n\nFrontend Requirements (React.js):\n– Professional, modern enterprise layout using Tailwind CSS\n– Top Navbar: Home, Products, Solutions, Support, About, Contact\n– Homepage should include:\n    • Hero section with call-to-action\n    • Summary of Broadcom’s core solutions\n    • “Trusted by” logos section\n– Responsive and accessible design\n– Footer with sitemap, terms, privacy, and language selector\n\nBackend Requirements (Python – FastAPI):\n– Setup basic API with route /api/contact to handle POST contact form submission\n– Enable CORS for React frontend\n– Use Pydantic schema validation for the contact form\n– Include instructions or comments for connecting to an email service or database\n\nDeliverables:\n\nReact file structure with components folder and routing using React Router\n\nFastAPI app with organized folder structure (main.py, routes/, schemas/)\n\nInstructions to run both frontend and backend locally\n\nBegin by generating the file structure, then scaffold the code for homepage, navigation bar, and FastAPI contact route.: User requested: ou are a senior full-stack engineer. Build the initial Broadcom corporate website using React.js (with Vite or CRA) for the frontend and Python (FastAPI) for the backend API.\n\nFrontend Requirements (React.js):\n– Professional, modern enterprise layout using Tailwind CSS\n– Top Navbar: Home, Products, Solutions, Support, About, Contact\n– Homepage should include:\n    • Hero section with call-to-action\n    • Summary of Broadcom’s core solutions\n    • “Trusted by” logos section\n– Responsive and accessible design\n– Footer with sitemap, terms, privacy, and language selector\n\nBackend Requirements (Python – FastAPI):\n– Setup basic API with route /api/contact to handle POST contact form submission\n– Enable CORS for React frontend\n– Use Pydantic schema validation for the contact form\n– Include instructions or comments for connecting to an email service or database\n\nDeliverables:\n\nReact file structure with components folder and routing using React Router\n\nFastAPI app with organized folder structure (main.py, routes/, schemas/)\n\nInstructions to run both frontend and backend locally\n\nBegin by generating the file structure, then scaffold the code for homepage, navigation bar, and FastAPI contact route.",
+        "priority": "high",
+        "estimatedHours": 4,
+        "skills": [
+          "testing",
+          "quality_assurance",
+          "test_automation",
+          "validation"
+        ],
+        "deliverables": [
+          "Test results",
+          "Quality metrics",
+          "Test coverage report",
+          "Deployment readiness"
+        ],
+        "originalTaskId": "06a56797-6084-4a8b-92e5-813c01cc87eb",
+        "checkpointType": "qa_testing",
+        "dependencies": [
+          "4a344755-53fb-42e2-829a-bdc06788ebfd"
+        ],
+        "createdAt": "2025-07-28T18:33:05.608Z",
+        "projectId": "6ea44379-754b-454c-aa38-66611f1bc016",
+        "status": "todo",
+        "progress": 0,
+        "assignedAgent": null,
+        "isCheckpoint": true,
+        "startedAt": null,
+        "completedAt": null
+      }
+    },
+    {
+      "id": "aa176bf8-2735-46fa-b8cf-87ec05df247c",
+      "type": "checkpoint",
+      "position": {
+        "x": 800,
+        "y": 200
+      },
+      "data": {
+        "id": "aa176bf8-2735-46fa-b8cf-87ec05df247c",
+        "type": "code_review",
+        "title": "Code Review: Backend Development",
+        "description": "Comprehensive code review and quality assessment for: Build backend services and API infrastructure for: ou are a senior full-stack engineer. Build the initial Broadcom corporate website using React.js (with Vite or CRA) for the frontend and Python (FastAPI) for the backend API.\n\nFrontend Requirements (React.js):\n– Professional, modern enterprise layout using Tailwind CSS\n– Top Navbar: Home, Products, Solutions, Support, About, Contact\n– Homepage should include:\n    • Hero section with call-to-action\n    • Summary of Broadcom’s core solutions\n    • “Trusted by” logos section\n– Responsive and accessible design\n– Footer with sitemap, terms, privacy, and language selector\n\nBackend Requirements (Python – FastAPI):\n– Setup basic API with route /api/contact to handle POST contact form submission\n– Enable CORS for React frontend\n– Use Pydantic schema validation for the contact form\n– Include instructions or comments for connecting to an email service or database\n\nDeliverables:\n\nReact file structure with components folder and routing using React Router\n\nFastAPI app with organized folder structure (main.py, routes/, schemas/)\n\nInstructions to run both frontend and backend locally\n\nBegin by generating the file structure, then scaffold the code for homepage, navigation bar, and FastAPI contact route.: User requested: ou are a senior full-stack engineer. Build the initial Broadcom corporate website using React.js (with Vite or CRA) for the frontend and Python (FastAPI) for the backend API.\n\nFrontend Requirements (React.js):\n– Professional, modern enterprise layout using Tailwind CSS\n– Top Navbar: Home, Products, Solutions, Support, About, Contact\n– Homepage should include:\n    • Hero section with call-to-action\n    • Summary of Broadcom’s core solutions\n    • “Trusted by” logos section\n– Responsive and accessible design\n– Footer with sitemap, terms, privacy, and language selector\n\nBackend Requirements (Python – FastAPI):\n– Setup basic API with route /api/contact to handle POST contact form submission\n– Enable CORS for React frontend\n– Use Pydantic schema validation for the contact form\n– Include instructions or comments for connecting to an email service or database\n\nDeliverables:\n\nReact file structure with components folder and routing using React Router\n\nFastAPI app with organized folder structure (main.py, routes/, schemas/)\n\nInstructions to run both frontend and backend locally\n\nBegin by generating the file structure, then scaffold the code for homepage, navigation bar, and FastAPI contact route.",
+        "priority": "high",
+        "estimatedHours": 3,
+        "skills": [
+          "code_quality",
+          "security_review",
+          "performance_analysis",
+          "best_practices"
+        ],
+        "deliverables": [
+          "Code review report",
+          "Security assessment",
+          "Quality score",
+          "Improvement recommendations"
+        ],
+        "originalTaskId": "83a428aa-7a89-4d15-bfd9-a77481130e15",
+        "checkpointType": "code_review",
+        "dependencies": [
+          "426ef19d-dfc2-46d7-bcac-46de5fe355c8"
+        ],
+        "createdAt": "2025-07-28T18:33:05.608Z",
+        "projectId": "6ea44379-754b-454c-aa38-66611f1bc016",
+        "status": "todo",
+        "progress": 0,
+        "assignedAgent": null,
+        "isCheckpoint": true,
+        "startedAt": null,
+        "completedAt": null
+      }
+    },
+    {
+      "id": "426ef19d-dfc2-46d7-bcac-46de5fe355c8",
+      "type": "checkpoint",
+      "position": {
+        "x": 1050,
+        "y": 200
+      },
+      "data": {
+        "id": "426ef19d-dfc2-46d7-bcac-46de5fe355c8",
+        "type": "qa_testing",
+        "title": "QA Testing: Backend Development",
+        "description": "Quality assurance testing and validation for: Build backend services and API infrastructure for: ou are a senior full-stack engineer. Build the initial Broadcom corporate website using React.js (with Vite or CRA) for the frontend and Python (FastAPI) for the backend API.\n\nFrontend Requirements (React.js):\n– Professional, modern enterprise layout using Tailwind CSS\n– Top Navbar: Home, Products, Solutions, Support, About, Contact\n– Homepage should include:\n    • Hero section with call-to-action\n    • Summary of Broadcom’s core solutions\n    • “Trusted by” logos section\n– Responsive and accessible design\n– Footer with sitemap, terms, privacy, and language selector\n\nBackend Requirements (Python – FastAPI):\n– Setup basic API with route /api/contact to handle POST contact form submission\n– Enable CORS for React frontend\n– Use Pydantic schema validation for the contact form\n– Include instructions or comments for connecting to an email service or database\n\nDeliverables:\n\nReact file structure with components folder and routing using React Router\n\nFastAPI app with organized folder structure (main.py, routes/, schemas/)\n\nInstructions to run both frontend and backend locally\n\nBegin by generating the file structure, then scaffold the code for homepage, navigation bar, and FastAPI contact route.: User requested: ou are a senior full-stack engineer. Build the initial Broadcom corporate website using React.js (with Vite or CRA) for the frontend and Python (FastAPI) for the backend API.\n\nFrontend Requirements (React.js):\n– Professional, modern enterprise layout using Tailwind CSS\n– Top Navbar: Home, Products, Solutions, Support, About, Contact\n– Homepage should include:\n    • Hero section with call-to-action\n    • Summary of Broadcom’s core solutions\n    • “Trusted by” logos section\n– Responsive and accessible design\n– Footer with sitemap, terms, privacy, and language selector\n\nBackend Requirements (Python – FastAPI):\n– Setup basic API with route /api/contact to handle POST contact form submission\n– Enable CORS for React frontend\n– Use Pydantic schema validation for the contact form\n– Include instructions or comments for connecting to an email service or database\n\nDeliverables:\n\nReact file structure with components folder and routing using React Router\n\nFastAPI app with organized folder structure (main.py, routes/, schemas/)\n\nInstructions to run both frontend and backend locally\n\nBegin by generating the file structure, then scaffold the code for homepage, navigation bar, and FastAPI contact route.",
+        "priority": "high",
+        "estimatedHours": 4,
+        "skills": [
+          "testing",
+          "quality_assurance",
+          "test_automation",
+          "validation"
+        ],
+        "deliverables": [
+          "Test results",
+          "Quality metrics",
+          "Test coverage report",
+          "Deployment readiness"
+        ],
+        "originalTaskId": "83a428aa-7a89-4d15-bfd9-a77481130e15",
+        "checkpointType": "qa_testing",
+        "dependencies": [
+          "aa176bf8-2735-46fa-b8cf-87ec05df247c"
+        ],
+        "createdAt": "2025-07-28T18:33:05.608Z",
+        "projectId": "6ea44379-754b-454c-aa38-66611f1bc016",
+        "status": "todo",
+        "progress": 0,
+        "assignedAgent": null,
+        "isCheckpoint": true,
+        "startedAt": null,
+        "completedAt": null
+      }
+    },
+    {
+      "id": "75f64d7f-a828-4cf9-b8d9-729481fccd9e",
+      "type": "checkpoint",
+      "position": {
+        "x": 50,
+        "y": 350
+      },
+      "data": {
+        "id": "75f64d7f-a828-4cf9-b8d9-729481fccd9e",
+        "type": "code_review",
+        "title": "Code Review: Database Design",
+        "description": "Comprehensive code review and quality assessment for: Design and implement database schema for: ou are a senior full-stack engineer. Build the initial Broadcom corporate website using React.js (with Vite or CRA) for the frontend and Python (FastAPI) for the backend API.\n\nFrontend Requirements (React.js):\n– Professional, modern enterprise layout using Tailwind CSS\n– Top Navbar: Home, Products, Solutions, Support, About, Contact\n– Homepage should include:\n    • Hero section with call-to-action\n    • Summary of Broadcom’s core solutions\n    • “Trusted by” logos section\n– Responsive and accessible design\n– Footer with sitemap, terms, privacy, and language selector\n\nBackend Requirements (Python – FastAPI):\n– Setup basic API with route /api/contact to handle POST contact form submission\n– Enable CORS for React frontend\n– Use Pydantic schema validation for the contact form\n– Include instructions or comments for connecting to an email service or database\n\nDeliverables:\n\nReact file structure with components folder and routing using React Router\n\nFastAPI app with organized folder structure (main.py, routes/, schemas/)\n\nInstructions to run both frontend and backend locally\n\nBegin by generating the file structure, then scaffold the code for homepage, navigation bar, and FastAPI contact route.: User requested: ou are a senior full-stack engineer. Build the initial Broadcom corporate website using React.js (with Vite or CRA) for the frontend and Python (FastAPI) for the backend API.\n\nFrontend Requirements (React.js):\n– Professional, modern enterprise layout using Tailwind CSS\n– Top Navbar: Home, Products, Solutions, Support, About, Contact\n– Homepage should include:\n    • Hero section with call-to-action\n    • Summary of Broadcom’s core solutions\n    • “Trusted by” logos section\n– Responsive and accessible design\n– Footer with sitemap, terms, privacy, and language selector\n\nBackend Requirements (Python – FastAPI):\n– Setup basic API with route /api/contact to handle POST contact form submission\n– Enable CORS for React frontend\n– Use Pydantic schema validation for the contact form\n– Include instructions or comments for connecting to an email service or database\n\nDeliverables:\n\nReact file structure with components folder and routing using React Router\n\nFastAPI app with organized folder structure (main.py, routes/, schemas/)\n\nInstructions to run both frontend and backend locally\n\nBegin by generating the file structure, then scaffold the code for homepage, navigation bar, and FastAPI contact route.",
+        "priority": "high",
+        "estimatedHours": 2,
+        "skills": [
+          "code_quality",
+          "security_review",
+          "performance_analysis",
+          "best_practices"
+        ],
+        "deliverables": [
+          "Code review report",
+          "Security assessment",
+          "Quality score",
+          "Improvement recommendations"
+        ],
+        "originalTaskId": "3b912ac7-125a-4f76-8865-328a891f4a72",
+        "checkpointType": "code_review",
+        "dependencies": [
+          "3026b3dc-67b0-47ee-9b60-62aa52dbdc48"
+        ],
+        "createdAt": "2025-07-28T18:33:05.608Z",
+        "projectId": "6ea44379-754b-454c-aa38-66611f1bc016",
+        "status": "todo",
+        "progress": 0,
+        "assignedAgent": null,
+        "isCheckpoint": true,
+        "startedAt": null,
+        "completedAt": null
+      }
+    },
+    {
+      "id": "3026b3dc-67b0-47ee-9b60-62aa52dbdc48",
+      "type": "checkpoint",
+      "position": {
+        "x": 300,
+        "y": 350
+      },
+      "data": {
+        "id": "3026b3dc-67b0-47ee-9b60-62aa52dbdc48",
+        "type": "qa_testing",
+        "title": "QA Testing: Database Design",
+        "description": "Quality assurance testing and validation for: Design and implement database schema for: ou are a senior full-stack engineer. Build the initial Broadcom corporate website using React.js (with Vite or CRA) for the frontend and Python (FastAPI) for the backend API.\n\nFrontend Requirements (React.js):\n– Professional, modern enterprise layout using Tailwind CSS\n– Top Navbar: Home, Products, Solutions, Support, About, Contact\n– Homepage should include:\n    • Hero section with call-to-action\n    • Summary of Broadcom’s core solutions\n    • “Trusted by” logos section\n– Responsive and accessible design\n– Footer with sitemap, terms, privacy, and language selector\n\nBackend Requirements (Python – FastAPI):\n– Setup basic API with route /api/contact to handle POST contact form submission\n– Enable CORS for React frontend\n– Use Pydantic schema validation for the contact form\n– Include instructions or comments for connecting to an email service or database\n\nDeliverables:\n\nReact file structure with components folder and routing using React Router\n\nFastAPI app with organized folder structure (main.py, routes/, schemas/)\n\nInstructions to run both frontend and backend locally\n\nBegin by generating the file structure, then scaffold the code for homepage, navigation bar, and FastAPI contact route.: User requested: ou are a senior full-stack engineer. Build the initial Broadcom corporate website using React.js (with Vite or CRA) for the frontend and Python (FastAPI) for the backend API.\n\nFrontend Requirements (React.js):\n– Professional, modern enterprise layout using Tailwind CSS\n– Top Navbar: Home, Products, Solutions, Support, About, Contact\n– Homepage should include:\n    • Hero section with call-to-action\n    • Summary of Broadcom’s core solutions\n    • “Trusted by” logos section\n– Responsive and accessible design\n– Footer with sitemap, terms, privacy, and language selector\n\nBackend Requirements (Python – FastAPI):\n– Setup basic API with route /api/contact to handle POST contact form submission\n– Enable CORS for React frontend\n– Use Pydantic schema validation for the contact form\n– Include instructions or comments for connecting to an email service or database\n\nDeliverables:\n\nReact file structure with components folder and routing using React Router\n\nFastAPI app with organized folder structure (main.py, routes/, schemas/)\n\nInstructions to run both frontend and backend locally\n\nBegin by generating the file structure, then scaffold the code for homepage, navigation bar, and FastAPI contact route.",
+        "priority": "high",
+        "estimatedHours": 3,
+        "skills": [
+          "testing",
+          "quality_assurance",
+          "test_automation",
+          "validation"
+        ],
+        "deliverables": [
+          "Test results",
+          "Quality metrics",
+          "Test coverage report",
+          "Deployment readiness"
+        ],
+        "originalTaskId": "3b912ac7-125a-4f76-8865-328a891f4a72",
+        "checkpointType": "qa_testing",
+        "dependencies": [
+          "75f64d7f-a828-4cf9-b8d9-729481fccd9e"
+        ],
+        "createdAt": "2025-07-28T18:33:05.608Z",
+        "projectId": "6ea44379-754b-454c-aa38-66611f1bc016",
+        "status": "todo",
+        "progress": 0,
+        "assignedAgent": null,
+        "isCheckpoint": true,
+        "startedAt": null,
+        "completedAt": null
+      }
+    },
+    {
+      "id": "e7f54364-a9a4-46ff-9bbf-00de875a57e4",
+      "type": "checkpoint",
+      "position": {
+        "x": 550,
+        "y": 350
+      },
+      "data": {
+        "id": "e7f54364-a9a4-46ff-9bbf-00de875a57e4",
+        "type": "code_review",
+        "title": "Code Review: Multi-Agent System Architecture",
+        "description": "Comprehensive code review and quality assessment for: Design and implement multi-agent orchestration system for: ou are a senior full-stack engineer. Build the initial Broadcom corporate website using React.js (with Vite or CRA) for the frontend and Python (FastAPI) for the backend API.\n\nFrontend Requirements (React.js):\n– Professional, modern enterprise layout using Tailwind CSS\n– Top Navbar: Home, Products, Solutions, Support, About, Contact\n– Homepage should include:\n    • Hero section with call-to-action\n    • Summary of Broadcom’s core solutions\n    • “Trusted by” logos section\n– Responsive and accessible design\n– Footer with sitemap, terms, privacy, and language selector\n\nBackend Requirements (Python – FastAPI):\n– Setup basic API with route /api/contact to handle POST contact form submission\n– Enable CORS for React frontend\n– Use Pydantic schema validation for the contact form\n– Include instructions or comments for connecting to an email service or database\n\nDeliverables:\n\nReact file structure with components folder and routing using React Router\n\nFastAPI app with organized folder structure (main.py, routes/, schemas/)\n\nInstructions to run both frontend and backend locally\n\nBegin by generating the file structure, then scaffold the code for homepage, navigation bar, and FastAPI contact route.: User requested: ou are a senior full-stack engineer. Build the initial Broadcom corporate website using React.js (with Vite or CRA) for the frontend and Python (FastAPI) for the backend API.\n\nFrontend Requirements (React.js):\n– Professional, modern enterprise layout using Tailwind CSS\n– Top Navbar: Home, Products, Solutions, Support, About, Contact\n– Homepage should include:\n    • Hero section with call-to-action\n    • Summary of Broadcom’s core solutions\n    • “Trusted by” logos section\n– Responsive and accessible design\n– Footer with sitemap, terms, privacy, and language selector\n\nBackend Requirements (Python – FastAPI):\n– Setup basic API with route /api/contact to handle POST contact form submission\n– Enable CORS for React frontend\n– Use Pydantic schema validation for the contact form\n– Include instructions or comments for connecting to an email service or database\n\nDeliverables:\n\nReact file structure with components folder and routing using React Router\n\nFastAPI app with organized folder structure (main.py, routes/, schemas/)\n\nInstructions to run both frontend and backend locally\n\nBegin by generating the file structure, then scaffold the code for homepage, navigation bar, and FastAPI contact route.",
+        "priority": "high",
+        "estimatedHours": 4,
+        "skills": [
+          "code_quality",
+          "security_review",
+          "performance_analysis",
+          "best_practices"
+        ],
+        "deliverables": [
+          "Code review report",
+          "Security assessment",
+          "Quality score",
+          "Improvement recommendations"
+        ],
+        "originalTaskId": "af9da1d6-b976-481a-a9dd-66b19d512cd1",
+        "checkpointType": "code_review",
+        "dependencies": [
+          "e9a4b3af-db5d-4711-a2b4-843f3b272435"
+        ],
+        "createdAt": "2025-07-28T18:33:05.608Z",
+        "projectId": "6ea44379-754b-454c-aa38-66611f1bc016",
+        "status": "todo",
+        "progress": 0,
+        "assignedAgent": null,
+        "isCheckpoint": true,
+        "startedAt": null,
+        "completedAt": null
+      }
+    },
+    {
+      "id": "e9a4b3af-db5d-4711-a2b4-843f3b272435",
+      "type": "checkpoint",
+      "position": {
+        "x": 800,
+        "y": 350
+      },
+      "data": {
+        "id": "e9a4b3af-db5d-4711-a2b4-843f3b272435",
+        "type": "qa_testing",
+        "title": "QA Testing: Multi-Agent System Architecture",
+        "description": "Quality assurance testing and validation for: Design and implement multi-agent orchestration system for: ou are a senior full-stack engineer. Build the initial Broadcom corporate website using React.js (with Vite or CRA) for the frontend and Python (FastAPI) for the backend API.\n\nFrontend Requirements (React.js):\n– Professional, modern enterprise layout using Tailwind CSS\n– Top Navbar: Home, Products, Solutions, Support, About, Contact\n– Homepage should include:\n    • Hero section with call-to-action\n    • Summary of Broadcom’s core solutions\n    • “Trusted by” logos section\n– Responsive and accessible design\n– Footer with sitemap, terms, privacy, and language selector\n\nBackend Requirements (Python – FastAPI):\n– Setup basic API with route /api/contact to handle POST contact form submission\n– Enable CORS for React frontend\n– Use Pydantic schema validation for the contact form\n– Include instructions or comments for connecting to an email service or database\n\nDeliverables:\n\nReact file structure with components folder and routing using React Router\n\nFastAPI app with organized folder structure (main.py, routes/, schemas/)\n\nInstructions to run both frontend and backend locally\n\nBegin by generating the file structure, then scaffold the code for homepage, navigation bar, and FastAPI contact route.: User requested: ou are a senior full-stack engineer. Build the initial Broadcom corporate website using React.js (with Vite or CRA) for the frontend and Python (FastAPI) for the backend API.\n\nFrontend Requirements (React.js):\n– Professional, modern enterprise layout using Tailwind CSS\n– Top Navbar: Home, Products, Solutions, Support, About, Contact\n– Homepage should include:\n    • Hero section with call-to-action\n    • Summary of Broadcom’s core solutions\n    • “Trusted by” logos section\n– Responsive and accessible design\n– Footer with sitemap, terms, privacy, and language selector\n\nBackend Requirements (Python – FastAPI):\n– Setup basic API with route /api/contact to handle POST contact form submission\n– Enable CORS for React frontend\n– Use Pydantic schema validation for the contact form\n– Include instructions or comments for connecting to an email service or database\n\nDeliverables:\n\nReact file structure with components folder and routing using React Router\n\nFastAPI app with organized folder structure (main.py, routes/, schemas/)\n\nInstructions to run both frontend and backend locally\n\nBegin by generating the file structure, then scaffold the code for homepage, navigation bar, and FastAPI contact route.",
+        "priority": "high",
+        "estimatedHours": 5,
+        "skills": [
+          "testing",
+          "quality_assurance",
+          "test_automation",
+          "validation"
+        ],
+        "deliverables": [
+          "Test results",
+          "Quality metrics",
+          "Test coverage report",
+          "Deployment readiness"
+        ],
+        "originalTaskId": "af9da1d6-b976-481a-a9dd-66b19d512cd1",
+        "checkpointType": "qa_testing",
+        "dependencies": [
+          "e7f54364-a9a4-46ff-9bbf-00de875a57e4"
+        ],
+        "createdAt": "2025-07-28T18:33:05.608Z",
+        "projectId": "6ea44379-754b-454c-aa38-66611f1bc016",
+        "status": "todo",
+        "progress": 0,
+        "assignedAgent": null,
+        "isCheckpoint": true,
+        "startedAt": null,
+        "completedAt": null
+      }
+    },
+    {
+      "id": "9a9b1b0d-1a76-4050-aa50-693980858b45",
+      "type": "checkpoint",
+      "position": {
+        "x": 1050,
+        "y": 350
+      },
+      "data": {
+        "id": "9a9b1b0d-1a76-4050-aa50-693980858b45",
+        "type": "code_review",
+        "title": "Code Review: Agent Communication System",
+        "description": "Comprehensive code review and quality assessment for: Build communication and coordination system between agents for: ou are a senior full-stack engineer. Build the initial Broadcom corporate website using React.js (with Vite or CRA) for the frontend and Python (FastAPI) for the backend API.\n\nFrontend Requirements (React.js):\n– Professional, modern enterprise layout using Tailwind CSS\n– Top Navbar: Home, Products, Solutions, Support, About, Contact\n– Homepage should include:\n    • Hero section with call-to-action\n    • Summary of Broadcom’s core solutions\n    • “Trusted by” logos section\n– Responsive and accessible design\n– Footer with sitemap, terms, privacy, and language selector\n\nBackend Requirements (Python – FastAPI):\n– Setup basic API with route /api/contact to handle POST contact form submission\n– Enable CORS for React frontend\n– Use Pydantic schema validation for the contact form\n– Include instructions or comments for connecting to an email service or database\n\nDeliverables:\n\nReact file structure with components folder and routing using React Router\n\nFastAPI app with organized folder structure (main.py, routes/, schemas/)\n\nInstructions to run both frontend and backend locally\n\nBegin by generating the file structure, then scaffold the code for homepage, navigation bar, and FastAPI contact route.: User requested: ou are a senior full-stack engineer. Build the initial Broadcom corporate website using React.js (with Vite or CRA) for the frontend and Python (FastAPI) for the backend API.\n\nFrontend Requirements (React.js):\n– Professional, modern enterprise layout using Tailwind CSS\n– Top Navbar: Home, Products, Solutions, Support, About, Contact\n– Homepage should include:\n    • Hero section with call-to-action\n    • Summary of Broadcom’s core solutions\n    • “Trusted by” logos section\n– Responsive and accessible design\n– Footer with sitemap, terms, privacy, and language selector\n\nBackend Requirements (Python – FastAPI):\n– Setup basic API with route /api/contact to handle POST contact form submission\n– Enable CORS for React frontend\n– Use Pydantic schema validation for the contact form\n– Include instructions or comments for connecting to an email service or database\n\nDeliverables:\n\nReact file structure with components folder and routing using React Router\n\nFastAPI app with organized folder structure (main.py, routes/, schemas/)\n\nInstructions to run both frontend and backend locally\n\nBegin by generating the file structure, then scaffold the code for homepage, navigation bar, and FastAPI contact route.",
+        "priority": "high",
+        "estimatedHours": 3,
+        "skills": [
+          "code_quality",
+          "security_review",
+          "performance_analysis",
+          "best_practices"
+        ],
+        "deliverables": [
+          "Code review report",
+          "Security assessment",
+          "Quality score",
+          "Improvement recommendations"
+        ],
+        "originalTaskId": "c46cb263-78c1-4e9b-a656-c50343fb8789",
+        "checkpointType": "code_review",
+        "dependencies": [
+          "d5d4060d-63aa-4882-9333-d793b9a8780f"
+        ],
+        "createdAt": "2025-07-28T18:33:05.608Z",
+        "projectId": "6ea44379-754b-454c-aa38-66611f1bc016",
+        "status": "todo",
+        "progress": 0,
+        "assignedAgent": null,
+        "isCheckpoint": true,
+        "startedAt": null,
+        "completedAt": null
+      }
+    },
+    {
+      "id": "d5d4060d-63aa-4882-9333-d793b9a8780f",
+      "type": "checkpoint",
+      "position": {
+        "x": 50,
+        "y": 500
+      },
+      "data": {
+        "id": "d5d4060d-63aa-4882-9333-d793b9a8780f",
+        "type": "qa_testing",
+        "title": "QA Testing: Agent Communication System",
+        "description": "Quality assurance testing and validation for: Build communication and coordination system between agents for: ou are a senior full-stack engineer. Build the initial Broadcom corporate website using React.js (with Vite or CRA) for the frontend and Python (FastAPI) for the backend API.\n\nFrontend Requirements (React.js):\n– Professional, modern enterprise layout using Tailwind CSS\n– Top Navbar: Home, Products, Solutions, Support, About, Contact\n– Homepage should include:\n    • Hero section with call-to-action\n    • Summary of Broadcom’s core solutions\n    • “Trusted by” logos section\n– Responsive and accessible design\n– Footer with sitemap, terms, privacy, and language selector\n\nBackend Requirements (Python – FastAPI):\n– Setup basic API with route /api/contact to handle POST contact form submission\n– Enable CORS for React frontend\n– Use Pydantic schema validation for the contact form\n– Include instructions or comments for connecting to an email service or database\n\nDeliverables:\n\nReact file structure with components folder and routing using React Router\n\nFastAPI app with organized folder structure (main.py, routes/, schemas/)\n\nInstructions to run both frontend and backend locally\n\nBegin by generating the file structure, then scaffold the code for homepage, navigation bar, and FastAPI contact route.: User requested: ou are a senior full-stack engineer. Build the initial Broadcom corporate website using React.js (with Vite or CRA) for the frontend and Python (FastAPI) for the backend API.\n\nFrontend Requirements (React.js):\n– Professional, modern enterprise layout using Tailwind CSS\n– Top Navbar: Home, Products, Solutions, Support, About, Contact\n– Homepage should include:\n    • Hero section with call-to-action\n    • Summary of Broadcom’s core solutions\n    • “Trusted by” logos section\n– Responsive and accessible design\n– Footer with sitemap, terms, privacy, and language selector\n\nBackend Requirements (Python – FastAPI):\n– Setup basic API with route /api/contact to handle POST contact form submission\n– Enable CORS for React frontend\n– Use Pydantic schema validation for the contact form\n– Include instructions or comments for connecting to an email service or database\n\nDeliverables:\n\nReact file structure with components folder and routing using React Router\n\nFastAPI app with organized folder structure (main.py, routes/, schemas/)\n\nInstructions to run both frontend and backend locally\n\nBegin by generating the file structure, then scaffold the code for homepage, navigation bar, and FastAPI contact route.",
+        "priority": "high",
+        "estimatedHours": 4,
+        "skills": [
+          "testing",
+          "quality_assurance",
+          "test_automation",
+          "validation"
+        ],
+        "deliverables": [
+          "Test results",
+          "Quality metrics",
+          "Test coverage report",
+          "Deployment readiness"
+        ],
+        "originalTaskId": "c46cb263-78c1-4e9b-a656-c50343fb8789",
+        "checkpointType": "qa_testing",
+        "dependencies": [
+          "9a9b1b0d-1a76-4050-aa50-693980858b45"
+        ],
+        "createdAt": "2025-07-28T18:33:05.608Z",
+        "projectId": "6ea44379-754b-454c-aa38-66611f1bc016",
+        "status": "todo",
+        "progress": 0,
+        "assignedAgent": null,
+        "isCheckpoint": true,
+        "startedAt": null,
+        "completedAt": null
+      }
+    },
+    {
+      "id": "c6c737d1-95b9-4ae2-9a06-f03d14f5feca",
+      "type": "checkpoint",
+      "position": {
+        "x": 300,
+        "y": 500
+      },
+      "data": {
+        "id": "c6c737d1-95b9-4ae2-9a06-f03d14f5feca",
+        "type": "code_review",
+        "title": "Code Review: Security Implementation",
+        "description": "Comprehensive code review and quality assessment for: Implement security measures and authentication for: ou are a senior full-stack engineer. Build the initial Broadcom corporate website using React.js (with Vite or CRA) for the frontend and Python (FastAPI) for the backend API.\n\nFrontend Requirements (React.js):\n– Professional, modern enterprise layout using Tailwind CSS\n– Top Navbar: Home, Products, Solutions, Support, About, Contact\n– Homepage should include:\n    • Hero section with call-to-action\n    • Summary of Broadcom’s core solutions\n    • “Trusted by” logos section\n– Responsive and accessible design\n– Footer with sitemap, terms, privacy, and language selector\n\nBackend Requirements (Python – FastAPI):\n– Setup basic API with route /api/contact to handle POST contact form submission\n– Enable CORS for React frontend\n– Use Pydantic schema validation for the contact form\n– Include instructions or comments for connecting to an email service or database\n\nDeliverables:\n\nReact file structure with components folder and routing using React Router\n\nFastAPI app with organized folder structure (main.py, routes/, schemas/)\n\nInstructions to run both frontend and backend locally\n\nBegin by generating the file structure, then scaffold the code for homepage, navigation bar, and FastAPI contact route.: User requested: ou are a senior full-stack engineer. Build the initial Broadcom corporate website using React.js (with Vite or CRA) for the frontend and Python (FastAPI) for the backend API.\n\nFrontend Requirements (React.js):\n– Professional, modern enterprise layout using Tailwind CSS\n– Top Navbar: Home, Products, Solutions, Support, About, Contact\n– Homepage should include:\n    • Hero section with call-to-action\n    • Summary of Broadcom’s core solutions\n    • “Trusted by” logos section\n– Responsive and accessible design\n– Footer with sitemap, terms, privacy, and language selector\n\nBackend Requirements (Python – FastAPI):\n– Setup basic API with route /api/contact to handle POST contact form submission\n– Enable CORS for React frontend\n– Use Pydantic schema validation for the contact form\n– Include instructions or comments for connecting to an email service or database\n\nDeliverables:\n\nReact file structure with components folder and routing using React Router\n\nFastAPI app with organized folder structure (main.py, routes/, schemas/)\n\nInstructions to run both frontend and backend locally\n\nBegin by generating the file structure, then scaffold the code for homepage, navigation bar, and FastAPI contact route.",
+        "priority": "high",
+        "estimatedHours": 2,
+        "skills": [
+          "code_quality",
+          "security_review",
+          "performance_analysis",
+          "best_practices"
+        ],
+        "deliverables": [
+          "Code review report",
+          "Security assessment",
+          "Quality score",
+          "Improvement recommendations"
+        ],
+        "originalTaskId": "3fe7aed8-19ab-4d34-92dc-1ada49dbbd1a",
+        "checkpointType": "code_review",
+        "dependencies": [
+          "f5300baf-f553-4a00-81f9-ebb6d041a54a"
+        ],
+        "createdAt": "2025-07-28T18:33:05.608Z",
+        "projectId": "6ea44379-754b-454c-aa38-66611f1bc016",
+        "status": "todo",
+        "progress": 0,
+        "assignedAgent": null,
+        "isCheckpoint": true,
+        "startedAt": null,
+        "completedAt": null
+      }
+    },
+    {
+      "id": "f5300baf-f553-4a00-81f9-ebb6d041a54a",
+      "type": "checkpoint",
+      "position": {
+        "x": 550,
+        "y": 500
+      },
+      "data": {
+        "id": "f5300baf-f553-4a00-81f9-ebb6d041a54a",
+        "type": "qa_testing",
+        "title": "QA Testing: Security Implementation",
+        "description": "Quality assurance testing and validation for: Implement security measures and authentication for: ou are a senior full-stack engineer. Build the initial Broadcom corporate website using React.js (with Vite or CRA) for the frontend and Python (FastAPI) for the backend API.\n\nFrontend Requirements (React.js):\n– Professional, modern enterprise layout using Tailwind CSS\n– Top Navbar: Home, Products, Solutions, Support, About, Contact\n– Homepage should include:\n    • Hero section with call-to-action\n    • Summary of Broadcom’s core solutions\n    • “Trusted by” logos section\n– Responsive and accessible design\n– Footer with sitemap, terms, privacy, and language selector\n\nBackend Requirements (Python – FastAPI):\n– Setup basic API with route /api/contact to handle POST contact form submission\n– Enable CORS for React frontend\n– Use Pydantic schema validation for the contact form\n– Include instructions or comments for connecting to an email service or database\n\nDeliverables:\n\nReact file structure with components folder and routing using React Router\n\nFastAPI app with organized folder structure (main.py, routes/, schemas/)\n\nInstructions to run both frontend and backend locally\n\nBegin by generating the file structure, then scaffold the code for homepage, navigation bar, and FastAPI contact route.: User requested: ou are a senior full-stack engineer. Build the initial Broadcom corporate website using React.js (with Vite or CRA) for the frontend and Python (FastAPI) for the backend API.\n\nFrontend Requirements (React.js):\n– Professional, modern enterprise layout using Tailwind CSS\n– Top Navbar: Home, Products, Solutions, Support, About, Contact\n– Homepage should include:\n    • Hero section with call-to-action\n    • Summary of Broadcom’s core solutions\n    • “Trusted by” logos section\n– Responsive and accessible design\n– Footer with sitemap, terms, privacy, and language selector\n\nBackend Requirements (Python – FastAPI):\n– Setup basic API with route /api/contact to handle POST contact form submission\n– Enable CORS for React frontend\n– Use Pydantic schema validation for the contact form\n– Include instructions or comments for connecting to an email service or database\n\nDeliverables:\n\nReact file structure with components folder and routing using React Router\n\nFastAPI app with organized folder structure (main.py, routes/, schemas/)\n\nInstructions to run both frontend and backend locally\n\nBegin by generating the file structure, then scaffold the code for homepage, navigation bar, and FastAPI contact route.",
+        "priority": "high",
+        "estimatedHours": 3,
+        "skills": [
+          "testing",
+          "quality_assurance",
+          "test_automation",
+          "validation"
+        ],
+        "deliverables": [
+          "Test results",
+          "Quality metrics",
+          "Test coverage report",
+          "Deployment readiness"
+        ],
+        "originalTaskId": "3fe7aed8-19ab-4d34-92dc-1ada49dbbd1a",
+        "checkpointType": "qa_testing",
+        "dependencies": [
+          "c6c737d1-95b9-4ae2-9a06-f03d14f5feca"
+        ],
+        "createdAt": "2025-07-28T18:33:05.608Z",
+        "projectId": "6ea44379-754b-454c-aa38-66611f1bc016",
+        "status": "todo",
+        "progress": 0,
+        "assignedAgent": null,
+        "isCheckpoint": true,
+        "startedAt": null,
+        "completedAt": null
+      }
+    },
+    {
+      "id": "5b8bf39c-153e-455f-a11e-8e24c35fdd7a",
+      "type": "final_review",
+      "position": {
+        "x": 800,
+        "y": 500
+      },
+      "data": {
+        "id": "5b8bf39c-153e-455f-a11e-8e24c35fdd7a",
+        "type": "code_review",
+        "title": "Final Project Code Review",
+        "description": "Comprehensive final code review of the entire project for production readiness",
+        "priority": "critical",
+        "estimatedHours": 4,
+        "skills": [
+          "code_quality",
+          "security_review",
+          "architecture_review",
+          "production_readiness"
+        ],
+        "deliverables": [
+          "Final code review report",
+          "Production readiness assessment",
+          "Security clearance",
+          "Deployment approval"
+        ],
+        "checkpointType": "final_code_review",
+        "dependencies": [
+          "4513d6ee-8baa-44ac-90c0-55764f2caedd",
+          "426ef19d-dfc2-46d7-bcac-46de5fe355c8",
+          "3026b3dc-67b0-47ee-9b60-62aa52dbdc48",
+          "e9a4b3af-db5d-4711-a2b4-843f3b272435",
+          "d5d4060d-63aa-4882-9333-d793b9a8780f",
+          "f5300baf-f553-4a00-81f9-ebb6d041a54a"
+        ],
+        "createdAt": "2025-07-28T18:33:05.609Z",
+        "projectId": "6ea44379-754b-454c-aa38-66611f1bc016",
+        "isFinalReview": true,
+        "status": "todo",
+        "progress": 0,
+        "assignedAgent": null,
+        "startedAt": null,
+        "completedAt": null
+      }
+    },
+    {
+      "id": "6a174d1f-3d46-42b6-9d1a-7e1c00135ff2",
+      "type": "final_review",
+      "position": {
+        "x": 1050,
+        "y": 500
+      },
+      "data": {
+        "id": "6a174d1f-3d46-42b6-9d1a-7e1c00135ff2",
+        "type": "qa_testing",
+        "title": "Final Project QA Testing",
+        "description": "Comprehensive end-to-end testing and final quality assurance of the complete project",
+        "priority": "critical",
+        "estimatedHours": 6,
+        "skills": [
+          "e2e_testing",
+          "integration_testing",
+          "performance_testing",
+          "deployment_validation"
+        ],
+        "deliverables": [
+          "Final test report",
+          "Performance metrics",
+          "Integration test results",
+          "Deployment validation"
+        ],
+        "checkpointType": "final_qa_testing",
+        "dependencies": [
+          "5b8bf39c-153e-455f-a11e-8e24c35fdd7a"
+        ],
+        "createdAt": "2025-07-28T18:33:05.609Z",
+        "projectId": "6ea44379-754b-454c-aa38-66611f1bc016",
+        "isFinalReview": true,
+        "status": "todo",
+        "progress": 0,
+        "assignedAgent": null,
+        "startedAt": null,
+        "completedAt": null
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "undefined-06a56797-6084-4a8b-92e5-813c01cc87eb",
+      "target": "06a56797-6084-4a8b-92e5-813c01cc87eb",
+      "type": "dependency",
+      "animated": true
+    },
+    {
+      "id": "undefined-06a56797-6084-4a8b-92e5-813c01cc87eb",
+      "target": "06a56797-6084-4a8b-92e5-813c01cc87eb",
+      "type": "dependency",
+      "animated": true
+    },
+    {
+      "id": "undefined-3fe7aed8-19ab-4d34-92dc-1ada49dbbd1a",
+      "target": "3fe7aed8-19ab-4d34-92dc-1ada49dbbd1a",
+      "type": "dependency",
+      "animated": true
+    },
+    {
+      "id": "undefined-3fe7aed8-19ab-4d34-92dc-1ada49dbbd1a",
+      "target": "3fe7aed8-19ab-4d34-92dc-1ada49dbbd1a",
+      "type": "dependency",
+      "animated": true
+    },
+    {
+      "id": "4513d6ee-8baa-44ac-90c0-55764f2caedd-4a344755-53fb-42e2-829a-bdc06788ebfd",
+      "source": "4513d6ee-8baa-44ac-90c0-55764f2caedd",
+      "target": "4a344755-53fb-42e2-829a-bdc06788ebfd",
+      "type": "checkpoint_dependency",
+      "animated": true,
+      "label": "code_review"
+    },
+    {
+      "id": "4a344755-53fb-42e2-829a-bdc06788ebfd-4513d6ee-8baa-44ac-90c0-55764f2caedd",
+      "source": "4a344755-53fb-42e2-829a-bdc06788ebfd",
+      "target": "4513d6ee-8baa-44ac-90c0-55764f2caedd",
+      "type": "checkpoint_dependency",
+      "animated": true,
+      "label": "qa_testing"
+    },
+    {
+      "id": "426ef19d-dfc2-46d7-bcac-46de5fe355c8-aa176bf8-2735-46fa-b8cf-87ec05df247c",
+      "source": "426ef19d-dfc2-46d7-bcac-46de5fe355c8",
+      "target": "aa176bf8-2735-46fa-b8cf-87ec05df247c",
+      "type": "checkpoint_dependency",
+      "animated": true,
+      "label": "code_review"
+    },
+    {
+      "id": "aa176bf8-2735-46fa-b8cf-87ec05df247c-426ef19d-dfc2-46d7-bcac-46de5fe355c8",
+      "source": "aa176bf8-2735-46fa-b8cf-87ec05df247c",
+      "target": "426ef19d-dfc2-46d7-bcac-46de5fe355c8",
+      "type": "checkpoint_dependency",
+      "animated": true,
+      "label": "qa_testing"
+    },
+    {
+      "id": "3026b3dc-67b0-47ee-9b60-62aa52dbdc48-75f64d7f-a828-4cf9-b8d9-729481fccd9e",
+      "source": "3026b3dc-67b0-47ee-9b60-62aa52dbdc48",
+      "target": "75f64d7f-a828-4cf9-b8d9-729481fccd9e",
+      "type": "checkpoint_dependency",
+      "animated": true,
+      "label": "code_review"
+    },
+    {
+      "id": "75f64d7f-a828-4cf9-b8d9-729481fccd9e-3026b3dc-67b0-47ee-9b60-62aa52dbdc48",
+      "source": "75f64d7f-a828-4cf9-b8d9-729481fccd9e",
+      "target": "3026b3dc-67b0-47ee-9b60-62aa52dbdc48",
+      "type": "checkpoint_dependency",
+      "animated": true,
+      "label": "qa_testing"
+    },
+    {
+      "id": "e9a4b3af-db5d-4711-a2b4-843f3b272435-e7f54364-a9a4-46ff-9bbf-00de875a57e4",
+      "source": "e9a4b3af-db5d-4711-a2b4-843f3b272435",
+      "target": "e7f54364-a9a4-46ff-9bbf-00de875a57e4",
+      "type": "checkpoint_dependency",
+      "animated": true,
+      "label": "code_review"
+    },
+    {
+      "id": "e7f54364-a9a4-46ff-9bbf-00de875a57e4-e9a4b3af-db5d-4711-a2b4-843f3b272435",
+      "source": "e7f54364-a9a4-46ff-9bbf-00de875a57e4",
+      "target": "e9a4b3af-db5d-4711-a2b4-843f3b272435",
+      "type": "checkpoint_dependency",
+      "animated": true,
+      "label": "qa_testing"
+    },
+    {
+      "id": "d5d4060d-63aa-4882-9333-d793b9a8780f-9a9b1b0d-1a76-4050-aa50-693980858b45",
+      "source": "d5d4060d-63aa-4882-9333-d793b9a8780f",
+      "target": "9a9b1b0d-1a76-4050-aa50-693980858b45",
+      "type": "checkpoint_dependency",
+      "animated": true,
+      "label": "code_review"
+    },
+    {
+      "id": "9a9b1b0d-1a76-4050-aa50-693980858b45-d5d4060d-63aa-4882-9333-d793b9a8780f",
+      "source": "9a9b1b0d-1a76-4050-aa50-693980858b45",
+      "target": "d5d4060d-63aa-4882-9333-d793b9a8780f",
+      "type": "checkpoint_dependency",
+      "animated": true,
+      "label": "qa_testing"
+    },
+    {
+      "id": "f5300baf-f553-4a00-81f9-ebb6d041a54a-c6c737d1-95b9-4ae2-9a06-f03d14f5feca",
+      "source": "f5300baf-f553-4a00-81f9-ebb6d041a54a",
+      "target": "c6c737d1-95b9-4ae2-9a06-f03d14f5feca",
+      "type": "checkpoint_dependency",
+      "animated": true,
+      "label": "code_review"
+    },
+    {
+      "id": "c6c737d1-95b9-4ae2-9a06-f03d14f5feca-f5300baf-f553-4a00-81f9-ebb6d041a54a",
+      "source": "c6c737d1-95b9-4ae2-9a06-f03d14f5feca",
+      "target": "f5300baf-f553-4a00-81f9-ebb6d041a54a",
+      "type": "checkpoint_dependency",
+      "animated": true,
+      "label": "qa_testing"
+    },
+    {
+      "id": "4513d6ee-8baa-44ac-90c0-55764f2caedd-5b8bf39c-153e-455f-a11e-8e24c35fdd7a",
+      "source": "4513d6ee-8baa-44ac-90c0-55764f2caedd",
+      "target": "5b8bf39c-153e-455f-a11e-8e24c35fdd7a",
+      "type": "final_review_dependency",
+      "animated": true,
+      "label": "Final Review"
+    },
+    {
+      "id": "426ef19d-dfc2-46d7-bcac-46de5fe355c8-5b8bf39c-153e-455f-a11e-8e24c35fdd7a",
+      "source": "426ef19d-dfc2-46d7-bcac-46de5fe355c8",
+      "target": "5b8bf39c-153e-455f-a11e-8e24c35fdd7a",
+      "type": "final_review_dependency",
+      "animated": true,
+      "label": "Final Review"
+    },
+    {
+      "id": "3026b3dc-67b0-47ee-9b60-62aa52dbdc48-5b8bf39c-153e-455f-a11e-8e24c35fdd7a",
+      "source": "3026b3dc-67b0-47ee-9b60-62aa52dbdc48",
+      "target": "5b8bf39c-153e-455f-a11e-8e24c35fdd7a",
+      "type": "final_review_dependency",
+      "animated": true,
+      "label": "Final Review"
+    },
+    {
+      "id": "e9a4b3af-db5d-4711-a2b4-843f3b272435-5b8bf39c-153e-455f-a11e-8e24c35fdd7a",
+      "source": "e9a4b3af-db5d-4711-a2b4-843f3b272435",
+      "target": "5b8bf39c-153e-455f-a11e-8e24c35fdd7a",
+      "type": "final_review_dependency",
+      "animated": true,
+      "label": "Final Review"
+    },
+    {
+      "id": "d5d4060d-63aa-4882-9333-d793b9a8780f-5b8bf39c-153e-455f-a11e-8e24c35fdd7a",
+      "source": "d5d4060d-63aa-4882-9333-d793b9a8780f",
+      "target": "5b8bf39c-153e-455f-a11e-8e24c35fdd7a",
+      "type": "final_review_dependency",
+      "animated": true,
+      "label": "Final Review"
+    },
+    {
+      "id": "f5300baf-f553-4a00-81f9-ebb6d041a54a-5b8bf39c-153e-455f-a11e-8e24c35fdd7a",
+      "source": "f5300baf-f553-4a00-81f9-ebb6d041a54a",
+      "target": "5b8bf39c-153e-455f-a11e-8e24c35fdd7a",
+      "type": "final_review_dependency",
+      "animated": true,
+      "label": "Final Review"
+    },
+    {
+      "id": "5b8bf39c-153e-455f-a11e-8e24c35fdd7a-6a174d1f-3d46-42b6-9d1a-7e1c00135ff2",
+      "source": "5b8bf39c-153e-455f-a11e-8e24c35fdd7a",
+      "target": "6a174d1f-3d46-42b6-9d1a-7e1c00135ff2",
+      "type": "final_review_dependency",
+      "animated": true,
+      "label": "Final Review"
+    }
+  ],
+  "projectType": "full_stack_application",
+  "complexity": "high",
+  "estimatedDuration": 100,
+  "metadata": {},
+  "savedAt": "2025-07-28T18:33:05.620Z"
+}

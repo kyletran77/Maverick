@@ -1114,3 +1114,396 @@ function getAgentTypeDescription(type) {
 // Make functions available globally for modal usage
 window.createDirectory = createDirectory;
 window.closeCreateDirModal = closeCreateDirModal;
+
+// ============================================
+// PROJECT MANAGEMENT FUNCTIONALITY
+// ============================================
+
+// Project management state
+let projects = [];
+let currentSelectedProject = null;
+
+// Project management DOM elements
+const projectsBtn = document.getElementById('projects-btn');
+const projectsPanel = document.getElementById('projects-panel');
+const projectsLoading = document.getElementById('projects-loading');
+const projectsEmpty = document.getElementById('projects-empty');
+const projectsList = document.getElementById('projects-list');
+const projectsSearch = document.getElementById('projects-search');
+const refreshProjectsBtn = document.getElementById('refresh-projects-btn');
+
+// Project details modal elements
+const projectDetailsModal = document.getElementById('project-details-modal');
+const detailProjectName = document.getElementById('detail-project-name');
+const detailProjectStatus = document.getElementById('detail-project-status');
+const detailProjectCreated = document.getElementById('detail-project-created');
+const detailProjectUpdated = document.getElementById('detail-project-updated');
+const detailProjectType = document.getElementById('detail-project-type');
+const detailProjectComplexity = document.getElementById('detail-project-complexity');
+const detailProgressFill = document.getElementById('detail-progress-fill');
+const detailProgressText = document.getElementById('detail-progress-text');
+const detailTotalTasks = document.getElementById('detail-total-tasks');
+const detailCompletedTasks = document.getElementById('detail-completed-tasks');
+const detailRemainingTasks = document.getElementById('detail-remaining-tasks');
+const detailProjectPrompt = document.getElementById('detail-project-prompt');
+const resumeProjectBtn = document.getElementById('resume-project-btn');
+const pauseProjectBtn = document.getElementById('pause-project-btn');
+const createCheckpointBtn = document.getElementById('create-checkpoint-btn');
+const deleteProjectBtn = document.getElementById('delete-project-btn');
+
+// Initialize project management
+function initProjectManagement() {
+    // Add event listeners
+    projectsBtn?.addEventListener('click', openProjectsPanel);
+    refreshProjectsBtn?.addEventListener('click', loadProjects);
+    projectsSearch?.addEventListener('input', filterProjects);
+    
+    // Project action buttons
+    resumeProjectBtn?.addEventListener('click', resumeSelectedProject);
+    pauseProjectBtn?.addEventListener('click', pauseSelectedProject);
+    createCheckpointBtn?.addEventListener('click', createProjectCheckpoint);
+    deleteProjectBtn?.addEventListener('click', deleteSelectedProject);
+    
+    // Socket event listeners for project management
+    socket.on('projects_listed', handleProjectsListed);
+    socket.on('project_details', handleProjectDetails);
+    socket.on('project_progress', handleProjectProgress);
+    socket.on('project_resumed_success', handleProjectResumed);
+    socket.on('project_paused_success', handleProjectPaused);
+    socket.on('checkpoint_created', handleCheckpointCreated);
+    socket.on('project_deleted', handleProjectDeleted);
+    socket.on('project_error', handleProjectError);
+}
+
+// Open the projects management panel
+function openProjectsPanel() {
+    projectsPanel.style.display = 'flex';
+    loadProjects();
+}
+
+// Close the projects management panel
+function closeProjectsPanel() {
+    projectsPanel.style.display = 'none';
+}
+
+// Load projects from the server
+function loadProjects() {
+    showProjectsLoading();
+    socket.emit('list_projects', {});
+}
+
+// Handle projects list response
+function handleProjectsListed(data) {
+    hideProjectsLoading();
+    projects = data.projects || [];
+    
+    if (projects.length === 0) {
+        showProjectsEmpty();
+    } else {
+        renderProjects(projects);
+    }
+}
+
+// Show loading state
+function showProjectsLoading() {
+    projectsLoading.style.display = 'flex';
+    projectsEmpty.style.display = 'none';
+    projectsList.style.display = 'none';
+}
+
+// Hide loading state
+function hideProjectsLoading() {
+    projectsLoading.style.display = 'none';
+}
+
+// Show empty state
+function showProjectsEmpty() {
+    projectsEmpty.style.display = 'flex';
+    projectsList.style.display = 'none';
+}
+
+// Render projects list
+function renderProjects(projectsToRender) {
+    projectsEmpty.style.display = 'none';
+    projectsList.style.display = 'grid';
+    
+    projectsList.innerHTML = '';
+    
+    projectsToRender.forEach(project => {
+        const projectCard = createProjectCard(project);
+        projectsList.appendChild(projectCard);
+    });
+}
+
+// Create a project card element
+function createProjectCard(project) {
+    const card = document.createElement('div');
+    card.className = 'project-card';
+    card.onclick = () => openProjectDetails(project.id);
+    
+    const statusClass = getStatusClass(project.status);
+    const timeAgo = getTimeAgo(project.updatedAt);
+    const progress = project.progressPercentage || 0;
+    
+    card.innerHTML = `
+        <div class="project-card-header">
+            <h3 class="project-title">${escapeHtml(project.name || project.id)}</h3>
+            <span class="project-status ${statusClass}">${project.status}</span>
+        </div>
+        
+        <div class="project-meta">
+            <div class="project-meta-item">
+                <i class="fas fa-calendar"></i>
+                <span>Updated ${timeAgo}</span>
+            </div>
+            <div class="project-meta-item">
+                <i class="fas fa-cog"></i>
+                <span>${project.projectType || 'General'}</span>
+            </div>
+            <div class="project-meta-item">
+                <i class="fas fa-layer-group"></i>
+                <span>${project.complexity || 'Medium'}</span>
+            </div>
+        </div>
+        
+        <div class="project-prompt">
+            ${escapeHtml(project.prompt || 'No description available')}
+        </div>
+        
+        <div class="project-progress">
+            <div class="project-progress-header">
+                <span class="project-progress-label">Progress</span>
+                <span class="project-progress-percentage">${progress}%</span>
+            </div>
+            <div class="progress-bar-container">
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: ${progress}%"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="project-actions">
+            <button class="project-btn ${project.canResume ? 'primary' : ''}" 
+                    ${!project.canResume ? 'disabled' : ''}
+                    onclick="event.stopPropagation(); ${project.canResume ? `resumeProject('${project.id}')` : ''}">
+                <i class="fas fa-play"></i>
+                ${project.canResume ? 'Resume' : 'Not Resumable'}
+            </button>
+            <button class="project-btn" onclick="event.stopPropagation(); openProjectDetails('${project.id}')">
+                <i class="fas fa-info-circle"></i>
+                Details
+            </button>
+        </div>
+    `;
+    
+    return card;
+}
+
+// Get CSS class for project status
+function getStatusClass(status) {
+    const statusMap = {
+        'active': 'active',
+        'paused': 'paused',
+        'completed': 'completed',
+        'failed': 'failed',
+        'in_progress': 'active',
+        'executing': 'active'
+    };
+    return statusMap[status] || 'active';
+}
+
+// Get human-readable time ago string
+function getTimeAgo(dateString) {
+    const now = new Date();
+    const date = new Date(dateString);
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+    
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 30) return `${diffDays}d ago`;
+    return date.toLocaleDateString();
+}
+
+// Filter projects based on search input
+function filterProjects() {
+    const searchTerm = projectsSearch.value.toLowerCase().trim();
+    
+    if (!searchTerm) {
+        renderProjects(projects);
+        return;
+    }
+    
+    const filteredProjects = projects.filter(project => {
+        return (
+            (project.name && project.name.toLowerCase().includes(searchTerm)) ||
+            (project.prompt && project.prompt.toLowerCase().includes(searchTerm)) ||
+            (project.projectType && project.projectType.toLowerCase().includes(searchTerm)) ||
+            (project.status && project.status.toLowerCase().includes(searchTerm))
+        );
+    });
+    
+    renderProjects(filteredProjects);
+}
+
+// Open project details modal
+function openProjectDetails(projectId) {
+    currentSelectedProject = projectId;
+    socket.emit('get_project_details', { projectId });
+    projectDetailsModal.style.display = 'flex';
+}
+
+// Close project details modal
+function closeProjectDetailsModal() {
+    projectDetailsModal.style.display = 'none';
+    currentSelectedProject = null;
+}
+
+// Handle project details response
+function handleProjectDetails(data) {
+    const project = data.project;
+    
+    // Update project info
+    detailProjectName.textContent = project.name || project.id;
+    detailProjectStatus.textContent = project.status;
+    detailProjectStatus.className = `status-badge ${getStatusClass(project.status)}`;
+    detailProjectCreated.textContent = new Date(project.createdAt).toLocaleString();
+    detailProjectUpdated.textContent = new Date(project.updatedAt).toLocaleString();
+    detailProjectType.textContent = project.projectType || 'General';
+    detailProjectComplexity.textContent = project.complexity || 'Medium';
+    
+    // Update progress
+    const progress = project.progressPercentage || 0;
+    detailProgressFill.style.width = `${progress}%`;
+    detailProgressText.textContent = `${progress}%`;
+    detailTotalTasks.textContent = project.totalTasks || 0;
+    detailCompletedTasks.textContent = project.completedTasks || 0;
+    detailRemainingTasks.textContent = (project.totalTasks || 0) - (project.completedTasks || 0);
+    
+    // Update prompt
+    detailProjectPrompt.textContent = project.prompt || 'No description available';
+    
+    // Update action buttons
+    const canResume = project.canResume && ['paused', 'active'].includes(project.status);
+    const canPause = ['active', 'executing', 'in_progress'].includes(project.status);
+    const canCheckpoint = ['active', 'executing', 'in_progress', 'paused'].includes(project.status);
+    
+    resumeProjectBtn.disabled = !canResume;
+    pauseProjectBtn.disabled = !canPause;
+    createCheckpointBtn.disabled = !canCheckpoint;
+    deleteProjectBtn.disabled = false;
+}
+
+// Resume a project
+function resumeProject(projectId) {
+    socket.emit('resume_project', { projectId });
+    showStatus('Resuming project...', 'info');
+}
+
+// Resume the currently selected project
+function resumeSelectedProject() {
+    if (currentSelectedProject) {
+        resumeProject(currentSelectedProject);
+        closeProjectDetailsModal();
+        closeProjectsPanel();
+    }
+}
+
+// Pause the currently selected project
+function pauseSelectedProject() {
+    if (currentSelectedProject) {
+        socket.emit('pause_project', { projectId: currentSelectedProject });
+        showStatus('Pausing project...', 'info');
+    }
+}
+
+// Create checkpoint for the currently selected project
+function createProjectCheckpoint() {
+    if (currentSelectedProject) {
+        const checkpointName = prompt('Enter checkpoint name:', `checkpoint-${Date.now()}`);
+        if (checkpointName) {
+            socket.emit('create_project_checkpoint', { 
+                projectId: currentSelectedProject, 
+                checkpointName 
+            });
+            showStatus('Creating checkpoint...', 'info');
+        }
+    }
+}
+
+// Delete the currently selected project
+function deleteSelectedProject() {
+    if (currentSelectedProject) {
+        const projectName = detailProjectName.textContent;
+        if (confirm(`Are you sure you want to delete project "${projectName}"? This action cannot be undone.`)) {
+            socket.emit('delete_project', { projectId: currentSelectedProject });
+            showStatus('Deleting project...', 'info');
+        }
+    }
+}
+
+// Handle project resumed
+function handleProjectResumed(data) {
+    showStatus('Project resumed successfully!', 'success');
+    loadProjects(); // Refresh projects list
+    
+    // Open kanban board for the resumed project
+    setTimeout(() => {
+        const kanbanUrl = `kanban.html?projectId=${data.projectId}`;
+        window.open(kanbanUrl, '_blank');
+    }, 1000);
+}
+
+// Handle project paused
+function handleProjectPaused(data) {
+    showStatus('Project paused successfully!', 'success');
+    loadProjects(); // Refresh projects list
+    closeProjectDetailsModal();
+}
+
+// Handle checkpoint created
+function handleCheckpointCreated(data) {
+    showStatus('Checkpoint created successfully!', 'success');
+}
+
+// Handle project deleted
+function handleProjectDeleted(data) {
+    showStatus('Project deleted successfully!', 'success');
+    loadProjects(); // Refresh projects list
+    closeProjectDetailsModal();
+}
+
+// Handle project errors
+function handleProjectError(data) {
+    showStatus(`Project error: ${data.error}`, 'error');
+}
+
+// Escape HTML to prevent XSS
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Initialize project management when socket is ready
+function initProjectsWhenReady() {
+    if (socket && socket.connected) {
+        initProjectManagement();
+    } else {
+        setTimeout(initProjectsWhenReady, 100);
+    }
+}
+
+// Make functions available globally
+window.openProjectsPanel = openProjectsPanel;
+window.closeProjectsPanel = closeProjectsPanel;
+window.closeProjectDetailsModal = closeProjectDetailsModal;
+window.resumeProject = resumeProject;
+window.openProjectDetails = openProjectDetails;
+
+// Initialize when page loads
+initProjectsWhenReady();

@@ -614,6 +614,114 @@ io.on('connection', (socket) => {
     }
   });
 
+  // ============================================
+  // PROJECT PERSISTENCE EVENTS
+  // ============================================
+
+  // List all available projects
+  socket.on('list_projects', async (data) => {
+    try {
+      const projects = await taskOrchestrator.listAvailableProjects();
+      socket.emit('projects_listed', { projects });
+    } catch (error) {
+      console.error('Error listing projects:', error);
+      socket.emit('project_error', { error: error.message });
+    }
+  });
+
+  // Get detailed project information
+  socket.on('get_project_details', async (data) => {
+    try {
+      const { projectId } = data;
+      const project = await taskOrchestrator.getProjectDetails(projectId);
+      if (project) {
+        socket.emit('project_details', { 
+          projectId, 
+          project: taskOrchestrator.sanitizeProjectForTransmission(project) 
+        });
+      } else {
+        socket.emit('project_error', { error: `Project ${projectId} not found` });
+      }
+    } catch (error) {
+      console.error('Error getting project details:', error);
+      socket.emit('project_error', { error: error.message });
+    }
+  });
+
+  // Get project progress
+  socket.on('get_project_progress', async (data) => {
+    try {
+      const { projectId } = data;
+      const progress = await taskOrchestrator.getProjectProgress(projectId);
+      socket.emit('project_progress', { projectId, progress });
+    } catch (error) {
+      console.error('Error getting project progress:', error);
+      socket.emit('project_error', { error: error.message });
+    }
+  });
+
+  // Resume a project from saved state
+  socket.on('resume_project', async (data) => {
+    try {
+      const { projectId } = data;
+      console.log(`📂 Resuming project ${projectId}...`);
+      
+      const project = await taskOrchestrator.resumeProject(projectId, socket);
+      
+      socket.emit('project_resumed_success', { 
+        projectId, 
+        project: taskOrchestrator.sanitizeProjectForTransmission(project) 
+      });
+    } catch (error) {
+      console.error('Error resuming project:', error);
+      socket.emit('project_error', { 
+        error: `Failed to resume project: ${error.message}` 
+      });
+    }
+  });
+
+  // Pause a project and save its state
+  socket.on('pause_project', async (data) => {
+    try {
+      const { projectId } = data;
+      await taskOrchestrator.pauseProject(projectId, socket);
+      socket.emit('project_paused_success', { projectId });
+    } catch (error) {
+      console.error('Error pausing project:', error);
+      socket.emit('project_error', { error: error.message });
+    }
+  });
+
+  // Create a checkpoint for a project
+  socket.on('create_project_checkpoint', async (data) => {
+    try {
+      const { projectId, checkpointName } = data;
+      const checkpoint = await taskOrchestrator.createProjectCheckpoint(projectId, checkpointName);
+      socket.emit('checkpoint_created', { projectId, checkpoint });
+    } catch (error) {
+      console.error('Error creating checkpoint:', error);
+      socket.emit('project_error', { error: error.message });
+    }
+  });
+
+  // Delete a project
+  socket.on('delete_project', async (data) => {
+    try {
+      const { projectId } = data;
+      const success = await taskOrchestrator.deleteProject(projectId);
+      if (success) {
+        socket.emit('project_deleted', { projectId });
+        // Broadcast to all clients that project was deleted
+        io.emit('project_deleted_broadcast', { projectId });
+      } else {
+        socket.emit('project_error', { error: `Failed to delete project ${projectId}` });
+      }
+    } catch (error) {
+      console.error('Error deleting project:', error);
+      socket.emit('project_error', { error: error.message });
+    }
+  });
+
   socket.on('start_task', async (data) => {
     try {
       const { agentId, taskId } = data;

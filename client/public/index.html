@@ -30,6 +30,13 @@
                     <span id="connection-text">Connecting...</span>
                 </div>
                 
+                <div class="navigation-actions">
+                    <button id="projects-btn" class="nav-btn" title="Manage Projects">
+                        <i class="fas fa-project-diagram"></i>
+                        <span>Projects</span>
+                    </button>
+                </div>
+                
                 <div class="project-actions" id="project-actions" style="display: none;">
                     <button id="visit-project-btn" class="action-btn" title="Open Project Directory">
                         <i class="fas fa-folder-open"></i>
@@ -314,6 +321,157 @@
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeCreateDirModal()">Cancel</button>
                 <button class="btn btn-primary" onclick="createDirectory()">Create Directory</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Projects Management Panel -->
+    <div id="projects-panel" class="modal-overlay" style="display: none;">
+        <div class="modal-content projects-modal">
+            <div class="modal-header">
+                <h3><i class="fas fa-project-diagram"></i> Projects Manager</h3>
+                <button class="modal-close" onclick="closeProjectsPanel()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body projects-body">
+                <div class="projects-toolbar">
+                    <div class="toolbar-left">
+                        <button id="refresh-projects-btn" class="btn btn-secondary">
+                            <i class="fas fa-sync-alt"></i>
+                            <span>Refresh</span>
+                        </button>
+                    </div>
+                    <div class="toolbar-right">
+                        <div class="search-box">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="projects-search" placeholder="Search projects..." class="search-input">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="projects-container">
+                    <div id="projects-loading" class="loading-state">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <span>Loading projects...</span>
+                    </div>
+                    
+                    <div id="projects-empty" class="empty-state" style="display: none;">
+                        <i class="fas fa-folder-open"></i>
+                        <h4>No Projects Found</h4>
+                        <p>You haven't created any projects yet. Start by creating a new project using the main interface.</p>
+                    </div>
+                    
+                    <div id="projects-list" class="projects-list" style="display: none;">
+                        <!-- Projects will be dynamically populated here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Project Details Modal -->
+    <div id="project-details-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content project-details-modal">
+            <div class="modal-header">
+                <h3 id="project-details-title">Project Details</h3>
+                <button class="modal-close" onclick="closeProjectDetailsModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body project-details-body">
+                <div class="project-info-grid">
+                    <div class="project-overview">
+                        <div class="info-section">
+                            <h4><i class="fas fa-info-circle"></i> Overview</h4>
+                            <div class="info-grid">
+                                <div class="info-item">
+                                    <label>Project Name:</label>
+                                    <span id="detail-project-name">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Status:</label>
+                                    <span id="detail-project-status" class="status-badge">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Created:</label>
+                                    <span id="detail-project-created">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Last Updated:</label>
+                                    <span id="detail-project-updated">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Project Type:</label>
+                                    <span id="detail-project-type">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Complexity:</label>
+                                    <span id="detail-project-complexity">-</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="info-section">
+                            <h4><i class="fas fa-tasks"></i> Progress</h4>
+                            <div class="progress-overview">
+                                <div class="progress-bar-container">
+                                    <div class="progress-bar">
+                                        <div id="detail-progress-fill" class="progress-fill" style="width: 0%"></div>
+                                    </div>
+                                    <span id="detail-progress-text" class="progress-text">0%</span>
+                                </div>
+                                <div class="progress-stats">
+                                    <div class="stat">
+                                        <label>Total Tasks:</label>
+                                        <span id="detail-total-tasks">0</span>
+                                    </div>
+                                    <div class="stat">
+                                        <label>Completed:</label>
+                                        <span id="detail-completed-tasks">0</span>
+                                    </div>
+                                    <div class="stat">
+                                        <label>Remaining:</label>
+                                        <span id="detail-remaining-tasks">0</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="info-section">
+                            <h4><i class="fas fa-comment-alt"></i> Original Prompt</h4>
+                            <div class="prompt-display" id="detail-project-prompt">-</div>
+                        </div>
+                    </div>
+
+                    <div class="project-actions-panel">
+                        <div class="action-group">
+                            <h4><i class="fas fa-play-circle"></i> Actions</h4>
+                            <div class="action-buttons">
+                                <button id="resume-project-btn" class="btn btn-primary" disabled>
+                                    <i class="fas fa-play"></i>
+                                    <span>Resume Project</span>
+                                </button>
+                                <button id="pause-project-btn" class="btn btn-secondary" disabled>
+                                    <i class="fas fa-pause"></i>
+                                    <span>Pause Project</span>
+                                </button>
+                                <button id="create-checkpoint-btn" class="btn btn-secondary" disabled>
+                                    <i class="fas fa-save"></i>
+                                    <span>Create Checkpoint</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="action-group danger-zone">
+                            <h4><i class="fas fa-exclamation-triangle"></i> Danger Zone</h4>
+                            <button id="delete-project-btn" class="btn btn-danger" disabled>
+                                <i class="fas fa-trash"></i>
+                                <span>Delete Project</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

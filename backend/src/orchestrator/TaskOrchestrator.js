@@ -2,6 +2,7 @@ const { v4: uuidv4 } = require('uuid');
 const { GooseIntegration } = require('../../goose-integration');
 const QAEngineer = require('./QAEngineer');
 const AgentRegistry = require('./agents/AgentRegistry');
+const ProjectPersistence = require('./ProjectPersistence');
 
 /**
  * LangGraph-inspired Task Orchestrator with Bulletproof State Management
@@ -49,6 +50,9 @@ class TaskOrchestrator {
     
     // Initialize new modular agent registry
     this.specializedAgents = new AgentRegistry();
+    
+    // Initialize project persistence system
+    this.projectPersistence = new ProjectPersistence();
     
     // Initialize specialized agent types with capabilities (legacy support)
     this.initializeAgentTypes();
@@ -1883,6 +1887,23 @@ class TaskOrchestrator {
       
       this.activeProjects.set(projectId, project);
       
+      // Save project state to disk for persistence
+      try {
+        const projectToSave = {
+          ...project,
+          statefulGraph: statefulGraph,
+          taskAnalysis: taskAnalysis,
+          graphState: this.graphState.get(projectId),
+          nodeStates: this.nodeStates.get(projectId),
+          graphMemory: this.graphMemory.get(projectId),
+          executionContext: this.executionContext.get(projectId)
+        };
+        await this.projectPersistence.saveProject(projectToSave);
+        console.log(`💾 Project ${projectId} saved to disk for persistence`);
+      } catch (saveError) {
+        console.warn(`⚠️ Failed to save project ${projectId} to disk:`, saveError.message);
+      }
+      
       // Clear timeout since we're succeeding
       clearTimeout(orchestrationTimeout);
       
@@ -3184,6 +3205,13 @@ Remember: The goal is to create production-ready, immediately deployable code th
       if (allTasksComplete) {
         console.log('All tasks completed - finishing project');
         await this.completeProject(projectId, socket);
+      }
+      
+      // Auto-save project state after task completion
+      try {
+        await this.autoSaveProject(projectId);
+      } catch (saveError) {
+        console.warn(`⚠️ Failed to auto-save project ${projectId} after task completion:`, saveError.message);
       }
       
     } catch (error) {
@@ -5902,6 +5930,267 @@ Please perform a thorough code review following industry best practices and prov
     } catch (error) {
       console.error('Failed to reset stateful graph:', error);
       throw new Error(`Reset failed: ${error.message}`);
+    }
+  }
+
+  // ============================================
+  // PROJECT PERSISTENCE METHODS
+  // ============================================
+
+  /**
+   * Auto-save project state during execution
+   */
+  async autoSaveProject(projectId) {
+    const project = this.activeProjects.get(projectId);
+    if (!project) return;
+
+    try {
+      const projectToSave = {
+        ...project,
+        statefulGraph: this.projectGraphs.get(projectId),
+        graphState: this.graphState.get(projectId),
+        nodeStates: this.nodeStates.get(projectId),
+        graphMemory: this.graphMemory.get(projectId),
+        executionContext: this.executionContext.get(projectId),
+        agentStates: this.agentStates.get(projectId),
+        updatedAt: new Date()
+      };
+
+      await this.projectPersistence.saveProject(projectToSave);
+      console.log(`💾 Auto-saved project ${projectId}`);
+    } catch (error) {
+      console.warn(`Failed to auto-save project ${projectId}:`, error.message);
+    }
+  }
+
+  /**
+   * Resume a project from saved state
+   */
+  async resumeProject(projectId, socket) {
+    try {
+      console.log(`🔄 Resuming project ${projectId} from saved state...`);
+
+      // Load project from disk
+      const savedProject = await this.projectPersistence.loadProject(projectId);
+      
+      if (!savedProject.canResume) {
+        throw new Error(`Project ${projectId} is not in a resumable state`);
+      }
+
+      // Restore project state
+      this.activeProjects.set(projectId, savedProject);
+
+      // Restore stateful graph if it exists
+      if (savedProject.statefulGraph) {
+        this.projectGraphs.set(projectId, savedProject.statefulGraph);
+        
+        if (savedProject.graphState) {
+          this.graphState.set(projectId, savedProject.graphState);
+        }
+        
+        if (savedProject.nodeStates) {
+          this.nodeStates.set(projectId, savedProject.nodeStates);
+        }
+        
+        if (savedProject.graphMemory) {
+          this.graphMemory.set(projectId, savedProject.graphMemory);
+        }
+        
+        if (savedProject.executionContext) {
+          this.executionContext.set(projectId, savedProject.executionContext);
+        }
+        
+        if (savedProject.agentStates) {
+          this.agentStates.set(projectId, savedProject.agentStates);
+        }
+      }
+
+      // Emit project resumed event
+      socket.emit('project_resumed', {
+        projectId: projectId,
+        project: this.sanitizeProjectForTransmission(savedProject),
+        resumedAt: new Date(),
+        progress: savedProject.progress
+      });
+
+      // Broadcast agent states
+      this.broadcastAgentStates(savedProject, socket);
+
+      // Continue execution from where it left off
+      if (savedProject.resumeFromState === 'in_progress' || savedProject.resumeFromState === 'paused') {
+        if (savedProject.isStatefulGraph) {
+          await this.executeStatefulGraph(projectId, socket);
+        } else {
+          await this.startSimplifiedTaskExecution(projectId, socket);
+        }
+      }
+
+      console.log(`✅ Successfully resumed project ${projectId}`);
+      return savedProject;
+
+    } catch (error) {
+      console.error(`❌ Failed to resume project ${projectId}:`, error);
+      socket.emit('project_resume_error', { 
+        projectId: projectId, 
+        error: error.message 
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * List all available projects
+   */
+  async listAvailableProjects() {
+    try {
+      return await this.projectPersistence.listProjects();
+    } catch (error) {
+      console.error('Failed to list projects:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get project details including progress
+   */
+  async getProjectDetails(projectId) {
+    try {
+      return await this.projectPersistence.loadProject(projectId);
+    } catch (error) {
+      console.error(`Failed to get project details for ${projectId}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Delete a project
+   */
+  async deleteProject(projectId) {
+    try {
+      // Remove from active projects if it's running
+      this.activeProjects.delete(projectId);
+      this.projectGraphs.delete(projectId);
+      this.graphState.delete(projectId);
+      this.nodeStates.delete(projectId);
+      this.graphMemory.delete(projectId);
+      this.executionContext.delete(projectId);
+      this.agentStates.delete(projectId);
+
+      // Delete from disk
+      await this.projectPersistence.deleteProject(projectId);
+      
+      console.log(`🗑️ Project ${projectId} deleted successfully`);
+      return true;
+    } catch (error) {
+      console.error(`Failed to delete project ${projectId}:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Create a checkpoint for a project
+   */
+  async createProjectCheckpoint(projectId, checkpointName) {
+    try {
+      const project = this.activeProjects.get(projectId);
+      if (!project) {
+        throw new Error(`Project ${projectId} not found in active projects`);
+      }
+
+      const projectToSave = {
+        ...project,
+        statefulGraph: this.projectGraphs.get(projectId),
+        graphState: this.graphState.get(projectId),
+        nodeStates: this.nodeStates.get(projectId),
+        graphMemory: this.graphMemory.get(projectId),
+        executionContext: this.executionContext.get(projectId),
+        agentStates: this.agentStates.get(projectId)
+      };
+
+      const checkpoint = await this.projectPersistence.createCheckpoint(
+        projectId, 
+        checkpointName, 
+        projectToSave
+      );
+
+      console.log(`💾 Checkpoint '${checkpointName}' created for project ${projectId}`);
+      return checkpoint;
+    } catch (error) {
+      console.error(`Failed to create checkpoint for project ${projectId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Pause a project and save its state
+   */
+  async pauseProject(projectId, socket) {
+    try {
+      const project = this.activeProjects.get(projectId);
+      if (!project) {
+        throw new Error(`Project ${projectId} not found`);
+      }
+
+      // Update project status
+      project.status = 'paused';
+      project.pausedAt = new Date();
+
+      // Update graph state if using stateful graph
+      if (project.isStatefulGraph) {
+        await this.transitionGraphState(projectId, 'paused', socket);
+      }
+
+      // Save the paused state
+      await this.autoSaveProject(projectId);
+
+      // Emit paused event
+      socket.emit('project_paused', {
+        projectId: projectId,
+        pausedAt: new Date(),
+        canResume: true
+      });
+
+      console.log(`⏸️ Project ${projectId} paused and saved`);
+      return true;
+    } catch (error) {
+      console.error(`Failed to pause project ${projectId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Sanitize project data for transmission
+   */
+  sanitizeProjectForTransmission(project) {
+    return {
+      id: project.id,
+      name: project.name,
+      prompt: project.prompt,
+      status: project.status,
+      createdAt: project.createdAt,
+      updatedAt: project.updatedAt,
+      projectType: project.projectType,
+      complexity: project.complexity,
+      metrics: project.metrics,
+      progress: project.progress,
+      canResume: project.canResume,
+      resumeFromState: project.resumeFromState,
+      totalTasks: project.progress?.overallProgress?.totalTasks || 0,
+      completedTasks: project.progress?.overallProgress?.completedTasks || 0,
+      progressPercentage: project.progress?.overallProgress?.percentage || 0
+    };
+  }
+
+  /**
+   * Get project progress summary
+   */
+  async getProjectProgress(projectId) {
+    try {
+      const savedProject = await this.projectPersistence.loadProgress(projectId);
+      return savedProject;
+    } catch (error) {
+      console.error(`Failed to get progress for project ${projectId}:`, error);
+      return null;
     }
   }
 }

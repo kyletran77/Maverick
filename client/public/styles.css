@@ -1312,3 +1312,546 @@ body {
     border: 1px solid #000;
   }
 }
+
+/* =================================
+   PROJECT MANAGEMENT STYLES
+   ================================= */
+
+/* Navigation button in header */
+.navigation-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.nav-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.nav-btn:hover {
+  background: var(--gray-100);
+  border-color: var(--border-hover);
+  transform: translateY(-1px);
+}
+
+.nav-btn i {
+  font-size: 1rem;
+  color: var(--broadcom-red);
+}
+
+/* Projects modal styling */
+.projects-modal {
+  width: 90%;
+  max-width: 1200px;
+  min-height: 600px;
+  max-height: 80vh;
+}
+
+.projects-body {
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Toolbar */
+.projects-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-md);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.toolbar-left,
+.toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-box i {
+  position: absolute;
+  left: var(--space-sm);
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.search-input {
+  padding: var(--space-sm) var(--space-sm) var(--space-sm) 2.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  width: 250px;
+  transition: border-color 0.2s ease;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--broadcom-red);
+}
+
+/* Projects container */
+.projects-container {
+  flex: 1;
+  overflow: auto;
+  padding: var(--space-md);
+}
+
+/* Loading and empty states */
+.loading-state,
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: var(--space-3xl);
+  color: var(--text-secondary);
+}
+
+.loading-state i,
+.empty-state i {
+  font-size: 3rem;
+  margin-bottom: var(--space-md);
+  color: var(--text-muted);
+}
+
+.empty-state h4 {
+  margin: 0 0 var(--space-sm) 0;
+  color: var(--text-primary);
+}
+
+.empty-state p {
+  margin: 0;
+  max-width: 400px;
+}
+
+/* Projects list */
+.projects-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: var(--space-md);
+}
+
+/* Individual project card */
+.project-card {
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  transition: all 0.2s ease;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.project-card:hover {
+  border-color: var(--broadcom-red);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.project-card-header {
+  display: flex;
+  justify-content: between;
+  align-items: flex-start;
+  margin-bottom: var(--space-md);
+}
+
+.project-title {
+  margin: 0 0 var(--space-xs) 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.4;
+}
+
+.project-status {
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.project-status.active {
+  background: var(--success);
+  color: white;
+}
+
+.project-status.paused {
+  background: var(--warning);
+  color: white;
+}
+
+.project-status.completed {
+  background: var(--info);
+  color: white;
+}
+
+.project-status.failed {
+  background: var(--error);
+  color: white;
+}
+
+.project-meta {
+  display: flex;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.project-meta-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.project-meta-item i {
+  color: var(--text-muted);
+}
+
+.project-prompt {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: var(--space-md);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.project-progress {
+  margin-bottom: var(--space-md);
+}
+
+.project-progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-xs);
+}
+
+.project-progress-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.project-progress-percentage {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--broadcom-red);
+}
+
+.progress-bar-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.progress-bar {
+  flex: 1;
+  height: 8px;
+  background: var(--gray-200);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--broadcom-red), var(--broadcom-red-light));
+  border-radius: var(--radius-sm);
+  transition: width 0.3s ease;
+}
+
+.project-actions {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.project-btn {
+  flex: 1;
+  padding: var(--space-sm);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--background);
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+}
+
+.project-btn:hover {
+  background: var(--surface);
+  border-color: var(--border-hover);
+}
+
+.project-btn.primary {
+  background: var(--broadcom-red);
+  color: white;
+  border-color: var(--broadcom-red);
+}
+
+.project-btn.primary:hover {
+  background: var(--broadcom-red-dark);
+  border-color: var(--broadcom-red-dark);
+}
+
+.project-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Project details modal */
+.project-details-modal {
+  width: 95%;
+  max-width: 1000px;
+  min-height: 600px;
+  max-height: 85vh;
+}
+
+.project-details-body {
+  padding: 0;
+  overflow: auto;
+}
+
+.project-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: var(--space-lg);
+  padding: var(--space-lg);
+}
+
+.project-overview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.info-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+}
+
+.info-section h4 {
+  margin: 0 0 var(--space-md) 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.info-section h4 i {
+  color: var(--broadcom-red);
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-md);
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.info-item label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.info-item span {
+  font-size: 0.875rem;
+  color: var(--text-primary);
+}
+
+.status-badge {
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  width: fit-content;
+}
+
+.progress-overview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.progress-text {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--broadcom-red);
+  min-width: 45px;
+  text-align: right;
+}
+
+.progress-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-md);
+}
+
+.stat {
+  text-align: center;
+  padding: var(--space-md);
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.stat label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  margin-bottom: var(--space-xs);
+}
+
+.stat span {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.prompt-display {
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.project-actions-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.action-group {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+}
+
+.action-group h4 {
+  margin: 0 0 var(--space-md) 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.action-group h4 i {
+  color: var(--broadcom-red);
+}
+
+.action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.danger-zone {
+  border-color: var(--error);
+}
+
+.danger-zone h4 i {
+  color: var(--error);
+}
+
+/* Responsive design for project management */
+@media (max-width: 768px) {
+  .projects-modal {
+    width: 95%;
+    max-width: none;
+    margin: var(--space-md);
+  }
+  
+  .projects-list {
+    grid-template-columns: 1fr;
+  }
+  
+  .project-info-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-md);
+  }
+  
+  .project-actions-panel {
+    order: -1;
+  }
+  
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .progress-stats {
+    grid-template-columns: 1fr;
+  }
+  
+  .search-input {
+    width: 200px;
+  }
+  
+  .projects-toolbar {
+    flex-direction: column;
+    gap: var(--space-md);
+    align-items: stretch;
+  }
+  
+  .toolbar-left,
+  .toolbar-right {
+    justify-content: center;
+  }
+}

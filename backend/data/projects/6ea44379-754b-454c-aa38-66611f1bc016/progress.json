@@ -1,0 +1,606 @@
+{
+  "projectId": "6ea44379-754b-454c-aa38-66611f1bc016",
+  "overallProgress": {
+    "percentage": 0,
+    "completedTasks": 0,
+    "totalTasks": 20,
+    "failedTasks": 0,
+    "inProgressTasks": 0,
+    "pendingTasks": 20
+  },
+  "taskProgress": [
+    {
+      "taskId": "06a56797-6084-4a8b-92e5-813c01cc87eb",
+      "title": "Frontend Development",
+      "status": "pending",
+      "progress": 0,
+      "startTime": null,
+      "endTime": null,
+      "duration": null,
+      "assignedAgent": null,
+      "dependencies": [
+        null,
+        null
+      ],
+      "errors": [],
+      "isCheckpoint": false
+    },
+    {
+      "taskId": "83a428aa-7a89-4d15-bfd9-a77481130e15",
+      "title": "Backend Development",
+      "status": "pending",
+      "progress": 0,
+      "startTime": null,
+      "endTime": null,
+      "duration": null,
+      "assignedAgent": null,
+      "dependencies": [],
+      "errors": [],
+      "isCheckpoint": false
+    },
+    {
+      "taskId": "3b912ac7-125a-4f76-8865-328a891f4a72",
+      "title": "Database Design",
+      "status": "pending",
+      "progress": 0,
+      "startTime": null,
+      "endTime": null,
+      "duration": null,
+      "assignedAgent": null,
+      "dependencies": [],
+      "errors": [],
+      "isCheckpoint": false
+    },
+    {
+      "taskId": "af9da1d6-b976-481a-a9dd-66b19d512cd1",
+      "title": "Multi-Agent System Architecture",
+      "status": "pending",
+      "progress": 0,
+      "startTime": null,
+      "endTime": null,
+      "duration": null,
+      "assignedAgent": null,
+      "dependencies": [],
+      "errors": [],
+      "isCheckpoint": false
+    },
+    {
+      "taskId": "c46cb263-78c1-4e9b-a656-c50343fb8789",
+      "title": "Agent Communication System",
+      "status": "pending",
+      "progress": 0,
+      "startTime": null,
+      "endTime": null,
+      "duration": null,
+      "assignedAgent": null,
+      "dependencies": [],
+      "errors": [],
+      "isCheckpoint": false
+    },
+    {
+      "taskId": "3fe7aed8-19ab-4d34-92dc-1ada49dbbd1a",
+      "title": "Security Implementation",
+      "status": "pending",
+      "progress": 0,
+      "startTime": null,
+      "endTime": null,
+      "duration": null,
+      "assignedAgent": null,
+      "dependencies": [
+        null,
+        null
+      ],
+      "errors": [],
+      "isCheckpoint": false
+    },
+    {
+      "taskId": "4a344755-53fb-42e2-829a-bdc06788ebfd",
+      "title": "Code Review: Frontend Development",
+      "status": "pending",
+      "progress": 0,
+      "startTime": null,
+      "endTime": null,
+      "duration": null,
+      "assignedAgent": null,
+      "dependencies": [
+        "4513d6ee-8baa-44ac-90c0-55764f2caedd"
+      ],
+      "errors": [],
+      "isCheckpoint": true
+    },
+    {
+      "taskId": "4513d6ee-8baa-44ac-90c0-55764f2caedd",
+      "title": "QA Testing: Frontend Development",
+      "status": "pending",
+      "progress": 0,
+      "startTime": null,
+      "endTime": null,
+      "duration": null,
+      "assignedAgent": null,
+      "dependencies": [
+        "4a344755-53fb-42e2-829a-bdc06788ebfd"
+      ],
+      "errors": [],
+      "isCheckpoint": true
+    },
+    {
+      "taskId": "aa176bf8-2735-46fa-b8cf-87ec05df247c",
+      "title": "Code Review: Backend Development",
+      "status": "pending",
+      "progress": 0,
+      "startTime": null,
+      "endTime": null,
+      "duration": null,
+      "assignedAgent": null,
+      "dependencies": [
+        "426ef19d-dfc2-46d7-bcac-46de5fe355c8"
+      ],
+      "errors": [],
+      "isCheckpoint": true
+    },
+    {
+      "taskId": "426ef19d-dfc2-46d7-bcac-46de5fe355c8",
+      "title": "QA Testing: Backend Development",
+      "status": "pending",
+      "progress": 0,
+      "startTime": null,
+      "endTime": null,
+      "duration": null,
+      "assignedAgent": null,
+      "dependencies": [
+        "aa176bf8-2735-46fa-b8cf-87ec05df247c"
+      ],
+      "errors": [],
+      "isCheckpoint": true
+    },
+    {
+      "taskId": "75f64d7f-a828-4cf9-b8d9-729481fccd9e",
+      "title": "Code Review: Database Design",
+      "status": "pending",
+      "progress": 0,
+      "startTime": null,
+      "endTime": null,
+      "duration": null,
+      "assignedAgent": null,
+      "dependencies": [
+        "3026b3dc-67b0-47ee-9b60-62aa52dbdc48"
+      ],
+      "errors": [],
+      "isCheckpoint": true
+    },
+    {
+      "taskId": "3026b3dc-67b0-47ee-9b60-62aa52dbdc48",
+      "title": "QA Testing: Database Design",
+      "status": "pending",
+      "progress": 0,
+      "startTime": null,
+      "endTime": null,
+      "duration": null,
+      "assignedAgent": null,
+      "dependencies": [
+        "75f64d7f-a828-4cf9-b8d9-729481fccd9e"
+      ],
+      "errors": [],
+      "isCheckpoint": true
+    },
+    {
+      "taskId": "e7f54364-a9a4-46ff-9bbf-00de875a57e4",
+      "title": "Code Review: Multi-Agent System Architecture",
+      "status": "pending",
+      "progress": 0,
+      "startTime": null,
+      "endTime": null,
+      "duration": null,
+      "assignedAgent": null,
+      "dependencies": [
+        "e9a4b3af-db5d-4711-a2b4-843f3b272435"
+      ],
+      "errors": [],
+      "isCheckpoint": true
+    },
+    {
+      "taskId": "e9a4b3af-db5d-4711-a2b4-843f3b272435",
+      "title": "QA Testing: Multi-Agent System Architecture",
+      "status": "pending",
+      "progress": 0,
+      "startTime": null,
+      "endTime": null,
+      "duration": null,
+      "assignedAgent": null,
+      "dependencies": [
+        "e7f54364-a9a4-46ff-9bbf-00de875a57e4"
+      ],
+      "errors": [],
+      "isCheckpoint": true
+    },
+    {
+      "taskId": "9a9b1b0d-1a76-4050-aa50-693980858b45",
+      "title": "Code Review: Agent Communication System",
+      "status": "pending",
+      "progress": 0,
+      "startTime": null,
+      "endTime": null,
+      "duration": null,
+      "assignedAgent": null,
+      "dependencies": [
+        "d5d4060d-63aa-4882-9333-d793b9a8780f"
+      ],
+      "errors": [],
+      "isCheckpoint": true
+    },
+    {
+      "taskId": "d5d4060d-63aa-4882-9333-d793b9a8780f",
+      "title": "QA Testing: Agent Communication System",
+      "status": "pending",
+      "progress": 0,
+      "startTime": null,
+      "endTime": null,
+      "duration": null,
+      "assignedAgent": null,
+      "dependencies": [
+        "9a9b1b0d-1a76-4050-aa50-693980858b45"
+      ],
+      "errors": [],
+      "isCheckpoint": true
+    },
+    {
+      "taskId": "c6c737d1-95b9-4ae2-9a06-f03d14f5feca",
+      "title": "Code Review: Security Implementation",
+      "status": "pending",
+      "progress": 0,
+      "startTime": null,
+      "endTime": null,
+      "duration": null,
+      "assignedAgent": null,
+      "dependencies": [
+        "f5300baf-f553-4a00-81f9-ebb6d041a54a"
+      ],
+      "errors": [],
+      "isCheckpoint": true
+    },
+    {
+      "taskId": "f5300baf-f553-4a00-81f9-ebb6d041a54a",
+      "title": "QA Testing: Security Implementation",
+      "status": "pending",
+      "progress": 0,
+      "startTime": null,
+      "endTime": null,
+      "duration": null,
+      "assignedAgent": null,
+      "dependencies": [
+        "c6c737d1-95b9-4ae2-9a06-f03d14f5feca"
+      ],
+      "errors": [],
+      "isCheckpoint": true
+    },
+    {
+      "taskId": "5b8bf39c-153e-455f-a11e-8e24c35fdd7a",
+      "title": "Final Project Code Review",
+      "status": "pending",
+      "progress": 0,
+      "startTime": null,
+      "endTime": null,
+      "duration": null,
+      "assignedAgent": null,
+      "dependencies": [
+        "4513d6ee-8baa-44ac-90c0-55764f2caedd",
+        "426ef19d-dfc2-46d7-bcac-46de5fe355c8",
+        "3026b3dc-67b0-47ee-9b60-62aa52dbdc48",
+        "e9a4b3af-db5d-4711-a2b4-843f3b272435",
+        "d5d4060d-63aa-4882-9333-d793b9a8780f",
+        "f5300baf-f553-4a00-81f9-ebb6d041a54a"
+      ],
+      "errors": [],
+      "isCheckpoint": false
+    },
+    {
+      "taskId": "6a174d1f-3d46-42b6-9d1a-7e1c00135ff2",
+      "title": "Final Project QA Testing",
+      "status": "pending",
+      "progress": 0,
+      "startTime": null,
+      "endTime": null,
+      "duration": null,
+      "assignedAgent": null,
+      "dependencies": [
+        "5b8bf39c-153e-455f-a11e-8e24c35fdd7a"
+      ],
+      "errors": [],
+      "isCheckpoint": false
+    }
+  ],
+  "agentProgress": {
+    "829ca347-5212-40f3-92b4-465fbddecad0": {
+      "agentId": "829ca347-5212-40f3-92b4-465fbddecad0",
+      "agentName": "Python Backend Specialist",
+      "agentType": "python_backend_specialist",
+      "totalTasks": 6,
+      "completedTasks": 0,
+      "failedTasks": 0,
+      "inProgressTasks": 0,
+      "progressPercentage": 0
+    },
+    "954cd632-3db6-4a5e-b3a1-744349e5e9a2": {
+      "agentId": "954cd632-3db6-4a5e-b3a1-744349e5e9a2",
+      "agentName": "Code Review Specialist",
+      "agentType": "code_review_specialist",
+      "totalTasks": 7,
+      "completedTasks": 0,
+      "failedTasks": 0,
+      "inProgressTasks": 0,
+      "progressPercentage": 0
+    },
+    "95f76c42-8b01-4632-b2fc-81020f44e4b7": {
+      "agentId": "95f76c42-8b01-4632-b2fc-81020f44e4b7",
+      "agentName": "QA Testing Specialist",
+      "agentType": "qa_testing_specialist",
+      "totalTasks": 7,
+      "completedTasks": 0,
+      "failedTasks": 0,
+      "inProgressTasks": 0,
+      "progressPercentage": 0
+    }
+  },
+  "timeline": [
+    {
+      "timestamp": "2025-07-28T18:33:05.610Z",
+      "type": "graph_created",
+      "description": "graph_created",
+      "data": {
+        "nodeCount": 20,
+        "edgeCount": 23,
+        "memorySize": 7,
+        "stateVersion": 1
+      }
+    },
+    {
+      "timestamp": "2025-07-28T18:33:05.619Z",
+      "type": "project_created",
+      "description": "Project created",
+      "data": {
+        "projectId": "6ea44379-754b-454c-aa38-66611f1bc016"
+      }
+    }
+  ],
+  "dependencies": {
+    "dependencies": [
+      {
+        "to": "06a56797-6084-4a8b-92e5-813c01cc87eb",
+        "type": "dependency"
+      },
+      {
+        "to": "06a56797-6084-4a8b-92e5-813c01cc87eb",
+        "type": "dependency"
+      },
+      {
+        "to": "3fe7aed8-19ab-4d34-92dc-1ada49dbbd1a",
+        "type": "dependency"
+      },
+      {
+        "to": "3fe7aed8-19ab-4d34-92dc-1ada49dbbd1a",
+        "type": "dependency"
+      },
+      {
+        "from": "4513d6ee-8baa-44ac-90c0-55764f2caedd",
+        "to": "4a344755-53fb-42e2-829a-bdc06788ebfd",
+        "type": "checkpoint_dependency"
+      },
+      {
+        "from": "4a344755-53fb-42e2-829a-bdc06788ebfd",
+        "to": "4513d6ee-8baa-44ac-90c0-55764f2caedd",
+        "type": "checkpoint_dependency"
+      },
+      {
+        "from": "426ef19d-dfc2-46d7-bcac-46de5fe355c8",
+        "to": "aa176bf8-2735-46fa-b8cf-87ec05df247c",
+        "type": "checkpoint_dependency"
+      },
+      {
+        "from": "aa176bf8-2735-46fa-b8cf-87ec05df247c",
+        "to": "426ef19d-dfc2-46d7-bcac-46de5fe355c8",
+        "type": "checkpoint_dependency"
+      },
+      {
+        "from": "3026b3dc-67b0-47ee-9b60-62aa52dbdc48",
+        "to": "75f64d7f-a828-4cf9-b8d9-729481fccd9e",
+        "type": "checkpoint_dependency"
+      },
+      {
+        "from": "75f64d7f-a828-4cf9-b8d9-729481fccd9e",
+        "to": "3026b3dc-67b0-47ee-9b60-62aa52dbdc48",
+        "type": "checkpoint_dependency"
+      },
+      {
+        "from": "e9a4b3af-db5d-4711-a2b4-843f3b272435",
+        "to": "e7f54364-a9a4-46ff-9bbf-00de875a57e4",
+        "type": "checkpoint_dependency"
+      },
+      {
+        "from": "e7f54364-a9a4-46ff-9bbf-00de875a57e4",
+        "to": "e9a4b3af-db5d-4711-a2b4-843f3b272435",
+        "type": "checkpoint_dependency"
+      },
+      {
+        "from": "d5d4060d-63aa-4882-9333-d793b9a8780f",
+        "to": "9a9b1b0d-1a76-4050-aa50-693980858b45",
+        "type": "checkpoint_dependency"
+      },
+      {
+        "from": "9a9b1b0d-1a76-4050-aa50-693980858b45",
+        "to": "d5d4060d-63aa-4882-9333-d793b9a8780f",
+        "type": "checkpoint_dependency"
+      },
+      {
+        "from": "f5300baf-f553-4a00-81f9-ebb6d041a54a",
+        "to": "c6c737d1-95b9-4ae2-9a06-f03d14f5feca",
+        "type": "checkpoint_dependency"
+      },
+      {
+        "from": "c6c737d1-95b9-4ae2-9a06-f03d14f5feca",
+        "to": "f5300baf-f553-4a00-81f9-ebb6d041a54a",
+        "type": "checkpoint_dependency"
+      },
+      {
+        "from": "4513d6ee-8baa-44ac-90c0-55764f2caedd",
+        "to": "5b8bf39c-153e-455f-a11e-8e24c35fdd7a",
+        "type": "final_review_dependency"
+      },
+      {
+        "from": "426ef19d-dfc2-46d7-bcac-46de5fe355c8",
+        "to": "5b8bf39c-153e-455f-a11e-8e24c35fdd7a",
+        "type": "final_review_dependency"
+      },
+      {
+        "from": "3026b3dc-67b0-47ee-9b60-62aa52dbdc48",
+        "to": "5b8bf39c-153e-455f-a11e-8e24c35fdd7a",
+        "type": "final_review_dependency"
+      },
+      {
+        "from": "e9a4b3af-db5d-4711-a2b4-843f3b272435",
+        "to": "5b8bf39c-153e-455f-a11e-8e24c35fdd7a",
+        "type": "final_review_dependency"
+      },
+      {
+        "from": "d5d4060d-63aa-4882-9333-d793b9a8780f",
+        "to": "5b8bf39c-153e-455f-a11e-8e24c35fdd7a",
+        "type": "final_review_dependency"
+      },
+      {
+        "from": "f5300baf-f553-4a00-81f9-ebb6d041a54a",
+        "to": "5b8bf39c-153e-455f-a11e-8e24c35fdd7a",
+        "type": "final_review_dependency"
+      },
+      {
+        "from": "5b8bf39c-153e-455f-a11e-8e24c35fdd7a",
+        "to": "6a174d1f-3d46-42b6-9d1a-7e1c00135ff2",
+        "type": "final_review_dependency"
+      }
+    ],
+    "blockers": [
+      {
+        "taskId": "06a56797-6084-4a8b-92e5-813c01cc87eb",
+        "blockedBy": [
+          null,
+          null
+        ]
+      },
+      {
+        "taskId": "3fe7aed8-19ab-4d34-92dc-1ada49dbbd1a",
+        "blockedBy": [
+          null,
+          null
+        ]
+      },
+      {
+        "taskId": "4a344755-53fb-42e2-829a-bdc06788ebfd",
+        "blockedBy": [
+          "4513d6ee-8baa-44ac-90c0-55764f2caedd"
+        ]
+      },
+      {
+        "taskId": "4513d6ee-8baa-44ac-90c0-55764f2caedd",
+        "blockedBy": [
+          "4a344755-53fb-42e2-829a-bdc06788ebfd"
+        ]
+      },
+      {
+        "taskId": "aa176bf8-2735-46fa-b8cf-87ec05df247c",
+        "blockedBy": [
+          "426ef19d-dfc2-46d7-bcac-46de5fe355c8"
+        ]
+      },
+      {
+        "taskId": "426ef19d-dfc2-46d7-bcac-46de5fe355c8",
+        "blockedBy": [
+          "aa176bf8-2735-46fa-b8cf-87ec05df247c"
+        ]
+      },
+      {
+        "taskId": "75f64d7f-a828-4cf9-b8d9-729481fccd9e",
+        "blockedBy": [
+          "3026b3dc-67b0-47ee-9b60-62aa52dbdc48"
+        ]
+      },
+      {
+        "taskId": "3026b3dc-67b0-47ee-9b60-62aa52dbdc48",
+        "blockedBy": [
+          "75f64d7f-a828-4cf9-b8d9-729481fccd9e"
+        ]
+      },
+      {
+        "taskId": "e7f54364-a9a4-46ff-9bbf-00de875a57e4",
+        "blockedBy": [
+          "e9a4b3af-db5d-4711-a2b4-843f3b272435"
+        ]
+      },
+      {
+        "taskId": "e9a4b3af-db5d-4711-a2b4-843f3b272435",
+        "blockedBy": [
+          "e7f54364-a9a4-46ff-9bbf-00de875a57e4"
+        ]
+      },
+      {
+        "taskId": "9a9b1b0d-1a76-4050-aa50-693980858b45",
+        "blockedBy": [
+          "d5d4060d-63aa-4882-9333-d793b9a8780f"
+        ]
+      },
+      {
+        "taskId": "d5d4060d-63aa-4882-9333-d793b9a8780f",
+        "blockedBy": [
+          "9a9b1b0d-1a76-4050-aa50-693980858b45"
+        ]
+      },
+      {
+        "taskId": "c6c737d1-95b9-4ae2-9a06-f03d14f5feca",
+        "blockedBy": [
+          "f5300baf-f553-4a00-81f9-ebb6d041a54a"
+        ]
+      },
+      {
+        "taskId": "f5300baf-f553-4a00-81f9-ebb6d041a54a",
+        "blockedBy": [
+          "c6c737d1-95b9-4ae2-9a06-f03d14f5feca"
+        ]
+      },
+      {
+        "taskId": "5b8bf39c-153e-455f-a11e-8e24c35fdd7a",
+        "blockedBy": [
+          "4513d6ee-8baa-44ac-90c0-55764f2caedd",
+          "426ef19d-dfc2-46d7-bcac-46de5fe355c8",
+          "3026b3dc-67b0-47ee-9b60-62aa52dbdc48",
+          "e9a4b3af-db5d-4711-a2b4-843f3b272435",
+          "d5d4060d-63aa-4882-9333-d793b9a8780f",
+          "f5300baf-f553-4a00-81f9-ebb6d041a54a"
+        ]
+      },
+      {
+        "taskId": "6a174d1f-3d46-42b6-9d1a-7e1c00135ff2",
+        "blockedBy": [
+          "5b8bf39c-153e-455f-a11e-8e24c35fdd7a"
+        ]
+      }
+    ],
+    "readyTasks": [
+      "83a428aa-7a89-4d15-bfd9-a77481130e15",
+      "3b912ac7-125a-4f76-8865-328a891f4a72",
+      "af9da1d6-b976-481a-a9dd-66b19d512cd1",
+      "c46cb263-78c1-4e9b-a656-c50343fb8789"
+    ]
+  },
+  "qualityMetrics": {
+    "overallScore": 0,
+    "testCoverage": 0,
+    "codeQuality": 0,
+    "securityScore": 0,
+    "performanceScore": 0,
+    "deploymentReadiness": "unknown"
+  },
+  "estimates": {
+    "estimatedCompletion": "2025-07-28T23:33:05.623Z",
+    "estimatedRemainingTime": 18000000,
+    "averageTaskTime": 900000,
+    "confidence": "low"
+  },
+  "savedAt": "2025-07-28T18:33:05.623Z"
+}

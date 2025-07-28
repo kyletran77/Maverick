@@ -1,0 +1,27 @@
+{
+  "id": "6ea44379-754b-454c-aa38-66611f1bc016",
+  "name": "Project 6ea44379-754b-454c-aa38-66611f1bc016",
+  "prompt": "ou are a senior full-stack engineer. Build the initial Broadcom corporate website using React.js (with Vite or CRA) for the frontend and Python (FastAPI) for the backend API.\n\nFrontend Requirements (React.js):\n– Professional, modern enterprise layout using Tailwind CSS\n– Top Navbar: Home, Products, Solutions, Support, About, Contact\n– Homepage should include:\n    • Hero section with call-to-action\n    • Summary of Broadcom’s core solutions\n    • “Trusted by” logos section\n– Responsive and accessible design\n– Footer with sitemap, terms, privacy, and language selector\n\nBackend Requirements (Python – FastAPI):\n– Setup basic API with route /api/contact to handle POST contact form submission\n– Enable CORS for React frontend\n– Use Pydantic schema validation for the contact form\n– Include instructions or comments for connecting to an email service or database\n\nDeliverables:\n\nReact file structure with components folder and routing using React Router\n\nFastAPI app with organized folder structure (main.py, routes/, schemas/)\n\nInstructions to run both frontend and backend locally\n\nBegin by generating the file structure, then scaffold the code for homepage, navigation bar, and FastAPI contact route.: User requested: ou are a senior full-stack engineer. Build the initial Broadcom corporate website using React.js (with Vite or CRA) for the frontend and Python (FastAPI) for the backend API.\n\nFrontend Requirements (React.js):\n– Professional, modern enterprise layout using Tailwind CSS\n– Top Navbar: Home, Products, Solutions, Support, About, Contact\n– Homepage should include:\n    • Hero section with call-to-action\n    • Summary of Broadcom’s core solutions\n    • “Trusted by” logos section\n– Responsive and accessible design\n– Footer with sitemap, terms, privacy, and language selector\n\nBackend Requirements (Python – FastAPI):\n– Setup basic API with route /api/contact to handle POST contact form submission\n– Enable CORS for React frontend\n– Use Pydantic schema validation for the contact form\n– Include instructions or comments for connecting to an email service or database\n\nDeliverables:\n\nReact file structure with components folder and routing using React Router\n\nFastAPI app with organized folder structure (main.py, routes/, schemas/)\n\nInstructions to run both frontend and backend locally\n\nBegin by generating the file structure, then scaffold the code for homepage, navigation bar, and FastAPI contact route.",
+  "projectPath": "/Users/kyletran/Desktop/another-broadcom-website/another-broadcom-website",
+  "status": "active",
+  "createdAt": "2025-07-28T18:33:05.619Z",
+  "updatedAt": "2025-07-28T18:33:05.620Z",
+  "lastSavedAt": "2025-07-28T18:33:05.620Z",
+  "version": 1,
+  "projectType": "full_stack_application",
+  "complexity": "high",
+  "metrics": {
+    "totalTasks": 20,
+    "completedTasks": 0,
+    "failedTasks": 0,
+    "estimatedDuration": 12,
+    "actualDuration": 0,
+    "progressPercentage": 0
+  },
+  "isStatefulGraph": true,
+  "statefulGraphId": "6ea44379-754b-454c-aa38-66611f1bc016",
+  "canResume": true,
+  "resumeFromState": "ready_to_start",
+  "tags": [],
+  "category": "general"
+}
