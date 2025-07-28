@@ -135,43 +135,75 @@ class CodeReviewSpecialist {
   }
 
   /**
-   * Calculate skill match for a given task
+   * Calculate skill match for a given task - RESTRICTIVE MATCHING FOR CODE REVIEW TASKS ONLY
    */
   calculateSkillMatch(task) {
     const taskSkills = task.skills || [];
     const taskDescription = (task.description || '').toLowerCase();
     const taskTitle = (task.title || '').toLowerCase();
     
-    let totalScore = 0;
-    let maxScore = 0;
+    // CRITICAL: Only match on actual code review tasks, not development tasks
+    // Check if this is explicitly a checkpoint/review task
+    if (task.isCheckpoint && (task.checkpointType === 'code_review' || task.checkpointType === 'final_code_review')) {
+      // This is a legitimate code review checkpoint - give high score
+      return 95.0;
+    }
     
-    // Direct skill matching
-    taskSkills.forEach(skill => {
-      const capability = this.capabilities[skill.toLowerCase()];
-      if (capability) {
-        totalScore += capability.efficiency;
-        maxScore += 1;
-      }
-    });
+    // Check if task title explicitly indicates code review
+    const explicitReviewPatterns = [
+      /^code\s+review/i,
+      /^review\s+code/i,
+      /^security\s+review/i,
+      /^quality\s+review/i,
+      /^architecture\s+review/i,
+      /^pull\s+request/i,
+      /^pr\s+review/i
+    ];
     
-    // Pattern matching for additional context
-    this.taskPatterns.forEach(pattern => {
-      if (pattern.pattern.test(taskDescription) || pattern.pattern.test(taskTitle)) {
-        totalScore += 0.9; // High bonus for review tasks
-        maxScore += 1;
-      }
-    });
+    const isExplicitReview = explicitReviewPatterns.some(pattern => 
+      pattern.test(taskTitle) || pattern.test(taskDescription)
+    );
     
-    // Review keyword detection
-    const reviewKeywords = ['review', 'audit', 'security', 'quality', 'vulnerability', 'compliance'];
-    reviewKeywords.forEach(keyword => {
-      if (taskDescription.includes(keyword) || taskTitle.includes(keyword)) {
-        totalScore += 0.8;
-        maxScore += 0.8;
-      }
-    });
+    if (isExplicitReview) {
+      // This is an explicit review task
+      let totalScore = 0;
+      let maxScore = 0;
+      
+      // Direct skill matching for review-specific skills
+      const reviewSkills = ['code_quality', 'security_review', 'architecture_review', 'vulnerability_assessment', 'code_review'];
+      taskSkills.forEach(skill => {
+        const capability = this.capabilities[skill.toLowerCase()];
+        if (capability && reviewSkills.includes(skill.toLowerCase())) {
+          totalScore += capability.efficiency;
+          maxScore += 1;
+        }
+      });
+      
+      // Pattern matching for review tasks only
+      this.taskPatterns.forEach(pattern => {
+        if (pattern.pattern.test(taskDescription) || pattern.pattern.test(taskTitle)) {
+          totalScore += 0.9;
+          maxScore += 1;
+        }
+      });
+      
+      return maxScore > 0 ? Math.min((totalScore / maxScore) * 100, 95) : 90;
+    }
     
-    return maxScore > 0 ? Math.min((totalScore / maxScore) * 100, 100) : 0;
+    // For all other tasks (development tasks), provide very low score
+    // Code Review Specialist should NOT be assigned to development tasks
+    
+    // Only give minimal score if task has explicit review-related skills
+    const explicitReviewSkills = ['code_review', 'security_review', 'vulnerability_assessment', 'code_quality'];
+    const hasReviewSkills = taskSkills.some(skill => explicitReviewSkills.includes(skill.toLowerCase()));
+    
+    if (hasReviewSkills) {
+      // Has some review skills but not a review task - low score
+      return 30.0;
+    }
+    
+    // This is a development task - Code Review Specialist should not be assigned
+    return 0.0;
   }
 
   /**

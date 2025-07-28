@@ -134,43 +134,76 @@ class QATestingSpecialist {
   }
 
   /**
-   * Calculate skill match for a given task
+   * Calculate skill match for a given task - RESTRICTIVE MATCHING FOR QA/TESTING TASKS ONLY
    */
   calculateSkillMatch(task) {
     const taskSkills = task.skills || [];
     const taskDescription = (task.description || '').toLowerCase();
     const taskTitle = (task.title || '').toLowerCase();
     
-    let totalScore = 0;
-    let maxScore = 0;
+    // CRITICAL: Only match on actual QA/testing tasks, not development tasks
+    // Check if this is explicitly a checkpoint/testing task
+    if (task.isCheckpoint && (task.checkpointType === 'qa_testing' || task.checkpointType === 'final_qa_testing')) {
+      // This is a legitimate QA checkpoint - give high score
+      return 95.0;
+    }
     
-    // Direct skill matching
-    taskSkills.forEach(skill => {
-      const capability = this.capabilities[skill.toLowerCase()];
-      if (capability) {
-        totalScore += capability.efficiency;
-        maxScore += 1;
-      }
-    });
+    // Check if task title/type explicitly indicates testing
+    const explicitTestingPatterns = [
+      /^testing/i,
+      /^qa\s+testing/i,
+      /^quality\s+assurance/i,
+      /^test\s+automation/i,
+      /^unit\s+test/i,
+      /^integration\s+test/i,
+      /^e2e\s+test/i,
+      /^end.to.end\s+test/i
+    ];
     
-    // Pattern matching for additional context
-    this.taskPatterns.forEach(pattern => {
-      if (pattern.pattern.test(taskDescription) || pattern.pattern.test(taskTitle)) {
-        totalScore += 0.9; // High bonus for testing tasks
-        maxScore += 1;
-      }
-    });
+    const isExplicitTesting = explicitTestingPatterns.some(pattern => 
+      pattern.test(taskTitle) || pattern.test(taskDescription)
+    ) || task.type === 'testing';
     
-    // Testing keyword detection
-    const testingKeywords = ['test', 'testing', 'qa', 'quality', 'coverage', 'automation'];
-    testingKeywords.forEach(keyword => {
-      if (taskDescription.includes(keyword) || taskTitle.includes(keyword)) {
-        totalScore += 0.8;
-        maxScore += 0.8;
-      }
-    });
+    if (isExplicitTesting) {
+      // This is an explicit testing task
+      let totalScore = 0;
+      let maxScore = 0;
+      
+      // Direct skill matching for testing-specific skills
+      const testingSkills = ['testing', 'unit_testing', 'integration_testing', 'e2e_testing', 'test_automation', 'qa', 'quality_assurance'];
+      taskSkills.forEach(skill => {
+        const capability = this.capabilities[skill.toLowerCase()];
+        if (capability && testingSkills.includes(skill.toLowerCase())) {
+          totalScore += capability.efficiency;
+          maxScore += 1;
+        }
+      });
+      
+      // Pattern matching for testing tasks only
+      this.taskPatterns.forEach(pattern => {
+        if (pattern.pattern.test(taskDescription) || pattern.pattern.test(taskTitle)) {
+          totalScore += 0.9;
+          maxScore += 1;
+        }
+      });
+      
+      return maxScore > 0 ? Math.min((totalScore / maxScore) * 100, 95) : 90;
+    }
     
-    return maxScore > 0 ? Math.min((totalScore / maxScore) * 100, 100) : 0;
+    // For all other tasks (development tasks), provide very low score
+    // QA Testing Specialist should NOT be assigned to development tasks
+    
+    // Only give minimal score if task has explicit testing-related skills
+    const explicitTestingSkills = ['testing', 'unit_testing', 'integration_testing', 'e2e_testing', 'test_automation', 'qa'];
+    const hasTestingSkills = taskSkills.some(skill => explicitTestingSkills.includes(skill.toLowerCase()));
+    
+    if (hasTestingSkills) {
+      // Has some testing skills but not a testing task - low score
+      return 30.0;
+    }
+    
+    // This is a development task - QA Testing Specialist should not be assigned
+    return 0.0;
   }
 
   /**

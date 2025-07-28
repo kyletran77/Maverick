@@ -450,8 +450,11 @@ io.on('connection', (socket) => {
     }
     
     try {
-      // Use multi-agent orchestration
-      await taskOrchestrator.orchestrateTask(task, description, finalProjectPath, socket, jobName);
+      // Use enhanced multi-agent orchestration with quality checkpoints
+      const prompt = `${task}${description ? ': ' + description : ''}`;
+      await taskOrchestrator.orchestrateProject(prompt, finalProjectPath, socket, {
+        jobName: jobName
+      });
     } catch (error) {
       console.error('Task orchestration error:', error);
       socket.emit('task_error', { 

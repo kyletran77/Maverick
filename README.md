@@ -21,9 +21,19 @@ A modern AI-powered development platform that transforms your ideas into product
 ### Development Features
 - **Complete Project Generation**: Full-stack applications with all necessary files
 - **Intelligent Architecture**: AI chooses optimal tech stack based on requirements
+- **Quality-First Development**: Mandatory code review and QA checkpoints after every task
 - **Build Validation**: Ensures projects are immediately runnable
-- **Code Quality**: Comprehensive testing and quality assurance
+- **Comprehensive Quality Gates**: Multi-layer validation with code review → QA testing → final review
+- **Automatic Rework Handling**: Failed checkpoints trigger guided task rework
 - **Documentation**: Auto-generated documentation and README files
+
+### Quality Assurance Features
+- **Task-Level Checkpoints**: Every development task gets dedicated quality validation
+- **Code Review Integration**: Automated code quality, security, and best practices verification  
+- **QA Testing Automation**: Comprehensive testing including unit, integration, and E2E tests
+- **Dependency-Aware Quality**: Tasks only proceed after their dependencies pass quality gates
+- **Real-time Quality Monitoring**: Live dashboard showing checkpoint progress and quality metrics
+- **Final Project Validation**: Comprehensive end-to-end quality assurance before completion
 
 ## 📋 Prerequisites
 
@@ -100,22 +110,50 @@ contact form, and blog functionality
 
 ## 🏗 Architecture
 
+### Enhanced Multi-Agent Orchestration with Quality Checkpoints
+
+#### Task Flow Architecture
+```
+Task Creation → Agent Assignment → Task Execution → Code Review Checkpoint → QA Testing Checkpoint → Task Completion → Next Task(s)
+```
+
+### Agent Hierarchy
+- **Standard Agents**: Frontend, Backend, Database specialists (perform actual development work)
+- **Quality Gate Agents**: Code Review and QA Testing specialists (validate work quality)
+- **Orchestrator**: Manages task flow, dependencies, and quality gates
+
 ### Client-Side
-- **Modern Frontend**: Clean, responsive interface built with modern CSS and JavaScript
-- **Real-time Updates**: WebSocket-based live monitoring
+- **Modern Frontend**: Clean, responsive interface with real-time checkpoint monitoring
+- **Real-time Updates**: WebSocket-based live monitoring of tasks and quality gates
+- **Quality Dashboard**: Visual representation of checkpoint progress and quality metrics
 - **Progressive Enhancement**: Works across all modern browsers
 
 ### Server-Side
-- **Multi-Agent Orchestration**: Intelligent task breakdown and agent coordination
-- **Goose CLI Integration**: Advanced AI agent capabilities
-- **Project Management**: Directory handling, build validation, and file operations
+- **Enhanced Task Orchestration**: Intelligent task breakdown with automatic quality checkpoints
+- **Quality Gate Integration**: Mandatory code review and QA checkpoints after every task
+- **Dependency-Aware Scheduling**: Tasks only proceed after quality gates pass
+- **Goose CLI Integration**: Advanced AI agent capabilities with checkpoint awareness
+- **Project Management**: Directory handling, build validation, and quality assurance
 
-### AI Agents
+### AI Agent Types
+
+#### Standard Development Agents
 - **Frontend Specialists**: React, Vue, Angular experts
-- **Backend Specialists**: API development and server-side logic
+- **Backend Specialists**: API development and server-side logic  
 - **Database Architects**: Schema design and optimization
-- **QA Engineers**: Testing and quality assurance
 - **DevOps Engineers**: Deployment and infrastructure
+
+#### Quality Gate Agents (Checkpoints)
+- **Code Review Specialists**: Code quality, security, and best practices validation
+- **QA Testing Specialists**: Comprehensive testing, quality assurance, and deployment readiness
+- **Final Review Agents**: Project-level quality validation before completion
+
+#### Quality Assurance Process
+1. **Task-Level Checkpoints**: Every standard task automatically gets code review → QA testing checkpoints
+2. **Dependency Routing**: Subsequent tasks depend on checkpoint completion, not just task completion
+3. **Quality Gates**: Code review and QA testing must pass before dependent tasks can begin
+4. **Final Project Review**: Comprehensive code review and QA testing of the entire project
+5. **Rework Handling**: Failed checkpoints trigger automatic task rework with specific guidance
 
 ## 🎨 User Interface
 
