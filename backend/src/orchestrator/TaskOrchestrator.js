@@ -6063,6 +6063,55 @@ Please perform a thorough code review following industry best practices and prov
   }
 
   /**
+   * Get task graph data for visualization
+   */
+  async getTaskGraphData(projectId) {
+    try {
+      // Try to get from memory first (for active projects)
+      let taskGraph = null;
+      let agentAssignments = null;
+
+      if (this.projectGraphs.has(projectId)) {
+        // Active project - get from memory
+        const statefulGraph = this.projectGraphs.get(projectId);
+        taskGraph = statefulGraph.graph;
+        
+        // Get agent assignments from active project
+        const project = this.activeProjects.get(projectId);
+        if (project && project.agentAssignments) {
+          agentAssignments = this.convertMapToObject(project.agentAssignments);
+        }
+      } else {
+        // Saved project - load from persistence
+        const savedProject = await this.projectPersistence.loadProject(projectId);
+        if (savedProject) {
+          taskGraph = savedProject.taskGraph;
+          // Check for agent assignments in execution state
+          if (savedProject.agentAssignments) {
+            agentAssignments = savedProject.agentAssignments;
+          } else if (savedProject.executionState && savedProject.executionState.agentAssignments) {
+            agentAssignments = savedProject.executionState.agentAssignments;
+          }
+        }
+      }
+
+      // Log for debugging
+      console.log(`📊 Task graph data for ${projectId}:`, {
+        taskCount: taskGraph?.nodes?.length || 0,
+        agentCount: agentAssignments ? Object.keys(agentAssignments).length : 0
+      });
+
+      return {
+        taskGraph: taskGraph,
+        agentAssignments: agentAssignments
+      };
+    } catch (error) {
+      console.error(`Failed to get task graph data for ${projectId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
    * Delete a project
    */
   async deleteProject(projectId) {
@@ -6192,6 +6241,21 @@ Please perform a thorough code review following industry best practices and prov
       console.error(`Failed to get progress for project ${projectId}:`, error);
       return null;
     }
+  }
+
+  /**
+   * Convert Map to plain object for JSON serialization
+   */
+  convertMapToObject(map) {
+    if (!map || typeof map.entries !== 'function') {
+      return map;
+    }
+    
+    const obj = {};
+    for (const [key, value] of map.entries()) {
+      obj[key] = value;
+    }
+    return obj;
   }
 }
 

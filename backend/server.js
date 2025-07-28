@@ -692,6 +692,22 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Get task graph data for visualization
+  socket.on('get_task_graph', async (data) => {
+    try {
+      const { projectId } = data;
+      const taskGraphData = await taskOrchestrator.getTaskGraphData(projectId);
+      socket.emit('task_graph_loaded', { 
+        projectId, 
+        taskGraph: taskGraphData.taskGraph,
+        agentAssignments: taskGraphData.agentAssignments 
+      });
+    } catch (error) {
+      console.error('Error getting task graph:', error);
+      socket.emit('project_error', { error: error.message });
+    }
+  });
+
   // Create a checkpoint for a project
   socket.on('create_project_checkpoint', async (data) => {
     try {
