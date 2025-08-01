@@ -1,0 +1,179 @@
+---
+globs: backend/goose-integration.js
+alwaysApply: false
+---
+
+# Goose CLI Integration Rules
+
+## Overview
+The [goose-integration.js](mdc:backend/goose-integration.js) file manages external CLI process integration with the Goose AI development tool. It provides process lifecycle management, real-time communication, and robust error handling for AI-powered development tasks.
+
+## Core Architecture
+
+### GooseIntegration Class
+Main class that handles:
+- **Process Management**: Spawn and manage Goose CLI processes
+- **Session Tracking**: Track active sessions with timeouts and activity monitoring
+- **Real-time Communication**: Socket.IO integration for live updates
+- **Resource Cleanup**: Graceful shutdown and emergency cleanup procedures
+
+### Key Properties
+```javascript
+this.activeProcesses = new Map();     // Track running Goose processes
+this.sessionTimeouts = new Map();     // Timeout management per session
+this.sessionLastActivity = new Map(); // Activity tracking for sessions
+```
+
+## Development Patterns
+
+### Process Spawning
+Always use proper spawn configuration with comprehensive error handling:
+```javascript
+const gooseProcess = spawn('goose', gooseArgs, {
+    cwd: workingDir,
+    stdio: ['pipe', 'pipe', 'pipe'],
+    env: {
+        ...process.env,
+        PWD: workingDir
+    }
+});
+```
+
+### Session Management
+- Use unique session IDs for each Goose process
+- Implement timeout mechanisms for long-running operations
+- Track activity to prevent orphaned processes
+- Provide graceful shutdown procedures
+
+### Socket.IO Integration
+Emit real-time updates for all process events:
+```javascript
+socket.emit('goose_status', {
+    status: 'started',
+    message: `Goose session ${sessionId} started`,
+    sessionId: sessionId
+});
+```
+
+### Error Handling Patterns
+```javascript
+// Always wrap process operations in try-catch
+try {
+    const gooseProcess = spawn('goose', gooseArgs, options);
+    // Handle process events
+} catch (error) {
+    this.handleGooseError(error.message, sessionId, socket);
+}
+```
+
+## Timeout Management
+
+### Configurable Timeouts
+```javascript
+this.timeoutSettings = {
+    default: 16 * 60 * 1000,      // 16 minutes default
+    extended: 30 * 60 * 1000,     // 30 minutes for complex tasks
+    maxInactivity: 5 * 60 * 1000, // 5 minutes of inactivity
+    heartbeatInterval: 60 * 1000  // 60 seconds heartbeat
+};
+```
+
+### Activity Tracking
+- Update `sessionLastActivity` on every stdout/stderr event
+- Implement heartbeat intervals for inactive sessions
+- Use task complexity to determine appropriate timeouts
+
+## Output Parsing
+
+### Real-time Output Processing
+- Parse stdout for progress updates and completion status
+- Handle stderr for errors and warnings
+- Extract structured data from Goose CLI output
+- Emit parsed events via Socket.IO for frontend updates
+
+### Progress Detection
+Look for specific patterns in Goose output:
+- Task completion indicators
+- Error messages and warnings
+- File creation/modification events
+- Build and test results
+
+## Cleanup and Resource Management
+
+### Session Termination
+```javascript
+terminateSession(sessionId, reason) {
+    const sessionData = this.activeProcesses.get(sessionId);
+    if (sessionData) {
+        sessionData.process.kill('SIGTERM');
+        sessionData.reject(new Error(reason));
+        this.activeProcesses.delete(sessionId);
+    }
+    this.clearSessionTimeout(sessionId);
+}
+```
+
+### Emergency Cleanup
+- Implement platform-specific process detection (pgrep/tasklist)
+- Kill orphaned Goose processes during shutdown
+- Clear all tracking maps and timeouts
+- Provide cleanup statistics
+
+## Utility Functions
+
+### Installation Verification
+```javascript
+// Check if Goose CLI is available
+await checkGooseInstallation();
+
+// Get Goose configuration and available commands
+const config = await getGooseConfig();
+```
+
+### Cross-Platform Support
+- Handle different process management commands (Windows vs Unix)
+- Use appropriate signal handling (SIGTERM, SIGKILL)
+- Implement platform-specific process discovery
+
+## Code Style Standards
+
+### Process Event Handling
+- Always handle 'data', 'close', and 'error' events
+- Use consistent logging with session ID prefixes
+- Implement proper cleanup in all exit scenarios
+
+### Promise Management
+- Use Promise-based APIs for async operations
+- Provide proper resolve/reject handling
+- Implement timeout-based promise resolution
+
+### Logging Patterns
+```javascript
+console.log(`[${sessionId}] Starting Goose with args:`, gooseArgs);
+console.log(`[${sessionId}] Working directory:`, workingDir);
+```
+
+## Quality Standards
+
+### Process Reliability
+- Implement robust timeout mechanisms
+- Handle process crashes gracefully
+- Provide detailed error messaging
+- Ensure proper resource cleanup
+
+### Real-time Updates
+- Emit Socket.IO events for all state changes
+- Parse and structure output data consistently
+- Provide progress indicators and status updates
+
+### Error Recovery
+- Attempt graceful shutdown before force-killing processes
+- Provide fallback mechanisms for failed operations
+- Log detailed error information for debugging
+
+### Testing Considerations
+- Mock child_process for unit tests
+- Test timeout scenarios thoroughly
+- Verify cleanup procedures work correctly
+- Test cross-platform compatibility
+

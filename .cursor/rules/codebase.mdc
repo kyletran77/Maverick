@@ -1,0 +1,13 @@
+---
+alwaysApply: true
+---
+## Maverick System Rules
+
+Make the system modular and agile.
+
+
+
+### Key Architectural Patterns:
+- **Event-Driven**: WebSocket-based real-time communication via Socket.IO
+- **Quality Gates**: Built-in QA Engineer validates all outputs
+- **Kanban Workflow**: Tasks flow through todo → inProgress → review → completed

@@ -1,0 +1,76 @@
+---
+alwaysApply: true
+---
+# Backend Node.js/Express Development Rules
+
+## Architecture Overview
+The backend follows a multi-agent orchestration pattern with Socket.IO real-time communication. Core components include:
+
+- **Express Server**: Main HTTP server with WebSocket support via Socket.IO
+- **Orchestration Layer**: LangGraph-inspired task orchestration system  
+- **Agent Management**: Specialized AI agents with capability-based assignment
+- **Goose Integration**: External CLI process management for development tasks
+
+## Key Files & Structure
+- [server.js](mdc:backend/server.js) - Main server entry point with Socket.IO setup
+- [goose-integration.js](mdc:backend/goose-integration.js) - Goose CLI process management
+- [src/orchestrator/TaskOrchestrator.js](mdc:backend/src/orchestrator/TaskOrchestrator.js) - Core orchestration logic
+- [src/orchestrator/AgentManager.js](mdc:backend/src/orchestrator/AgentManager.js) - Agent lifecycle management
+- [src/orchestrator/agents/](mdc:backend/src/orchestrator/agents/) - Specialized agent implementations
+
+## Development Patterns
+
+### Socket.IO Events
+Always emit real-time updates for agent status changes:
+```javascript
+this.io.emit('agent_status_updated', {
+  agentId,
+  status: 'working',
+  task: currentTask,
+  timestamp: Date.now()
+});
+```
+
+### Error Handling
+- Use try-catch blocks with graceful fallbacks
+- Implement timeout mechanisms for long-running operations
+- Emit error events via Socket.IO for frontend notification
+- Log errors using structured logging patterns
+
+### Agent Implementation
+When creating new agents:
+- Extend the base agent pattern with capabilities mapping
+- Include efficiency ratings and experience levels
+- Implement `assessCapability()` and `execute()` methods
+- Register in [AgentRegistry.js](mdc:backend/src/orchestrator/agents/AgentRegistry.js)
+
+### State Management
+- Use Map() collections for in-memory state
+- Implement checkpoint/persistence via [ProjectPersistence.js](mdc:backend/src/orchestrator/ProjectPersistence.js)
+- Maintain execution context across agent handoffs
+- Avoid circular references in state objects
+
+### Dependencies
+Core dependencies include:
+- `express` - HTTP server
+- `socket.io` - Real-time communication
+- `uuid` - Unique ID generation
+- `child_process` - External process management
+
+## Code Style
+- Use CommonJS modules (`require`/`module.exports`)
+- Implement classes for complex components
+- Use async/await for asynchronous operations
+- Include comprehensive JSDoc comments
+- Follow error-first callback patterns where applicable
+
+## Quality Standards
+- All outputs must be immediately runnable
+- Include proper error handling and logging
+- Emit WebSocket events for state changes
+- Validate inputs and sanitize data
+- Implement graceful shutdown procedures
+description:
+globs:
+alwaysApply: false
+---
