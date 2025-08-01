@@ -4,6 +4,22 @@ const QAEngineer = require('./QAEngineer');
 const AgentRegistry = require('./agents/AgentRegistry');
 const ProjectPersistence = require('./ProjectPersistence');
 
+// Enhanced components for intelligent orchestration
+const RequirementsProcessor = require('./RequirementsProcessor');
+const IntelligentAgentMatcher = require('./IntelligentAgentMatcher');
+const EnhancedGooseIntegration = require('./EnhancedGooseIntegration');
+// Load configuration with fallback
+let orchestratorConfig;
+try {
+  orchestratorConfig = require('../../config/orchestrator');
+} catch (error) {
+  console.warn('⚠️ Could not load orchestrator config, using defaults');
+  orchestratorConfig = {
+    features: { enhancedOrchestration: false, intelligentAgentMatching: false },
+    requirements: {}, agentMatching: {}, quality: {}
+  };
+}
+
 /**
  * LangGraph-inspired Task Orchestrator with Bulletproof State Management
  * 
@@ -45,6 +61,9 @@ class TaskOrchestrator {
     // Initialize Goose integration for real agent execution
     this.gooseIntegration = new GooseIntegration(io);
     
+    // Initialize enhanced Goose integration for intelligent processing
+    this.enhancedGoose = new EnhancedGooseIntegration(io, orchestratorConfig || {});
+    
     // Initialize QA Engineer for quality verification
     this.qaEngineer = new QAEngineer(io, this.gooseIntegration);
     
@@ -53,6 +72,18 @@ class TaskOrchestrator {
     
     // Initialize project persistence system
     this.projectPersistence = new ProjectPersistence();
+    
+    // Initialize enhanced components with feature flags
+    this.config = orchestratorConfig;
+    if (this.config.features.enhancedOrchestration) {
+      this.requirementsProcessor = new RequirementsProcessor(this.config.requirements, this.enhancedGoose);
+      console.log('✅ Enhanced Requirements Processor initialized');
+    }
+    
+    if (this.config.features.intelligentAgentMatching) {
+      this.intelligentMatcher = new IntelligentAgentMatcher(this.config, this.specializedAgents, this.enhancedGoose);
+      console.log('✅ Intelligent Agent Matcher initialized');
+    }
     
     // Initialize specialized agent types with capabilities (legacy support)
     this.initializeAgentTypes();
@@ -1980,6 +2011,210 @@ class TaskOrchestrator {
       }
       
       socket.emit('orchestration_error', { error: error.message });
+      throw error;
+    }
+  }
+
+  /**
+   * Enhanced orchestration method with intelligent requirements processing and agent assignment
+   * This method uses the new TRD generation and intelligent agent matching capabilities
+   */
+  async orchestrateProjectEnhanced(prompt, projectPath, socket, options = {}) {
+    const projectId = uuidv4();
+    
+    try {
+      console.log('🚀 Starting ENHANCED project orchestration with intelligent processing:', prompt);
+      
+      // Check if enhanced features are enabled
+      if (!this.config?.features?.enhancedOrchestration) {
+        console.log('⚠️ Enhanced orchestration disabled, falling back to standard orchestration');
+        return await this.orchestrateProject(prompt, projectPath, socket, options);
+      }
+      
+      // Handle job tracking
+      if (options.jobName) {
+        const jobId = options.jobName || `enhanced-job-${Date.now()}`;
+        const job = {
+          id: jobId,
+          name: options.jobName || 'Enhanced Orchestrated Project',
+          task: prompt,
+          description: prompt,
+          projectPath: projectPath,
+          status: 'active',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          socketId: socket.id,
+          progress: 0,
+          enhancedMode: true
+        };
+        
+        // Store job tracking
+        if (!this.jobSockets) this.jobSockets = new Map();
+        this.jobSockets.set(jobId, socket);
+        
+        if (this.jobStorage) {
+          this.jobStorage.addJob(job);
+        }
+        
+        if (!this.activeJobs) this.activeJobs = new Map();
+        this.activeJobs.set(jobId, job);
+        
+        socket.emit('job_started', { jobId, job: this.sanitizeJobForTransmission(job) });
+        options.jobId = jobId;
+        options.job = job;
+      }
+      
+      // Step 1: Generate comprehensive TRD using intelligent requirements processing
+      console.log('📋 Enhanced Step 1: Generating Technical Requirements Document...');
+      socket.emit('orchestration_progress', { step: 1, message: 'Generating comprehensive requirements...', progress: 10 });
+      
+      const trdResult = await this.requirementsProcessor.generateTRD(prompt, {
+        projectPath,
+        options,
+        domain: options.domain
+      });
+      
+      console.log(`✅ TRD generated with ${trdResult.confidence.toFixed(2)} confidence using ${trdResult.generationMethod}`);
+      
+      // Validate TRD quality
+      if (trdResult.confidence < (this.config.requirements?.minRequirementQuality || 0.8)) {
+        console.warn(`⚠️ TRD quality below threshold (${trdResult.confidence.toFixed(2)})`);
+        socket.emit('orchestration_warning', { 
+          message: `Requirements quality is low (${Math.round(trdResult.confidence * 100)}%). Consider providing more detailed requirements.`,
+          suggestions: trdResult.gapAnalysis.recommendations
+        });
+      }
+      
+      // Step 2: Convert TRD to enhanced tasks
+      console.log('🔧 Enhanced Step 2: Converting TRD to enhanced tasks...');
+      socket.emit('orchestration_progress', { step: 2, message: 'Creating detailed task specifications...', progress: 25 });
+      
+      const enhancedTasks = await this.requirementsProcessor.enrichTasksFromTRD(trdResult.trd);
+      console.log(`✅ Generated ${enhancedTasks.length} enhanced tasks from TRD`);
+      
+      // Step 3: Create enhanced task graph with TRD context
+      console.log('🕸️ Enhanced Step 3: Creating enhanced task graph...');
+      socket.emit('orchestration_progress', { step: 3, message: 'Building intelligent workflow graph...', progress: 40 });
+      
+      const taskGraph = await this.createEnhancedTaskGraph(enhancedTasks, trdResult.trd, projectId);
+      console.log(`✅ Enhanced task graph created with ${taskGraph.nodes.length} nodes and ${taskGraph.edges.length} edges`);
+      
+      // Step 4: Intelligent agent assignment
+      console.log('🎯 Enhanced Step 4: Performing intelligent agent assignment...');
+      socket.emit('orchestration_progress', { step: 4, message: 'Analyzing optimal agent assignments...', progress: 60 });
+      
+      const agentAssignments = await this.assignTasksIntelligently(enhancedTasks, trdResult.trd, {
+        projectPath,
+        trd: trdResult.trd
+      });
+      
+      console.log(`✅ Intelligent agent assignments complete with ${agentAssignments.size} assignments`);
+      
+      // Step 5: Quality validation and risk assessment
+      console.log('✅ Enhanced Step 5: Validating orchestration quality...');
+      socket.emit('orchestration_progress', { step: 5, message: 'Validating quality and assessing risks...', progress: 75 });
+      
+      const qualityAssessment = await this.validateEnhancedOrchestration(trdResult.trd, enhancedTasks, agentAssignments);
+      
+      // Step 6: Create enhanced project structure
+      const project = {
+        id: projectId,
+        prompt: prompt,
+        projectPath: projectPath,
+        trd: trdResult.trd,
+        taskGraph: taskGraph,
+        enhancedTasks: enhancedTasks,
+        agentAssignments: agentAssignments,
+        qualityAssessment: qualityAssessment,
+        status: 'active',
+        createdAt: new Date(),
+        orchestrationType: 'enhanced',
+        confidence: trdResult.confidence,
+        domain: trdResult.domain,
+        kanbanBoard: this.createEnhancedKanbanBoard(agentAssignments, enhancedTasks),
+        metrics: this.calculateEnhancedMetrics(trdResult.trd, enhancedTasks, agentAssignments)
+      };
+      
+      this.activeProjects.set(projectId, project);
+      
+      // Step 7: Create stateful graph for execution
+      console.log('🔄 Enhanced Step 6: Creating stateful execution graph...');
+      const statefulGraph = await this.createStatefulGraphFromTRD(trdResult.trd, taskGraph, projectId, socket);
+      
+      // Step 8: Start enhanced execution
+      console.log('🏃 Enhanced Step 7: Starting enhanced execution with intelligent monitoring...');
+      socket.emit('orchestration_progress', { step: 7, message: 'Starting intelligent task execution...', progress: 90 });
+      
+      // Emit enhanced project info
+      socket.emit('enhanced_orchestration_complete', {
+        projectId: projectId,
+        trd: this.sanitizeTRDForTransmission(trdResult.trd),
+        taskGraph: this.sanitizeTaskGraphForTransmission(taskGraph),
+        agentAssignments: Object.fromEntries(agentAssignments),
+        kanbanBoard: project.kanbanBoard,
+        metrics: project.metrics,
+        qualityAssessment: qualityAssessment,
+        confidence: trdResult.confidence,
+        domain: trdResult.domain,
+        enhancedFeatures: {
+          intelligentRequirements: true,
+          smartAgentMatching: this.config?.features?.intelligentAgentMatching || false,
+          qualityPrediction: this.config?.features?.qualityPrediction || false
+        }
+      });
+      
+      // Execute with enhanced monitoring
+      await this.executeEnhancedStatefulGraph(projectId, statefulGraph, socket);
+      
+      // Handle job completion
+      if (options.job) {
+        const job = options.job;
+        job.status = 'completed';
+        job.projectId = project.id;
+        job.updatedAt = new Date();
+        job.progress = 100;
+        job.enhancedResults = {
+          confidence: trdResult.confidence,
+          tasksGenerated: enhancedTasks.length,
+          qualityScore: qualityAssessment.overallScore
+        };
+        
+        if (this.jobHistory) this.jobHistory.unshift(job);
+        if (this.activeJobs) this.activeJobs.delete(job.id);
+        if (this.jobSockets) this.jobSockets.delete(job.id);
+        
+        console.log(`✅ Enhanced job ${job.id} completed successfully`);
+      }
+      
+      socket.emit('orchestration_progress', { step: 8, message: 'Enhanced orchestration completed!', progress: 100 });
+      
+      return project;
+      
+    } catch (error) {
+      console.error('❌ Enhanced orchestration failed:', error);
+      
+      // Handle job failure
+      if (options.job) {
+        const job = options.job;
+        job.status = 'failed';
+        job.error = error.message;
+        job.updatedAt = new Date();
+        
+        if (this.jobHistory) this.jobHistory.unshift(job);
+        if (this.activeJobs) this.activeJobs.delete(job.id);
+      }
+      
+      // Fallback to standard orchestration if enhanced fails
+      if (this.config?.features?.legacyFallback) {
+        console.log('🔄 Falling back to standard orchestration...');
+        socket.emit('orchestration_warning', { 
+          message: 'Enhanced orchestration failed, falling back to standard mode',
+          fallback: true 
+        });
+        return await this.orchestrateProject(prompt, projectPath, socket, options);
+      }
+      
+      socket.emit('orchestration_error', { error: error.message, enhanced: true });
       throw error;
     }
   }
@@ -6278,6 +6513,556 @@ Please perform a thorough code review following industry best practices and prov
       obj[key] = value;
     }
     return obj;
+  }
+
+  // ===== ENHANCED ORCHESTRATION HELPER METHODS =====
+
+  /**
+   * Intelligent task assignment using enhanced agent matching
+   */
+  async assignTasksIntelligently(tasks, trd, context = {}) {
+    const assignments = new Map();
+    
+    if (!this.intelligentMatcher) {
+      console.warn('⚠️ Intelligent matcher not available, using fallback assignment');
+      return await this.assignTasksToAgentsWithCheckpoints({ nodes: tasks });
+    }
+    
+    for (const task of tasks) {
+      try {
+        const availableAgents = this.getAvailableAgentsForTask(task);
+        
+        if (availableAgents.length === 0) {
+          console.warn(`⚠️ No available agents for task: ${task.title}`);
+          continue;
+        }
+        
+        const assignment = await this.intelligentMatcher.findBestAgent(task, availableAgents, context);
+        
+        if (assignment.confidence < (this.config.agentMatching?.minConfidenceThreshold || 0.7)) {
+          console.warn(`⚠️ Low confidence assignment for task ${task.title}: ${assignment.confidence.toFixed(2)}`);
+        }
+        
+        assignments.set(task.id, {
+          agent: assignment.selectedAgent,
+          confidence: assignment.confidence,
+          reasoning: assignment.reasoning,
+          alternatives: assignment.alternativeAgents,
+          riskFactors: assignment.riskFactors
+        });
+        
+        // Update agent workload
+        this.updateAgentWorkload(assignment.selectedAgent.id, task);
+        
+      } catch (error) {
+        console.error(`❌ Failed to assign task ${task.title}:`, error.message);
+        // Fallback to basic assignment
+        const fallbackAgent = this.getFallbackAgent(task);
+        if (fallbackAgent) {
+          assignments.set(task.id, {
+            agent: fallbackAgent,
+            confidence: 0.5,
+            reasoning: 'Fallback assignment due to error',
+            alternatives: [],
+            riskFactors: [{ type: 'assignment_error', description: error.message }]
+          });
+        }
+      }
+    }
+    
+    return assignments;
+  }
+
+  /**
+   * Create enhanced task graph with TRD context
+   */
+  async createEnhancedTaskGraph(tasks, trd, projectId) {
+    const nodes = tasks.map(task => ({
+      id: task.id,
+      title: task.title,
+      description: task.description,
+      type: task.type,
+      skillRequirements: task.skillRequirements,
+      qualityCriteria: task.qualityCriteria,
+      estimatedComplexity: task.estimatedComplexity,
+      dependencies: task.dependencies,
+      priority: task.priority,
+      trdReference: task.trdReference,
+      status: 'pending'
+    }));
+    
+    const edges = [];
+    
+    // Create edges based on dependencies
+    for (const task of tasks) {
+      if (task.dependencies && task.dependencies.length > 0) {
+        for (const depId of task.dependencies) {
+          edges.push({
+            id: `${depId}-${task.id}`,
+            source: depId,
+            target: task.id,
+            type: 'dependency'
+          });
+        }
+      }
+    }
+    
+    // Add quality gate dependencies
+    const qualityGates = tasks.filter(task => task.type === 'quality_gate');
+    for (const gate of qualityGates) {
+      const relatedTasks = tasks.filter(task => 
+        task.type !== 'quality_gate' && 
+        task.trdReference === gate.trdReference
+      );
+      
+      for (const relatedTask of relatedTasks) {
+        edges.push({
+          id: `${relatedTask.id}-${gate.id}`,
+          source: relatedTask.id,
+          target: gate.id,
+          type: 'quality_gate'
+        });
+      }
+    }
+    
+    return {
+      id: projectId,
+      nodes,
+      edges,
+      metadata: {
+        domain: trd.domain,
+        totalRequirements: trd.functionalRequirements?.length || 0,
+        complexityScore: trd.metadata?.estimatedComplexity || 1,
+        createdAt: new Date()
+      }
+    };
+  }
+
+  /**
+   * Validate enhanced orchestration quality
+   */
+  async validateEnhancedOrchestration(trd, tasks, agentAssignments) {
+    const validation = {
+      overallScore: 0,
+      trdQuality: 0,
+      assignmentQuality: 0,
+      workflowQuality: 0,
+      risks: [],
+      recommendations: [],
+      passed: false
+    };
+    
+    // Validate TRD quality
+    validation.trdQuality = this.calculateTRDQuality(trd);
+    
+    // Validate assignment quality
+    validation.assignmentQuality = this.calculateAssignmentQuality(agentAssignments);
+    
+    // Validate workflow quality
+    validation.workflowQuality = this.calculateWorkflowQuality(tasks);
+    
+    // Calculate overall score
+    validation.overallScore = (
+      validation.trdQuality * 0.4 +
+      validation.assignmentQuality * 0.4 +
+      validation.workflowQuality * 0.2
+    );
+    
+    // Assess risks
+    validation.risks = this.assessOrchestrationRisks(trd, tasks, agentAssignments);
+    
+    // Generate recommendations
+    validation.recommendations = this.generateOrchestrationRecommendations(validation);
+    
+    // Determine if validation passed
+    validation.passed = validation.overallScore >= (this.config.quality?.qualityThresholds?.orchestration || 0.8);
+    
+    return validation;
+  }
+
+  /**
+   * Create enhanced kanban board
+   */
+  createEnhancedKanbanBoard(agentAssignments, tasks) {
+    const kanban = {
+      todo: [],
+      inProgress: [],
+      review: [],
+      completed: [],
+      metadata: {
+        totalTasks: tasks.length,
+        assignedTasks: agentAssignments.size,
+        unassignedTasks: tasks.length - agentAssignments.size,
+        averageComplexity: tasks.reduce((sum, task) => sum + (task.estimatedComplexity || 5), 0) / tasks.length
+      }
+    };
+    
+    for (const task of tasks) {
+      const assignment = agentAssignments.get(task.id);
+      const kanbanTask = {
+        id: task.id,
+        title: task.title,
+        description: task.description,
+        type: task.type,
+        priority: task.priority,
+        estimatedComplexity: task.estimatedComplexity,
+        assignedAgent: assignment?.agent?.name || 'Unassigned',
+        confidence: assignment?.confidence || 0,
+        qualityCriteria: task.qualityCriteria,
+        status: task.status || 'pending'
+      };
+      
+      kanban.todo.push(kanbanTask);
+    }
+    
+    return kanban;
+  }
+
+  /**
+   * Calculate enhanced metrics
+   */
+  calculateEnhancedMetrics(trd, tasks, agentAssignments) {
+    const metrics = {
+      totalTasks: tasks.length,
+      totalRequirements: trd.functionalRequirements?.length || 0,
+      averageTaskComplexity: tasks.reduce((sum, task) => sum + (task.estimatedComplexity || 5), 0) / tasks.length,
+      domainComplexity: this.getDomainComplexity(trd.domain),
+      assignmentConfidence: this.calculateAverageAssignmentConfidence(agentAssignments),
+      estimatedDuration: this.estimateProjectDuration(tasks, agentAssignments),
+      riskScore: this.calculateProjectRiskScore(trd, tasks, agentAssignments),
+      qualityScore: this.calculateProjectQualityScore(trd, tasks)
+    };
+    
+    return metrics;
+  }
+
+  /**
+   * Create stateful graph from TRD
+   */
+  async createStatefulGraphFromTRD(trd, taskGraph, projectId, socket) {
+    // Convert enhanced task graph to stateful graph format
+    const statefulGraph = await this.createStatefulGraph({
+      tasks: taskGraph.nodes,
+      projectType: trd.domain,
+      complexity: trd.metadata?.estimatedComplexity || 'medium',
+      originalPrompt: trd.originalPrompt
+    }, projectId, socket);
+    
+    // Enhance with TRD context
+    statefulGraph.trdContext = {
+      domain: trd.domain,
+      requirements: trd.functionalRequirements,
+      qualityGates: trd.qualityGates,
+      constraints: trd.technicalConstraints
+    };
+    
+    return statefulGraph;
+  }
+
+  /**
+   * Execute enhanced stateful graph with intelligent monitoring
+   */
+  async executeEnhancedStatefulGraph(projectId, statefulGraph, socket) {
+    try {
+      console.log(`🚀 Starting enhanced execution for project ${projectId}`);
+      
+      // Add enhanced monitoring
+      this.setupEnhancedMonitoring(projectId, socket);
+      
+      // Execute the stateful graph with enhanced features
+      await this.executeStatefulGraph(projectId, socket);
+      
+      console.log(`✅ Enhanced execution completed for project ${projectId}`);
+      
+    } catch (error) {
+      console.error(`❌ Enhanced execution failed for project ${projectId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Setup enhanced monitoring for project execution
+   */
+  setupEnhancedMonitoring(projectId, socket) {
+    // Emit enhanced status updates
+    socket.emit('enhanced_monitoring_enabled', {
+      projectId,
+      features: ['intelligent_routing', 'quality_prediction', 'performance_tracking']
+    });
+    
+    // Set up periodic status checks (simplified)
+    const monitoringInterval = setInterval(() => {
+      const project = this.activeProjects.get(projectId);
+      if (!project || project.status === 'completed') {
+        clearInterval(monitoringInterval);
+        return;
+      }
+      
+      socket.emit('enhanced_status_update', {
+        projectId,
+        timestamp: new Date(),
+        status: project.status
+      });
+    }, 5000); // Every 5 seconds
+  }
+
+  // Helper utility methods...
+  
+  calculateTRDQuality(trd) {
+    let score = 0.5; // Base score
+    
+    if (trd.functionalRequirements && trd.functionalRequirements.length > 0) score += 0.2;
+    if (trd.nonFunctionalRequirements && Object.keys(trd.nonFunctionalRequirements).length > 0) score += 0.15;
+    if (trd.technicalConstraints && trd.technicalConstraints.length > 0) score += 0.1;
+    if (trd.qualityGates && trd.qualityGates.length > 0) score += 0.15;
+    
+    return Math.min(1.0, score);
+  }
+
+  calculateAssignmentQuality(agentAssignments) {
+    if (agentAssignments.size === 0) return 0;
+    
+    let totalConfidence = 0;
+    for (const assignment of agentAssignments.values()) {
+      totalConfidence += assignment.confidence || 0;
+    }
+    
+    return totalConfidence / agentAssignments.size;
+  }
+
+  calculateWorkflowQuality(tasks) {
+    // Simple workflow quality based on task structure
+    const hasQualityGates = tasks.some(task => task.type === 'quality_gate');
+    const hasDependencies = tasks.some(task => task.dependencies && task.dependencies.length > 0);
+    const hasVariedComplexity = Math.max(...tasks.map(t => t.estimatedComplexity || 5)) - 
+                                Math.min(...tasks.map(t => t.estimatedComplexity || 5)) > 2;
+    
+    let score = 0.5;
+    if (hasQualityGates) score += 0.2;
+    if (hasDependencies) score += 0.2;
+    if (hasVariedComplexity) score += 0.1;
+    
+    return Math.min(1.0, score);
+  }
+
+  assessOrchestrationRisks(trd, tasks, agentAssignments) {
+    const risks = [];
+    
+    // Check for unassigned tasks
+    const unassignedTasks = tasks.filter(task => !agentAssignments.has(task.id));
+    if (unassignedTasks.length > 0) {
+      risks.push({
+        type: 'unassigned_tasks',
+        severity: 'high',
+        count: unassignedTasks.length,
+        description: `${unassignedTasks.length} tasks could not be assigned to agents`
+      });
+    }
+    
+    // Check for low confidence assignments
+    const lowConfidenceAssignments = Array.from(agentAssignments.values())
+      .filter(assignment => assignment.confidence < 0.6);
+    if (lowConfidenceAssignments.length > 0) {
+      risks.push({
+        type: 'low_confidence_assignments',
+        severity: 'medium',
+        count: lowConfidenceAssignments.length,
+        description: `${lowConfidenceAssignments.length} assignments have low confidence scores`
+      });
+    }
+    
+    // Check for high complexity tasks
+    const highComplexityTasks = tasks.filter(task => (task.estimatedComplexity || 5) > 8);
+    if (highComplexityTasks.length > 0) {
+      risks.push({
+        type: 'high_complexity',
+        severity: 'medium',
+        count: highComplexityTasks.length,
+        description: `${highComplexityTasks.length} tasks have very high complexity`
+      });
+    }
+    
+    return risks;
+  }
+
+  generateOrchestrationRecommendations(validation) {
+    const recommendations = [];
+    
+    if (validation.trdQuality < 0.8) {
+      recommendations.push('Consider improving requirements specification with more detailed acceptance criteria');
+    }
+    
+    if (validation.assignmentQuality < 0.7) {
+      recommendations.push('Review agent assignments and consider manual adjustments for low-confidence matches');
+    }
+    
+    if (validation.risks.length > 0) {
+      recommendations.push('Address identified risks before proceeding with execution');
+    }
+    
+    if (validation.overallScore < 0.8) {
+      recommendations.push('Overall orchestration quality is below threshold - consider improvements before execution');
+    }
+    
+    return recommendations;
+  }
+
+  getDomainComplexity(domain) {
+    const complexityMap = {
+      'web_development': 0.7,
+      'mobile_development': 0.8,
+      'data_processing': 0.9,
+      'ai_ml': 1.0
+    };
+    
+    return complexityMap[domain] || 0.5;
+  }
+
+  calculateAverageAssignmentConfidence(agentAssignments) {
+    if (agentAssignments.size === 0) return 0;
+    
+    let totalConfidence = 0;
+    for (const assignment of agentAssignments.values()) {
+      totalConfidence += assignment.confidence || 0;
+    }
+    
+    return totalConfidence / agentAssignments.size;
+  }
+
+  estimateProjectDuration(tasks, agentAssignments) {
+    // Simple estimation based on task complexity and agent efficiency
+    let totalHours = 0;
+    
+    for (const task of tasks) {
+      const baseHours = (task.estimatedComplexity || 5) * 2; // 2 hours per complexity point
+      const assignment = agentAssignments.get(task.id);
+      const efficiency = assignment?.agent?.efficiency || 0.8;
+      
+      totalHours += baseHours / efficiency;
+    }
+    
+    return Math.ceil(totalHours);
+  }
+
+  calculateProjectRiskScore(trd, tasks, agentAssignments) {
+    let riskScore = 0;
+    
+    // Domain complexity risk
+    riskScore += this.getDomainComplexity(trd.domain) * 0.3;
+    
+    // Assignment confidence risk
+    const avgConfidence = this.calculateAverageAssignmentConfidence(agentAssignments);
+    riskScore += (1 - avgConfidence) * 0.4;
+    
+    // Task complexity risk
+    const avgComplexity = tasks.reduce((sum, task) => sum + (task.estimatedComplexity || 5), 0) / tasks.length;
+    riskScore += (avgComplexity / 10) * 0.3;
+    
+    return Math.min(1.0, riskScore);
+  }
+
+  calculateProjectQualityScore(trd, tasks) {
+    let qualityScore = 0.5; // Base score
+    
+    // TRD quality
+    qualityScore += this.calculateTRDQuality(trd) * 0.4;
+    
+    // Task quality (having quality criteria)
+    const tasksWithCriteria = tasks.filter(task => task.qualityCriteria && task.qualityCriteria.length > 0);
+    qualityScore += (tasksWithCriteria.length / tasks.length) * 0.3;
+    
+    // Quality gates presence
+    const qualityGates = tasks.filter(task => task.type === 'quality_gate');
+    if (qualityGates.length > 0) {
+      qualityScore += 0.3;
+    }
+    
+    return Math.min(1.0, qualityScore);
+  }
+
+  /**
+   * Sanitize TRD for transmission (remove sensitive or large data)
+   */
+  sanitizeTRDForTransmission(trd) {
+    return {
+      id: trd.id,
+      domain: trd.domain,
+      functionalRequirements: trd.functionalRequirements?.slice(0, 10) || [], // Limit to first 10
+      nonFunctionalRequirements: trd.nonFunctionalRequirements || {},
+      qualityGates: trd.qualityGates || [],
+      metadata: trd.metadata || {},
+      createdAt: trd.createdAt,
+      confidence: trd.metadata?.confidence || 0.8
+    };
+  }
+
+  /**
+   * Get available agents for a specific task type
+   */
+  getAvailableAgentsForTask(task) {
+    const allAgents = this.specializedAgents.getAllAgents();
+    
+    return allAgents.filter(agent => {
+      // Check if agent is active
+      if (agent.status !== 'active') return false;
+      
+      // Check workload capacity
+      const currentTasks = agent.currentTasks?.length || 0;
+      const maxTasks = agent.configuration?.maxConcurrentTasks || 3;
+      if (currentTasks >= maxTasks) return false;
+      
+      // Check basic compatibility
+      if (task.skillRequirements?.primary && task.skillRequirements.primary.length > 0) {
+        const agentCapabilities = Object.keys(agent.capabilities || {});
+        const hasRequiredSkill = task.skillRequirements.primary.some(skill =>
+          agentCapabilities.some(cap => 
+            cap.toLowerCase().includes(skill.toLowerCase()) ||
+            skill.toLowerCase().includes(cap.toLowerCase())
+          )
+        );
+        
+        if (!hasRequiredSkill) return false;
+      }
+      
+      return true;
+    });
+  }
+
+  /**
+   * Get fallback agent when intelligent assignment fails
+   */
+  getFallbackAgent(task) {
+    const allAgents = this.specializedAgents.getAllAgents();
+    
+    // Find any available agent
+    for (const agent of allAgents) {
+      const currentTasks = agent.currentTasks?.length || 0;
+      const maxTasks = agent.configuration?.maxConcurrentTasks || 3;
+      
+      if (agent.status === 'active' && currentTasks < maxTasks) {
+        return agent;
+      }
+    }
+    
+    return null;
+  }
+
+  /**
+   * Update agent workload tracking
+   */
+  updateAgentWorkload(agentId, task) {
+    const agent = this.specializedAgents.getAgent(agentId);
+    if (agent) {
+      if (!agent.currentTasks) {
+        agent.currentTasks = [];
+      }
+      agent.currentTasks.push({
+        id: task.id,
+        title: task.title,
+        assignedAt: new Date(),
+        estimatedComplexity: task.estimatedComplexity
+      });
+    }
   }
 }
 
