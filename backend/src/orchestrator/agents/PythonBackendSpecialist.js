@@ -149,6 +149,18 @@ class PythonBackendSpecialist {
     const taskDescription = (task.description || '').toLowerCase();
     const taskTitle = (task.title || '').toLowerCase();
     
+    // FIXED: Task type validation - Python Backend Specialist should not handle frontend tasks
+    if (task.type === 'frontend') {
+      console.log(`🚫 Python Backend Specialist rejecting frontend task: ${task.title}`);
+      return 0.0; // Absolutely no match for frontend tasks
+    }
+    
+    // FIXED: Additional validation for non-backend tasks
+    if (task.type && !['backend', 'database', 'security', 'api'].includes(task.type)) {
+      console.log(`🚫 Python Backend Specialist rejecting non-backend task: ${task.title} (type: ${task.type})`);
+      return 0.0;
+    }
+    
     let totalScore = 0;
     let maxScore = 0;
     
@@ -169,13 +181,13 @@ class PythonBackendSpecialist {
       }
     });
     
-    // Technology detection in description
+    // Technology detection in description (FIXED: reduced weight to prevent over-scoring)
     const techKeywords = Object.keys(this.capabilities);
     techKeywords.forEach(tech => {
       if (taskDescription.includes(tech.replace('_', ' ')) || taskTitle.includes(tech.replace('_', ' '))) {
         const capability = this.capabilities[tech];
-        totalScore += capability.efficiency * 0.5; // Partial score for keyword match
-        maxScore += 0.5;
+        totalScore += capability.efficiency * 0.3; // Reduced from 0.5 to 0.3
+        maxScore += 0.3; // Reduced from 0.5 to 0.3
       }
     });
     

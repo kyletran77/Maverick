@@ -112,6 +112,18 @@ class ReactFrontendSpecialist {
     const taskDescription = (task.description || '').toLowerCase();
     const taskTitle = (task.title || '').toLowerCase();
     
+    // FIXED: Task type validation - React Frontend Specialist should not handle backend tasks
+    if (task.type === 'backend') {
+      console.log(`🚫 React Frontend Specialist rejecting backend task: ${task.title}`);
+      return 0.0; // Absolutely no match for backend tasks
+    }
+    
+    // FIXED: Additional validation for non-frontend tasks
+    if (task.type && !['frontend', 'ui', 'interface'].includes(task.type)) {
+      console.log(`🚫 React Frontend Specialist rejecting non-frontend task: ${task.title} (type: ${task.type})`);
+      return 0.0;
+    }
+    
     let totalScore = 0;
     let maxScore = 0;
     
@@ -132,13 +144,13 @@ class ReactFrontendSpecialist {
       }
     });
     
-    // Technology detection in description
+    // Technology detection in description (FIXED: reduced weight to prevent over-scoring)
     const techKeywords = Object.keys(this.capabilities);
     techKeywords.forEach(tech => {
       if (taskDescription.includes(tech.replace('_', ' ')) || taskTitle.includes(tech.replace('_', ' '))) {
         const capability = this.capabilities[tech];
-        totalScore += capability.efficiency * 0.5; // Partial score for keyword match
-        maxScore += 0.5;
+        totalScore += capability.efficiency * 0.3; // Reduced from 0.5 to 0.3
+        maxScore += 0.3; // Reduced from 0.5 to 0.3
       }
     });
     

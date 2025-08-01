@@ -3373,12 +3373,13 @@ Remember: The goal is to create production-ready, immediately deployable code th
       'documentation': ['docs', 'documentation', 'guide', 'readme', 'manual']
     };
 
-    // Role detection
+    // Role detection - FIXED: Only detect actual multi-agent system requirements
     const roleKeywords = {
-      'agent': ['agent', 'bot', 'worker', 'service'],
-      'orchestrator': ['orchestrator', 'coordinator', 'manager', 'controller'],
-      'team': ['team', 'multi', 'multiple', 'group', 'collaboration'],
-      'developer': ['developer', 'programmer', 'coder', 'engineer']
+      'agent': ['multi-agent', 'agent-system', 'autonomous-agent', 'intelligent-agent'],
+      'orchestrator': ['task-orchestrator', 'workflow-orchestrator', 'system-orchestrator'],
+      'team': ['agent-team', 'collaborative-agents', 'multi-agent-team'],
+      // Removed common development terms that don't indicate agent systems
+      // 'developer': ['developer', 'programmer', 'coder', 'engineer'] // REMOVED
     };
 
     // Analyze words for intents
@@ -3482,8 +3483,14 @@ Remember: The goal is to create production-ready, immediately deployable code th
       });
     }
 
-    // Multi-agent and orchestration tasks
-    if (roles.includes('agent') || roles.includes('orchestrator') || roles.includes('team')) {
+    // Multi-agent and orchestration tasks - FIXED: Only generate if explicitly requested
+    // Additional validation: Don't generate agent system tasks for regular web applications
+    const isExplicitAgentRequest = originalPrompt.toLowerCase().includes('multi-agent') || 
+                                   originalPrompt.toLowerCase().includes('agent system') ||
+                                   originalPrompt.toLowerCase().includes('orchestration system');
+    
+    if ((roles.includes('agent') || roles.includes('orchestrator') || roles.includes('team')) && isExplicitAgentRequest) {
+      console.log('🔧 Detected explicit multi-agent system request, generating orchestration tasks');
       tasks.push({
         type: 'backend',
         title: 'Multi-Agent System Architecture',
@@ -3503,6 +3510,8 @@ Remember: The goal is to create production-ready, immediately deployable code th
         skills: ['nodejs', 'real_time', 'api_design', 'messaging'],
         deliverables: ['Message queues', 'Event system', 'Agent coordination', 'Status tracking']
       });
+    } else if (roles.includes('agent') || roles.includes('orchestrator') || roles.includes('team')) {
+      console.log('🚫 Detected role keywords but not explicit agent system request - skipping agent tasks');
     }
 
     // Testing tasks
@@ -4557,10 +4566,23 @@ Please perform a thorough code review following industry best practices and prov
       }
     });
     
-    // Fallback to frontend specialist if no development agent found
-    if (!bestAgent) {
-      console.warn('No suitable development agent found for task:', task.title, 'using frontend specialist as fallback');
-      bestAgent = this.agentTypes.FRONTEND_SPECIALIST;
+    // FIXED: Better validation - don't assign tasks if skill match is too low
+    if (!bestAgent || bestScore < 0.3) {
+      console.warn(`No suitable development agent found for task: "${task.title}" (type: ${task.type})`);
+      console.warn(`Best score was ${bestScore.toFixed(2)}, required skills: ${taskSkills.join(', ')}`);
+      
+      // Try to match by task type as last resort
+      if (task.type === 'frontend' && this.agentTypes.FRONTEND_SPECIALIST) {
+        console.log('Using Frontend Specialist for frontend task as fallback');
+        bestAgent = this.agentTypes.FRONTEND_SPECIALIST;
+      } else if (task.type === 'backend' && this.agentTypes.PYTHON_BACKEND_SPECIALIST) {
+        console.log('Using Python Backend Specialist for backend task as fallback');
+        bestAgent = this.agentTypes.PYTHON_BACKEND_SPECIALIST;
+      } else {
+        console.warn('No type-matched fallback available for task:', task.title);
+        // Don't assign any agent rather than assign wrong one
+        return null;
+      }
     }
     
     return bestAgent;
