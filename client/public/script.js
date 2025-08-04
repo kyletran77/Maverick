@@ -722,10 +722,10 @@ function handleTaskSubmit(event) {
         addSystemMessage(`📁 Project location: ${finalProjectPath}`, 'system');
     }
     
-    // Send task to server
+    // Send task to server (FIXED: Remove duplication source)
     const taskData = {
         task: task,
-        description: `User requested: ${task}`,
+        description: task, // FIXED: Don't add "User requested:" prefix to prevent duplication cascade
         projectPath: finalProjectPath || selectedProjectPath,
         projectName: projectName,
         useGoose: true

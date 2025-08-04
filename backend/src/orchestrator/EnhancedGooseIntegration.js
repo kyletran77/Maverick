@@ -148,13 +148,16 @@ class EnhancedGooseIntegration {
   }
 
   /**
-   * Build TRD generation prompt
+   * Build TRD generation prompt (FIXED: Size validation)
    */
   buildTRDGenerationPrompt(userPrompt, context) {
-    return `
+    // Clean the user prompt to prevent duplication
+    const cleanPrompt = this.cleanPromptInput(userPrompt);
+    
+    const prompt = `
 You are a senior technical architect creating a comprehensive Technical Requirements Document (TRD).
 
-USER REQUEST: "${userPrompt}"
+USER REQUEST: "${cleanPrompt}"
 
 CONTEXT:
 - Project Path: ${context.projectPath || 'Not specified'}
@@ -228,6 +231,10 @@ Please provide specific, actionable requirements rather than generic statements.
 
 Structure your response clearly with proper headings and bullet points for easy parsing.
 `;
+
+    // Validate prompt size
+    this.validatePromptSize(prompt, 'TRD Generation');
+    return prompt;
   }
 
   /**
@@ -816,6 +823,49 @@ Begin implementation now.
         this.activeSessions.delete(sessionId);
       }
     }
+  }
+
+  /**
+   * Clean prompt input to prevent duplication issues
+   */
+  cleanPromptInput(input) {
+    if (!input || typeof input !== 'string') return '';
+    
+    // Remove "User requested:" prefixes
+    let cleaned = input.replace(/^User requested:\s*/i, '');
+    
+    // Remove duplicate content by finding unique sentences
+    const sentences = cleaned.split(/[.!?]+/).filter(s => s.trim());
+    const uniqueSentences = [...new Set(sentences)];
+    cleaned = uniqueSentences.join('. ').trim();
+    
+    // Limit length
+    if (cleaned.length > 1000) {
+      cleaned = cleaned.substring(0, 1000) + '...';
+    }
+    
+    return cleaned;
+  }
+
+  /**
+   * Validate prompt size before sending to Goose
+   */
+  validatePromptSize(prompt, context = 'Unknown') {
+    const size = Buffer.byteLength(prompt, 'utf8');
+    const maxSize = this.config.goose?.maxPayloadSize || 100000; // 100KB
+    const warningSize = this.config.goose?.warningPayloadSize || 80000; // 80KB
+    
+    if (size > maxSize) {
+      const error = `Prompt too large for ${context}: ${size} bytes (limit: ${maxSize})`;
+      console.error(`❌ ${error}`);
+      throw new Error(error);
+    }
+    
+    if (size > warningSize) {
+      console.warn(`⚠️ Large prompt warning for ${context}: ${size} bytes`);
+    }
+    
+    return true;
   }
 }
 

@@ -21,6 +21,68 @@ try {
 }
 
 /**
+ * Prompt management utilities to prevent payload size issues
+ */
+class PromptUtils {
+  static MAX_PROMPT_SIZE = 100000; // 100KB limit for safety
+  static MAX_DESCRIPTION_LENGTH = 2000; // Reasonable description limit
+  
+  /**
+   * Clean and deduplicate prompt text
+   */
+  static cleanPrompt(text) {
+    if (!text || typeof text !== 'string') return '';
+    
+    // Remove "User requested:" prefixes that cause duplication
+    let cleaned = text.replace(/^User requested:\s*/i, '');
+    
+    // Remove duplicate sentences/phrases
+    const sentences = cleaned.split(/[.!?]+/).filter(s => s.trim());
+    const uniqueSentences = [...new Set(sentences)];
+    cleaned = uniqueSentences.join('. ').trim();
+    
+    // Truncate if too long
+    if (cleaned.length > this.MAX_DESCRIPTION_LENGTH) {
+      cleaned = cleaned.substring(0, this.MAX_DESCRIPTION_LENGTH) + '...';
+    }
+    
+    return cleaned;
+  }
+  
+  /**
+   * Validate prompt size before sending to API
+   */
+  static validatePromptSize(prompt, context = 'Unknown') {
+    const size = Buffer.byteLength(prompt, 'utf8');
+    
+    if (size > this.MAX_PROMPT_SIZE) {
+      console.warn(`⚠️ Prompt size warning in ${context}: ${size} bytes (max: ${this.MAX_PROMPT_SIZE})`);
+      throw new Error(`Prompt too large (${size} bytes). Please reduce prompt size to prevent API errors.`);
+    }
+    
+    if (size > 80000) { // Warning threshold
+      console.warn(`⚠️ Large prompt in ${context}: ${size} bytes`);
+    }
+    
+    return true;
+  }
+  
+  /**
+   * Extract core requirements from duplicated text
+   */
+  static extractCoreRequirements(text) {
+    if (!text) return '';
+    
+    // Find the original requirement by looking for the first occurrence
+    // before any ": User requested:" patterns
+    const parts = text.split(': User requested:');
+    const coreText = parts[0] || text;
+    
+    return this.cleanPrompt(coreText);
+  }
+}
+
+/**
  * LangGraph-inspired Task Orchestrator with Bulletproof State Management
  * 
  * Implements a stateful graph system where:
@@ -3194,21 +3256,25 @@ Remember: The goal is to create production-ready, immediately deployable code th
   }
 
   /**
-   * Create a comprehensive task description for Goose CLI execution
+   * Create a comprehensive task description for Goose CLI execution (FIXED: Payload size validation)
    */
   createGooseTaskDescription(task, agent, project) {
-    const context = {
-      projectType: project.metrics?.complexity || 'medium',
-      projectPath: project.projectPath,
-      agentType: agent.specialization,
-      agentCapabilities: agent.capabilities.join(', ')
-    };
-    
-    // Create a detailed task description that includes context and requirements
-    let description = `You are a ${agent.specialization} working on: ${task.title}\n\n`;
-    description += `Task Description: ${task.description}\n\n`;
-    description += `Priority: ${task.priority}\n`;
-    description += `Estimated Hours: ${task.estimatedHours}\n\n`;
+    try {
+      const context = {
+        projectType: project.metrics?.complexity || 'medium',
+        projectPath: project.projectPath,
+        agentType: agent.specialization,
+        agentCapabilities: agent.capabilities.join(', ')
+      };
+      
+      // CRITICAL FIX: Clean task description to prevent duplication
+      const cleanDescription = PromptUtils.cleanPrompt(task.description);
+      
+      // Create a detailed task description that includes context and requirements
+      let description = `You are a ${agent.specialization} working on: ${task.title}\n\n`;
+      description += `Task Description: ${cleanDescription}\n\n`;
+      description += `Priority: ${task.priority}\n`;
+      description += `Estimated Hours: ${task.estimatedHours}\n\n`;
     
     if (task.skills && task.skills.length > 0) {
       description += `Required Skills: ${task.skills.join(', ')}\n\n`;
@@ -3270,7 +3336,20 @@ Remember: The goal is to create production-ready, immediately deployable code th
     description += `- If you encounter issues, explain them clearly\n`;
     description += `- Complete your task and exit cleanly without running servers or tests\n`;
     
+    // CRITICAL FIX: Validate prompt size before returning
+    PromptUtils.validatePromptSize(description, `Task ${task.id} for ${agent.specialization}`);
+    
     return description;
+    
+    } catch (error) {
+      console.error(`❌ Error creating Goose task description: ${error.message}`);
+      
+      // Fallback to minimal description if size validation fails
+      const fallbackDescription = `Task: ${task.title}\n\nRole: ${agent.specialization}\n\nObjective: ${PromptUtils.cleanPrompt(task.description).substring(0, 500)}...\n\nPlease implement this task following best practices.`;
+      
+      console.log('📦 Using fallback description due to size constraints');
+      return fallbackDescription;
+    }
   }
 
   /**
@@ -3673,20 +3752,25 @@ Remember: The goal is to create production-ready, immediately deployable code th
   }
 
   /**
-   * Generate tasks based on analyzed intent
+   * Generate tasks based on analyzed intent (FIXED: Prevent prompt duplication)
    */
   generateTasksFromIntent(intentAnalysis, originalPrompt) {
     const tasks = [];
     const { actions, technologies, components, roles, scope } = intentAnalysis;
 
     console.log('Generating tasks for intent:', intentAnalysis);
+    
+    // CRITICAL FIX: Clean the original prompt to prevent duplication
+    const cleanPrompt = PromptUtils.extractCoreRequirements(originalPrompt);
+    console.log('🧹 Original prompt:', originalPrompt);
+    console.log('🧹 Cleaned prompt:', cleanPrompt);
 
     // Core development tasks based on technologies
     if (technologies.includes('frontend') || actions.includes('create')) {
       tasks.push({
         type: 'frontend',
         title: 'Frontend Development',
-        description: `Create user interface components and frontend architecture for: ${originalPrompt}`,
+        description: `Create user interface components and frontend architecture for: ${cleanPrompt}`,
         priority: 'high',
         estimatedHours: scope === 'large' ? 16 : scope === 'small' ? 8 : 12,
         skills: ['react', 'javascript', 'css', 'html', 'ui_design'],
@@ -3698,7 +3782,7 @@ Remember: The goal is to create production-ready, immediately deployable code th
       tasks.push({
         type: 'backend',
         title: 'Backend Development',
-        description: `Build backend services and API infrastructure for: ${originalPrompt}`,
+        description: `Build backend services and API infrastructure for: ${cleanPrompt}`,
         priority: 'high',
         estimatedHours: scope === 'large' ? 20 : scope === 'small' ? 10 : 15,
         skills: ['nodejs', 'api_design', 'microservices', 'authentication'],
@@ -3710,7 +3794,7 @@ Remember: The goal is to create production-ready, immediately deployable code th
       tasks.push({
         type: 'database',
         title: 'Database Design',
-        description: `Design and implement database schema for: ${originalPrompt}`,
+        description: `Design and implement database schema for: ${cleanPrompt}`,
         priority: 'high',
         estimatedHours: scope === 'large' ? 12 : scope === 'small' ? 6 : 8,
         skills: ['sql', 'schema_design', 'data_modeling', 'optimization'],
@@ -3720,16 +3804,16 @@ Remember: The goal is to create production-ready, immediately deployable code th
 
     // Multi-agent and orchestration tasks - FIXED: Only generate if explicitly requested
     // Additional validation: Don't generate agent system tasks for regular web applications
-    const isExplicitAgentRequest = originalPrompt.toLowerCase().includes('multi-agent') || 
-                                   originalPrompt.toLowerCase().includes('agent system') ||
-                                   originalPrompt.toLowerCase().includes('orchestration system');
+    const isExplicitAgentRequest = cleanPrompt.toLowerCase().includes('multi-agent') || 
+                                   cleanPrompt.toLowerCase().includes('agent system') ||
+                                   cleanPrompt.toLowerCase().includes('orchestration system');
     
     if ((roles.includes('agent') || roles.includes('orchestrator') || roles.includes('team')) && isExplicitAgentRequest) {
       console.log('🔧 Detected explicit multi-agent system request, generating orchestration tasks');
       tasks.push({
         type: 'backend',
         title: 'Multi-Agent System Architecture',
-        description: `Design and implement multi-agent orchestration system for: ${originalPrompt}`,
+        description: `Design and implement multi-agent orchestration system for: ${cleanPrompt}`,
         priority: 'high',
         estimatedHours: scope === 'large' ? 24 : scope === 'small' ? 12 : 18,
         skills: ['nodejs', 'microservices', 'api_design', 'orchestration'],
@@ -3739,7 +3823,7 @@ Remember: The goal is to create production-ready, immediately deployable code th
       tasks.push({
         type: 'backend',
         title: 'Agent Communication System',
-        description: `Build communication and coordination system between agents for: ${originalPrompt}`,
+        description: `Build communication and coordination system between agents for: ${cleanPrompt}`,
         priority: 'high',
         estimatedHours: scope === 'large' ? 16 : scope === 'small' ? 8 : 12,
         skills: ['nodejs', 'real_time', 'api_design', 'messaging'],
@@ -3754,7 +3838,7 @@ Remember: The goal is to create production-ready, immediately deployable code th
       tasks.push({
         type: 'testing',
         title: 'Testing & Quality Assurance',
-        description: `Implement comprehensive testing suite for: ${originalPrompt}`,
+        description: `Implement comprehensive testing suite for: ${cleanPrompt}`,
         priority: 'medium',
         estimatedHours: scope === 'large' ? 14 : scope === 'small' ? 6 : 10,
         skills: ['unit_testing', 'integration_testing', 'e2e_testing', 'test_automation'],
@@ -3767,7 +3851,7 @@ Remember: The goal is to create production-ready, immediately deployable code th
       tasks.push({
         type: 'documentation',
         title: 'Documentation & Guides',
-        description: `Create comprehensive documentation for: ${originalPrompt}`,
+        description: `Create comprehensive documentation for: ${cleanPrompt}`,
         priority: 'medium',
         estimatedHours: scope === 'large' ? 10 : scope === 'small' ? 4 : 6,
         skills: ['technical_writing', 'readme', 'user_guides', 'api_docs'],
@@ -3780,7 +3864,7 @@ Remember: The goal is to create production-ready, immediately deployable code th
       tasks.push({
         type: 'deployment',
         title: 'Deployment & DevOps',
-        description: `Set up deployment pipeline and infrastructure for: ${originalPrompt}`,
+        description: `Set up deployment pipeline and infrastructure for: ${cleanPrompt}`,
         priority: 'medium',
         estimatedHours: scope === 'large' ? 12 : scope === 'small' ? 6 : 8,
         skills: ['deployment', 'ci_cd', 'docker', 'monitoring'],
@@ -3793,7 +3877,7 @@ Remember: The goal is to create production-ready, immediately deployable code th
       tasks.push({
         type: 'security',
         title: 'Security Implementation',
-        description: `Implement security measures and authentication for: ${originalPrompt}`,
+        description: `Implement security measures and authentication for: ${cleanPrompt}`,
         priority: 'high',
         estimatedHours: scope === 'large' ? 14 : scope === 'small' ? 6 : 10,
         skills: ['authentication', 'authorization', 'encryption', 'security_audit'],
@@ -3806,7 +3890,7 @@ Remember: The goal is to create production-ready, immediately deployable code th
       tasks.push({
         type: 'general',
         title: 'Project Implementation',
-        description: `Implement the requested project: ${originalPrompt}`,
+        description: `Implement the requested project: ${cleanPrompt}`,
         priority: 'high',
         estimatedHours: 10,
         skills: ['general', 'programming', 'problem_solving'],
@@ -5534,16 +5618,22 @@ Please perform a thorough code review following industry best practices and prov
    */
   async orchestrateTask(task, description, projectPath, socket, jobName = null) {
     try {
-      // Create a comprehensive prompt from task and description
-      const prompt = `${task}${description ? ': ' + description : ''}`;
+      // CRITICAL FIX: Clean prompt to prevent duplication cascade
+      const cleanTask = PromptUtils.cleanPrompt(task);
+      const cleanDescription = PromptUtils.cleanPrompt(description);
+      
+      // Create a comprehensive prompt from task and description (no duplication)
+      const prompt = cleanDescription || cleanTask;
+      
+      console.log('🧹 Cleaned orchestration prompt:', prompt);
       
       // Create job tracking
       const jobId = jobName || `job-${Date.now()}`;
       const job = {
         id: jobId,
         name: jobName || 'Orchestrated Task',
-        task: task,
-        description: description,
+        task: cleanTask,
+        description: cleanDescription,
         projectPath: projectPath,
         status: 'active',
         createdAt: new Date(),

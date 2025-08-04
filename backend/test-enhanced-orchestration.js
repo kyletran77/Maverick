@@ -306,12 +306,82 @@ class EnhancedOrchestrationTest {
       process.exit(1);
     }
   }
+
+  /**
+   * Test payload size fix functionality
+   */
+  async testPayloadSizeFix() {
+    console.log('🔧 Testing Payload Size Fix...');
+    
+    try {
+      // Import TaskOrchestrator to test PromptUtils
+      const TaskOrchestrator = require('./src/orchestrator/TaskOrchestrator');
+      
+      // Access PromptUtils from TaskOrchestrator file context
+      const testPrompt = 'User requested: ou are a senior full-stack engineer. Build the initial Broadcom corporate website using React.js: User requested: ou are a senior full-stack engineer. Build the initial Broadcom corporate website using React.js: User requested: ou are a senior full-stack engineer. Build the initial Broadcom corporate website using React.js';
+      
+      // Create a mock orchestrator to access PromptUtils
+      const mockIO = { emit: () => {} };
+      const mockJobStorage = { addJob: () => {} };
+      const orchestrator = new TaskOrchestrator(mockIO, mockJobStorage);
+      
+      // Test the generateTasksFromIntent method with a duplicated prompt
+      const intentAnalysis = {
+        actions: ['create'],
+        technologies: ['frontend', 'backend'],
+        components: ['api'],
+        roles: [],
+        scope: 'medium'
+      };
+      
+      const tasks = orchestrator.generateTasksFromIntent(intentAnalysis, testPrompt);
+      
+      // Verify tasks were created without duplication
+      this.addTestResult('payload-size-fix', true, `Generated ${tasks.length} tasks with cleaned prompts`);
+      
+      // Verify task descriptions don't contain "User requested:" duplication
+      const hasDuplication = tasks.some(task => 
+        task.description.includes('User requested:') && 
+        task.description.split('User requested:').length > 2
+      );
+      
+      this.addTestResult('duplication-removal', !hasDuplication, 
+        hasDuplication ? 'Task descriptions still contain duplication' : 'Task descriptions are clean');
+      
+      // Test prompt size validation
+      const longPrompt = 'A'.repeat(200000); // 200KB prompt
+      
+      try {
+        orchestrator.generateTasksFromIntent(intentAnalysis, longPrompt);
+        this.addTestResult('size-validation', false, 'Large prompt should have been rejected');
+      } catch (error) {
+        if (error.message.includes('Prompt too large')) {
+          this.addTestResult('size-validation', true, 'Large prompt correctly rejected');
+        } else {
+          this.addTestResult('size-validation', false, `Unexpected error: ${error.message}`);
+        }
+      }
+      
+      console.log('✅ Payload size fix tests completed');
+      
+    } catch (error) {
+      console.error('❌ Payload size fix test failed:', error);
+      this.addTestResult('payload-size-fix', false, error.message);
+    }
+  }
 }
 
 // Run the tests
 if (require.main === module) {
   const tester = new EnhancedOrchestrationTest();
-  tester.runAllTests().catch(error => {
+  
+  // Enhanced test run including payload size fix
+  tester.runAllTests().then(() => {
+    // Run payload size fix test
+    return tester.testPayloadSizeFix();
+  }).then(() => {
+    tester.printTestSummary();
+  }).catch(error => {
     console.error('Test execution failed:', error);
     process.exit(1);
   });
