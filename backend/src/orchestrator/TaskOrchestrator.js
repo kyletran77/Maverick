@@ -147,9 +147,6 @@ class TaskOrchestrator {
       console.log('✅ Intelligent Agent Matcher initialized');
     }
     
-    // Initialize specialized agent types with capabilities (legacy support)
-    this.initializeAgentTypes();
-    
     // Initialize state management system
     this.initializeStateManagement();
   }
@@ -1746,144 +1743,6 @@ class TaskOrchestrator {
     await new Promise(resolve => setTimeout(resolve, 1000));
   }
 
-  initializeAgentTypes() {
-    this.agentTypes = {
-      FRONTEND_SPECIALIST: {
-        id: 'frontend_specialist',
-        name: 'Frontend Specialist',
-        capabilities: ['react', 'vue', 'angular', 'html', 'css', 'javascript', 'typescript', 'ui_design', 'responsive_design', 'state_management'],
-        specialization: 'Frontend Development',
-        maxConcurrentTasks: 3,
-        estimatedTaskTime: 15,
-        efficiency: {
-          'react': 0.95,
-          'vue': 0.85,
-          'angular': 0.80,
-          'html': 0.90,
-          'css': 0.88,
-          'javascript': 0.92,
-          'typescript': 0.87,
-          'ui_design': 0.83
-        }
-      },
-      BACKEND_SPECIALIST: {
-        id: 'backend_specialist',
-        name: 'Backend Specialist',
-        capabilities: ['nodejs', 'python', 'java', 'api_design', 'database', 'authentication', 'microservices', 'rest_api', 'graphql'],
-        specialization: 'Backend Development',
-        maxConcurrentTasks: 3,
-        estimatedTaskTime: 20,
-        efficiency: {
-          'nodejs': 0.92,
-          'python': 0.88,
-          'api_design': 0.90,
-          'database': 0.85,
-          'authentication': 0.87,
-          'microservices': 0.83
-        }
-      },
-      PYTHON_SPECIALIST: {
-        id: 'python_specialist',
-        name: 'Python Backend Specialist',
-        capabilities: ['python', 'fastapi', 'django', 'flask', 'sqlalchemy', 'pytest', 'asyncio', 'celery', 'redis', 'postgresql', 'mongodb', 'api_design', 'authentication', 'microservices'],
-        specialization: 'Python Backend Development',
-        maxConcurrentTasks: 3,
-        estimatedTaskTime: 18,
-        efficiency: {
-          'python': 0.96,
-          'fastapi': 0.94,
-          'django': 0.92,
-          'flask': 0.90,
-          'sqlalchemy': 0.88,
-          'pytest': 0.93,
-          'asyncio': 0.87,
-          'celery': 0.85,
-          'redis': 0.84,
-          'postgresql': 0.89,
-          'mongodb': 0.86,
-          'api_design': 0.91,
-          'authentication': 0.89,
-          'microservices': 0.87
-        }
-      },
-      DATABASE_ARCHITECT: {
-        id: 'database_architect',
-        name: 'Database Architect',
-        capabilities: ['sql', 'nosql', 'schema_design', 'migrations', 'optimization', 'data_modeling', 'indexing', 'performance_tuning'],
-        specialization: 'Database Design',
-        maxConcurrentTasks: 2,
-        estimatedTaskTime: 12,
-        efficiency: {
-          'sql': 0.94,
-          'nosql': 0.87,
-          'schema_design': 0.91,
-          'migrations': 0.89,
-          'optimization': 0.85
-        }
-      },
-      TEST_ENGINEER: {
-        id: 'test_engineer',
-        name: 'Test Engineer',
-        capabilities: ['unit_testing', 'integration_testing', 'e2e_testing', 'test_automation', 'performance_testing', 'load_testing', 'security_testing'],
-        specialization: 'Quality Assurance',
-        maxConcurrentTasks: 4,
-        estimatedTaskTime: 10,
-        efficiency: {
-          'unit_testing': 0.93,
-          'integration_testing': 0.88,
-          'e2e_testing': 0.85,
-          'test_automation': 0.90,
-          'performance_testing': 0.82
-        }
-      },
-      DEVOPS_ENGINEER: {
-        id: 'devops_engineer',
-        name: 'DevOps Engineer',
-        capabilities: ['deployment', 'ci_cd', 'docker', 'kubernetes', 'monitoring', 'infrastructure', 'cloud_services', 'automation'],
-        specialization: 'Deployment & Operations',
-        maxConcurrentTasks: 2,
-        estimatedTaskTime: 18,
-        efficiency: {
-          'deployment': 0.91,
-          'ci_cd': 0.88,
-          'docker': 0.92,
-          'kubernetes': 0.84,
-          'monitoring': 0.86,
-          'infrastructure': 0.87
-        }
-      },
-      DOCUMENTATION_SPECIALIST: {
-        id: 'documentation_specialist',
-        name: 'Documentation Specialist',
-        capabilities: ['technical_writing', 'api_docs', 'user_guides', 'readme', 'tutorials', 'code_documentation', 'architecture_docs'],
-        specialization: 'Documentation',
-        maxConcurrentTasks: 5,
-        estimatedTaskTime: 8,
-        efficiency: {
-          'technical_writing': 0.95,
-          'api_docs': 0.92,
-          'user_guides': 0.89,
-          'readme': 0.94,
-          'tutorials': 0.87
-        }
-      },
-      SECURITY_SPECIALIST: {
-        id: 'security_specialist',
-        name: 'Security Specialist',
-        capabilities: ['security_audit', 'authentication', 'authorization', 'encryption', 'vulnerability_assessment', 'penetration_testing', 'compliance'],
-        specialization: 'Security',
-        maxConcurrentTasks: 2,
-        estimatedTaskTime: 25,
-        efficiency: {
-          'security_audit': 0.89,
-          'authentication': 0.91,
-          'authorization': 0.88,
-          'encryption': 0.86,
-          'vulnerability_assessment': 0.84
-        }
-      }
-    };
-  }
 
   /**
    * Main orchestration method - analyzes prompt and creates bulletproof stateful graph
@@ -4750,7 +4609,7 @@ Please perform a thorough code review following industry best practices and prov
    */
   findBestAgentForTask(task) {
     try {
-      // First try to use the new specialized agent registry
+      // Use the specialized agent registry
       if (this.specializedAgents) {
         const selection = this.specializedAgents.findBestAgent(task);
         
@@ -4762,46 +4621,12 @@ Please perform a thorough code review following industry best practices and prov
         }
       }
     } catch (error) {
-      console.warn('Error using specialized agents, falling back to legacy system:', error.message);
+      console.warn('Error using specialized agents:', error.message);
     }
     
-    // Fallback to legacy agent selection
-    const taskSkills = task.skills || [];
-    let bestAgent = null;
-    let bestScore = 0;
-    
-    Object.values(this.agentTypes).forEach(agentType => {
-      // Calculate capability match
-      const matchingSkills = taskSkills.filter(skill => 
-        agentType.capabilities.includes(skill)
-      );
-      
-      if (matchingSkills.length === 0) return;
-      
-      // Calculate efficiency score
-      const efficiencyScore = matchingSkills.reduce((total, skill) => {
-        return total + (agentType.efficiency[skill] || 0.5);
-      }, 0) / matchingSkills.length;
-      
-      // Calculate coverage score (how many required skills this agent covers)
-      const coverageScore = matchingSkills.length / taskSkills.length;
-      
-      // Combined score
-      const totalScore = (efficiencyScore * 0.6) + (coverageScore * 0.4);
-      
-      if (totalScore > bestScore) {
-        bestScore = totalScore;
-        bestAgent = agentType;
-      }
-    });
-    
-    // Fallback to frontend specialist if no agent found
-    if (!bestAgent) {
-      console.warn('No suitable agent found for task:', task.title, 'using frontend specialist as fallback');
-      bestAgent = this.agentTypes.FRONTEND_SPECIALIST;
-    }
-    
-    return bestAgent;
+    // If no suitable agent found, return null
+    console.warn('No suitable agent found for task:', task.title);
+    return null;
   }
 
   /**
@@ -4853,56 +4678,9 @@ Please perform a thorough code review following industry best practices and prov
     let bestAgent = null;
     let bestScore = 0;
     
-    // Only consider development agent types (exclude checkpoint agents)
-    const developmentAgentTypes = Object.fromEntries(
-      Object.entries(this.agentTypes).filter(([key, agent]) => {
-        return key !== 'CODE_REVIEW_SPECIALIST' && key !== 'QA_TESTING_SPECIALIST';
-      })
-    );
-    
-    Object.values(developmentAgentTypes).forEach(agentType => {
-      // Calculate capability match
-      const matchingSkills = taskSkills.filter(skill => 
-        agentType.capabilities.includes(skill)
-      );
-      
-      if (matchingSkills.length === 0) return;
-      
-      // Calculate efficiency score
-      const efficiencyScore = matchingSkills.reduce((total, skill) => {
-        return total + (agentType.efficiency[skill] || 0.5);
-      }, 0) / matchingSkills.length;
-      
-      // Calculate coverage score (how many required skills this agent covers)
-      const coverageScore = matchingSkills.length / taskSkills.length;
-      
-      // Combined score
-      const totalScore = (efficiencyScore * 0.6) + (coverageScore * 0.4);
-      
-      if (totalScore > bestScore) {
-        bestScore = totalScore;
-        bestAgent = agentType;
-      }
-    });
-    
-    // FIXED: Better validation - don't assign tasks if skill match is too low
-    if (!bestAgent || bestScore < 0.3) {
-      console.warn(`No suitable development agent found for task: "${task.title}" (type: ${task.type})`);
-      console.warn(`Best score was ${bestScore.toFixed(2)}, required skills: ${taskSkills.join(', ')}`);
-      
-      // Try to match by task type as last resort
-      if (task.type === 'frontend' && this.agentTypes.FRONTEND_SPECIALIST) {
-        console.log('Using Frontend Specialist for frontend task as fallback');
-        bestAgent = this.agentTypes.FRONTEND_SPECIALIST;
-      } else if (task.type === 'backend' && this.agentTypes.PYTHON_BACKEND_SPECIALIST) {
-        console.log('Using Python Backend Specialist for backend task as fallback');
-        bestAgent = this.agentTypes.PYTHON_BACKEND_SPECIALIST;
-      } else {
-        console.warn('No type-matched fallback available for task:', task.title);
-        // Don't assign any agent rather than assign wrong one
-        return null;
-      }
-    }
+    // If no suitable agent found, return null
+    console.warn(`No suitable development agent found for task: "${task.title}" (type: ${task.type})`);
+    return null;
     
     return bestAgent;
   }
@@ -4979,9 +4757,9 @@ Please perform a thorough code review following industry best practices and prov
     }
     
     return {
-      totalAgents: Object.keys(this.agentTypes).length,
-      specializations: Object.values(this.agentTypes).map(agent => agent.specialization),
-      usingLegacySystem: true
+      totalAgents: this.specializedAgents ? this.specializedAgents.getAllAgents().length : 0,
+      specializations: this.specializedAgents ? this.specializedAgents.getAllAgents().map(agent => agent.specialization) : [],
+      usingLegacySystem: false
     };
   }
 
@@ -5563,10 +5341,11 @@ Please perform a thorough code review following industry best practices and prov
       ]
     };
 
-    // Create test agents
-    const frontendAgent = this.createAgentInstance(this.agentTypes.FRONTEND_SPECIALIST, projectId);
-    const backendAgent = this.createAgentInstance(this.agentTypes.BACKEND_SPECIALIST, projectId);
-    const databaseAgent = this.createAgentInstance(this.agentTypes.DATABASE_ARCHITECT, projectId);
+    // Create test agents using specialized agent registry
+    const agents = this.specializedAgents ? this.specializedAgents.getAllAgents() : [];
+    const frontendAgent = agents.find(a => a.id.includes('react')) || null;
+    const backendAgent = agents.find(a => a.id.includes('python')) || null;
+    const qaAgent = agents.find(a => a.id.includes('qa')) || null;
 
     // Set up agent assignments
     const agentAssignments = new Map();
