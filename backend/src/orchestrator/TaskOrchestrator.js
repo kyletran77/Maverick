@@ -8,6 +8,11 @@ const ProjectPersistence = require('./ProjectPersistence');
 const RequirementsProcessor = require('./RequirementsProcessor');
 const IntelligentAgentMatcher = require('./IntelligentAgentMatcher');
 const EnhancedGooseIntegration = require('./EnhancedGooseIntegration');
+
+// New Smart Architect components
+const TaskGraph = require('./core/TaskGraph');
+const RequirementsAnalyzer = require('./core/RequirementsAnalyzer');
+const ProjectBlueprint = require('./core/ProjectBlueprint');
 // Load configuration with fallback
 let orchestratorConfig;
 try {
@@ -112,7 +117,7 @@ class TaskOrchestrator {
     // Legacy compatibility
     this.activeProjects = new Map();
     this.agentRegistry = new Map();
-    this.taskGraph = new Map();
+    this.legacyTaskGraph = new Map();
     this.eventBus = new Map();
     
     // Initialize job management
@@ -122,6 +127,15 @@ class TaskOrchestrator {
     
     // Initialize Goose integration for real agent execution
     this.gooseIntegration = new GooseIntegration(io);
+    
+    // New Smart Architect components
+    this.taskGraph = new TaskGraph();
+    this.requirementsAnalyzer = new RequirementsAnalyzer();
+    this.smartArchitect = {
+      projects: new Map(),
+      activeAnalysis: new Map(),
+      blueprints: new Map()
+    };
     
     // Initialize enhanced Goose integration for intelligent processing
     this.enhancedGoose = new EnhancedGooseIntegration(io, orchestratorConfig || {});
@@ -6932,6 +6946,275 @@ Please perform a thorough code review following industry best practices and prov
         estimatedComplexity: task.estimatedComplexity
       });
     }
+  }
+
+  // ==================== SMART ARCHITECT METHODS ====================
+
+  /**
+   * Smart Architect: Main entry point for domain-agnostic project creation
+   * Uses LLM intelligence to build any internal business tool
+   */
+  async createProjectWithSmartArchitect(userRequest, options = {}) {
+    const projectId = uuidv4();
+    console.log(`🏗️ Smart Architect creating project: ${projectId}`);
+    console.log(`📝 User request: "${userRequest}"`);
+
+    try {
+      // Step 1: Analyze requirements using LLM intelligence
+      console.log('🧠 Step 1: Analyzing requirements...');
+      const analysis = await this.requirementsAnalyzer.analyzeRequest(userRequest, {
+        specialists: this.getAvailableSpecialists(),
+        existingSystems: options.integrations,
+        userTypes: options.userTypes
+      });
+
+      // Store analysis
+      this.smartArchitect.activeAnalysis.set(projectId, analysis);
+      this.smartArchitect.blueprints.set(projectId, analysis.blueprint);
+
+      // Step 2: Build enhanced task graph
+      console.log('🔗 Step 2: Building task graph...');
+      await this.taskGraph.buildGraph(analysis.blueprint, analysis.tasks);
+
+      // Step 3: Create project record
+      const project = {
+        id: projectId,
+        name: options.name || analysis.blueprint.name || `Project ${projectId.substring(0, 8)}`,
+        description: analysis.blueprint.description || userRequest,
+        domain: analysis.blueprint.domain,
+        status: 'active',
+        createdAt: new Date().toISOString(),
+        blueprint: analysis.blueprint,
+        tasks: analysis.tasks,
+        estimatedDuration: analysis.estimatedDuration,
+        complexity: analysis.complexity,
+        originalRequest: userRequest
+      };
+
+      this.smartArchitect.projects.set(projectId, project);
+
+      // Step 4: Start execution
+      console.log('🚀 Step 3: Starting project execution...');
+      await this.executeSmartArchitectProject(projectId, options.socket);
+
+      return {
+        projectId: projectId,
+        project: project,
+        analysis: analysis,
+        taskGraph: this.taskGraph.exportGraph()
+      };
+
+    } catch (error) {
+      console.error(`❌ Smart Architect project creation failed:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Execute Smart Architect project with intelligent coordination
+   */
+  async executeSmartArchitectProject(projectId, socket) {
+    console.log(`⚡ Executing Smart Architect project: ${projectId}`);
+
+    const project = this.smartArchitect.projects.get(projectId);
+    if (!project) {
+      throw new Error(`Project ${projectId} not found`);
+    }
+
+    try {
+      // Main execution loop
+      while (!this.taskGraph.isComplete()) {
+        // Get ready tasks with full context
+        const readyTasks = this.taskGraph.getReadyTasks();
+        
+        if (readyTasks.length === 0) {
+          console.log('⏳ No tasks ready, waiting for completions...');
+          await new Promise(resolve => setTimeout(resolve, 5000));
+          continue;
+        }
+
+        console.log(`🎯 Found ${readyTasks.length} ready tasks`);
+
+        // Execute ready tasks
+        for (const task of readyTasks) {
+          await this.executeSmartArchitectTask(projectId, task, socket);
+        }
+
+        // Brief pause between execution rounds
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+
+      // Project completed
+      project.status = 'completed';
+      project.completedAt = new Date().toISOString();
+      
+      console.log(`🎉 Smart Architect project completed: ${projectId}`);
+      
+      if (socket) {
+        socket.emit('project_completed', {
+          projectId: projectId,
+          project: project,
+          statistics: this.taskGraph.getStatistics()
+        });
+      }
+
+    } catch (error) {
+      console.error(`❌ Smart Architect project execution failed:`, error);
+      project.status = 'failed';
+      project.error = error.message;
+      
+      if (socket) {
+        socket.emit('project_failed', {
+          projectId: projectId,
+          error: error.message
+        });
+      }
+      
+      throw error;
+    }
+  }
+
+  /**
+   * Execute individual task with context awareness
+   */
+  async executeSmartArchitectTask(projectId, task, socket) {
+    console.log(`🔧 Executing task: ${task.title} (${task.id})`);
+
+    try {
+      // Update task status
+      this.taskGraph.updateTaskStatus(task.id, 'in_progress');
+
+      // Find best specialist for this task
+      const specialist = await this.selectSpecialistForTask(task);
+      if (!specialist) {
+        throw new Error(`No suitable specialist found for task: ${task.title}`);
+      }
+
+      console.log(`👤 Assigned to: ${specialist.name}`);
+
+      // Execute task using specialist
+      const result = await this.executeTaskWithSpecialist(task, specialist, socket);
+
+      // Update task with results
+      this.taskGraph.updateTaskStatus(task.id, 'completed', result);
+
+      console.log(`✅ Task completed: ${task.title}`);
+
+      if (socket) {
+        socket.emit('task_completed', {
+          projectId: projectId,
+          taskId: task.id,
+          task: task,
+          result: result,
+          specialist: specialist.name
+        });
+      }
+
+    } catch (error) {
+      console.error(`❌ Task execution failed: ${task.title}`, error);
+      
+      // Update task status
+      this.taskGraph.updateTaskStatus(task.id, 'failed', { error: error.message });
+
+      if (socket) {
+        socket.emit('task_failed', {
+          projectId: projectId,
+          taskId: task.id,
+          task: task,
+          error: error.message
+        });
+      }
+      
+      throw error;
+    }
+  }
+
+  /**
+   * Select best specialist for a task using LLM intelligence
+   */
+  async selectSpecialistForTask(task) {
+    const availableSpecialists = this.getAvailableSpecialists();
+    
+    // Use LLM to select best specialist
+    const selection = await this.requirementsAnalyzer.llm.selectSpecialist(
+      task, 
+      availableSpecialists, 
+      task.dependencyOutputs || {}
+    );
+
+    // Find the actual specialist instance
+    const specialistName = selection.selected || selection;
+    return availableSpecialists.find(s => 
+      s.name === specialistName || 
+      s.specialization.includes(specialistName) ||
+      specialistName.toLowerCase().includes(s.name.toLowerCase())
+    );
+  }
+
+  /**
+   * Execute task using specialist with full context
+   */
+  async executeTaskWithSpecialist(task, specialist, socket) {
+    // For now, use the existing goose integration or simulate
+    // In the future, this would call specialist.executeTask(task)
+    
+    console.log(`🔄 Executing ${task.title} with ${specialist.name}...`);
+    
+    // Simulate task execution for now
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    // Return mock result
+    return {
+      status: 'completed',
+      outputs: task.context?.outputs || [],
+      deliverables: [`${task.title} completed by ${specialist.name}`],
+      qualityScore: 0.85 + Math.random() * 0.1,
+      duration: task.estimatedDuration || 60,
+      specialist: specialist.name
+    };
+  }
+
+  /**
+   * Get available specialists (simplified)
+   */
+  getAvailableSpecialists() {
+    return [
+      { 
+        name: 'React Frontend', 
+        specialization: 'Frontend Development',
+        capabilities: ['React', 'JavaScript', 'CSS', 'UI/UX']
+      },
+      { 
+        name: 'Python Backend', 
+        specialization: 'Backend Development',
+        capabilities: ['Python', 'FastAPI', 'PostgreSQL', 'API Design']
+      },
+      { 
+        name: 'QA Testing', 
+        specialization: 'Quality Assurance',
+        capabilities: ['Testing', 'Automation', 'Quality Control']
+      },
+      { 
+        name: 'Code Review', 
+        specialization: 'Code Quality',
+        capabilities: ['Security', 'Best Practices', 'Performance']
+      }
+    ];
+  }
+
+  /**
+   * Get Smart Architect project status
+   */
+  getSmartArchitectStatus(projectId) {
+    const project = this.smartArchitect.projects.get(projectId);
+    if (!project) return null;
+
+    return {
+      project: project,
+      taskGraph: this.taskGraph.exportGraph(),
+      statistics: this.taskGraph.getStatistics(),
+      analysis: this.smartArchitect.activeAnalysis.get(projectId)
+    };
   }
 }
 
