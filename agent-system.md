@@ -1,6 +1,6 @@
 # Agent System - Specialized AI Agent Architecture
 
-## Overview
+## Overview this is a test
 
 The Maverick Agent System implements a capability-based agent registry with specialized AI agents for different aspects of software development. Each agent is designed with specific expertise, efficiency ratings, and skill assessments to ensure optimal task assignment and execution quality.
 
@@ -15,6 +15,7 @@ class AgentRegistry {
   agents: Map()           // Registered agent instances
   version: '1.0.0'       // Registry version
   lastUpdated: Date      // Last registry update
+  test: a testf
 }
 ```
 
